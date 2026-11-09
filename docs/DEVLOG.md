@@ -50,3 +50,6 @@
 - All five schemas: ConfigDict(frozen=True, extra="forbid"), with tests.
 - 1.4 gains check 7: stored content_hash must equal the recomputed hash.
 - 1.3 gains a test: generated v1 and v2 pass all load checks.
+- 1.4 load-time checks: tests first (test_checks.py), then data/checks.py (check_input_set,
+  InputError collecting all problems) and data/loader.py (save/load JSON; load runs the checks).
+  Hash check proven by editing a cost in the saved JSON and expecting rejection.

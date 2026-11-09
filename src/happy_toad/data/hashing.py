@@ -26,6 +26,11 @@ def canonical_json(data: InputSet) -> str:
     return json.dumps(payload, sort_keys=True, separators=(",", ":"))
 
 
+def compute_hash(data: InputSet) -> str:
+    """SHA-256 hex digest of the canonical JSON."""
+    return hashlib.sha256(canonical_json(data).encode()).hexdigest()
+
+
 def build_input_set(
     version_id: str,
     sectors: list[Sector],
@@ -42,5 +47,4 @@ def build_input_set(
         offloads=offloads,
         must_fund=must_fund,
     )
-    digest = hashlib.sha256(canonical_json(draft).encode()).hexdigest()
-    return draft.model_copy(update={"content_hash": digest})
+    return draft.model_copy(update={"content_hash": compute_hash(draft)})
