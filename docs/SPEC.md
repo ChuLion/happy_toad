@@ -87,7 +87,7 @@ Notes:
 - Relief is capped by need (row 1) and by what funded candidates supply (row 2), so a candidate
   shared across sectors counts toward every sector it relieves.
 - If `must_fund_total > budget` the right-hand side of the budget row is negative, so no
-  selection is feasible: status `infeasible`.
+  selection is feasible: status `Infeasible`.
 - `base_year`, `δ` and `ε` are model parameters, not part of the input data.
 
 ### Solver result object
