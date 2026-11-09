@@ -79,3 +79,18 @@
   gap of -3.55e-15 less than 0") and writes "Optimal (within gap tolerance)", which PuLP 4.2
   reports as GapLimit. The plan was correct. Fix: GapLimit -> Optimal, valid because gaps are
   pinned at 0. Flagged to owner as a change to the mapping rule.
+- Comparison script `scripts/compare_greedy.py` (not a test): optimizer vs greedy
+  relief-per-cost (marginal gain, recomputed after each pick) on generated v1. Budget = share ×
+  total candidate cost + must-fund total. Gap = (opt − greedy) / opt. All solves Optimal.
+
+  | seed | 20% gap | 50% gap | 80% gap |
+  |---|---|---|---|
+  | 42 | 1.81% (895.0 vs 878.8) | 0 | 0 |
+  | 1 | 0.88% (1083.7 vs 1074.1) | 0 | 0 |
+  | 2 | 1.22% (1036.3 vs 1023.6) | 0 | 0 |
+
+  Finding: at 50% and 80% both methods reach the same relief (the maximum), so the budget stops
+  binding somewhere between 20% and 50%. Candidates overlap heavily (about 2.5x coverage), so the
+  interesting part of the sweep (1.8) is low budgets, roughly 5-40% of candidate cost. The
+  optimizer's edge over greedy is small (about 1-2%) on this data; the generator may need
+  tighter coverage if we want a more dramatic demo. Not changed; owner's call.
