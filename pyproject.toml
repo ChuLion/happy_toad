@@ -1,0 +1,35 @@
+[project]
+name = "happy-toad"
+version = "0.1.0"
+description = "AI agent layer over a budget-constrained capital-allocation optimizer (synthetic data)."
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=2.5.4",
+    "pulp>=4.2.0",
+    "pydantic>=2.14.3",
+    "rich>=15.0.0",
+    "typer>=0.29.0",
+]
+
+[project.scripts]
+happy-toad = "happy_toad.cli:app"
+
+[build-system]
+requires = ["uv_build>=0.9.25,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.17.4",
+]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
