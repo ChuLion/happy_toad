@@ -154,16 +154,40 @@ including must-fund) and prints a rich table with columns: `budget`, `must_fund`
 `spend`, `weighted relief`, `# selected`. Infeasible budgets appear as rows with their status.
 
 ### Synthetic data generator
-`happy-toad generate --seed N` writes `v1` and `v2` JSON to `data/inputs/`. Seeded with
-`numpy.random.default_rng`; same seed -> identical files.
-- About 60 sectors, 120 candidates; each candidate relieves 1-4 sectors.
-- N must-fund projects (default N = 5), with total cost ≈ 10% of total candidate cost. The 10%
-  is a generator parameter (`must_fund_share`), documented in the README.
-- Some sectors are deliberately **under-served**: total possible offload < shortfall, so the
-  shortfall cap never binds for them.
-- `v2` is derived from `v1` with deliberate changes: new constrained sectors, moved trigger
-  years, changed candidate costs, changed offloads. Moved triggers never go below `base_year`.
-- Test: generated `v1` and `v2` pass all load-time checks.
+`happy-toad generate --seed N` (default 42) writes `v1.json`, `v2.json` and
+`changes_v1_to_v2.json` to `data/inputs/` (gitignored; regenerate with the same seed).
+Seeded with `numpy.random.default_rng`; same seed -> byte-identical files. All parameters live in
+`GeneratorConfig` (`data/config.py`). Floats are rounded to 2 decimals. Defaults:
+
+| Item | Default |
+|---|---|
+| Size | 60 sectors (`S001`..), 120 candidates (`C001`..), 5 must-fund (`M1`..) |
+| Trigger year | 2026-2035, `2026 + floor(10 * Beta(1, 2.5))` (skewed near) |
+| Shortfall | uniform 10-100 |
+| Labels | 4 markets `market_a..d`, 3 types `type_a..c`, uniform |
+| Candidate reach | each candidate relieves 1-4 sectors (random sectors) |
+| Offload per row | 20-80% of that sector's shortfall (uniform) |
+| Candidate cost | (candidate total offload) x uniform(0.7, 1.3) |
+| Must-fund | total = 10% (`must_fund_share`) of total candidate cost, split by random weights |
+| Under-served | 17.5% of sectors (10 of 60) are designated under-served |
+
+**Under-served construction.** A designated sector gets exactly one offload row, which is at most
+80% of its shortfall, so it can never be fully covered. Other sectors can also end up
+under-served by chance; across seeds 1, 2, 3, 42 the total was 11-14 of 60 (18-23%).
+
+**v2** is derived from v1 (`make_v2`) with these deliberate changes, each recorded in
+`changes_v1_to_v2.json` (one entry per change, with `kind`, ids, `old`, `new`):
+- `sector_added` x3: new constrained sectors, each with a single offload row (so under-served);
+  the entry holds the full sector and its offload row.
+- `trigger_moved` x6: distinct sectors, new year in 2026-2035 (never below `base_year`), always
+  different from the old year.
+- `cost_changed` x10: distinct candidates, cost scaled by 0.5-0.9 or 1.1-1.5.
+- `offload_changed` x8: distinct existing offload rows, amount scaled the same way.
+Nothing else changes (must-fund projects, labels, other fields are identical).
+
+**Tests.** Same seed gives identical data and files; v1 and v2 pass all load-time checks; v2
+differs from v1 in exactly the listed ways (an independent diff of v1 vs v2 is compared to the
+change list); counts and ranges match the table.
 
 ### Out of scope for M1
 Agent layer, natural-language interface, scenario comparison, multi-year budgets, persistence of

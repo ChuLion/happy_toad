@@ -53,3 +53,14 @@
 - 1.4 load-time checks: tests first (test_checks.py), then data/checks.py (check_input_set,
   InputError collecting all problems) and data/loader.py (save/load JSON; load runs the checks).
   Hash check proven by editing a cost in the saved JSON and expecting rejection.
+
+### 2026-11-09 — 1.3 generator
+- 1.4 addition: math.isfinite checks for cost, shortfall, offload amount (test first).
+- 1.3: GeneratorConfig (data/config.py), make_v1 (data/generator.py), make_v2 + change list
+  (data/evolve.py), write_inputs (data/files.py), `happy-toad generate --seed`. Tests first.
+- Owner-specified defaults documented in SPEC (trigger years, shortfall, offload share, cost
+  factor, labels, v2 change counts). Generated JSON is gitignored.
+- Implementation notes: under-served sectors get exactly one offload row (<= 80% of shortfall)
+  so they are guaranteed under-served; measured 11-14 of 60 under-served per seed because some
+  other sectors end up under-served by chance.
+- Stopped for owner review.
