@@ -42,3 +42,5 @@
 - Test 4: if CBC returns Undefined rather than Infeasible, use a pre-solve check
   (must_fund_total > budget -> Infeasible) instead of widening the mapping. Written into the
   SPEC as the pre-solve check from the start.
+- 1.2 schemas: tests first (test_schemas.py, test_hashing.py), then data/schemas.py and
+  data/hashing.py (canonical_json, build_input_set). Value checks deferred to 1.4.
