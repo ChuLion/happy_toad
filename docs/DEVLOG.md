@@ -31,3 +31,14 @@
   status "TimeLimit" with best-found plan, never "Optimal".
 - Fallback rule: if tests 3 or 5 fail due to ε lost in solver tolerance, raise δ to 1e-3, re-run
   test 7, log here.
+
+### Owner changes, round 3 (same day)
+- TimeLimit with no incumbent: status TimeLimit, selected=None, objective=None. `None` = no plan,
+  `[]` = a plan that funds nothing.
+- PuLP/CBC -> status mapping lives in its own function, unit-tested with mocked statuses (no
+  forced real timeout).
+- Test 2 budget = sum of candidate costs + must-fund (never inf).
+- Test 3 budget funds all three candidates so only the tie-break decides.
+- Test 4: if CBC returns Undefined rather than Infeasible, use a pre-solve check
+  (must_fund_total > budget -> Infeasible) instead of widening the mapping. Written into the
+  SPEC as the pre-solve check from the start.

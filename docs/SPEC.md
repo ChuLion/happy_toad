@@ -87,17 +87,19 @@ Notes:
 - Relief is capped by need (row 1) and by what funded candidates supply (row 2), so a candidate
   shared across sectors counts toward every sector it relieves.
 - If `must_fund_total > budget` the right-hand side of the budget row is negative, so no
-  selection is feasible: status `Infeasible`.
+  selection is feasible. A **pre-solve check** returns `Infeasible` immediately in that case,
+  without calling the solver (CBC may report `Undefined` for such a model, and we do not widen
+  the status mapping to cover it).
 - `base_year`, `δ` and `ε` are model parameters, not part of the input data.
 
 ### Solver result object
 | Field | Meaning |
 |---|---|
 | `status` | one of `Optimal`, `Infeasible`, `TimeLimit`, `Error` |
-| `objective` | weighted relief only (see above) |
-| `selected` | funded candidate ids |
-| `relief` | relief per sector id |
-| `spend` | candidate spend only (excludes must-fund) |
+| `objective` | weighted relief only (see above); `None` if there is no plan |
+| `selected` | funded candidate ids; `None` if there is no plan (an empty list means "a plan that funds nothing") |
+| `relief` | relief per sector id; `None` if there is no plan |
+| `spend` | candidate spend only (excludes must-fund); `None` if there is no plan |
 | `solve_time` | seconds |
 | `budget` | total budget given |
 | `must_fund_total` | sum of must-fund costs |
@@ -108,18 +110,26 @@ Notes:
 Pinned solver settings: `threads=1`, `timeLimit=30` seconds, `gapRel=0`, `gapAbs=0`. All are
 recorded in `solver_settings` so a run can be reproduced.
 
-Status mapping from PuLP/CBC: solved to optimality -> `Optimal`; PuLP "Infeasible" ->
-`Infeasible`; stopped by `timeLimit` -> `TimeLimit` (the best-found plan is reported, if any,
-and the status is **never** `Optimal`); anything else -> `Error`. PuLP can report "Optimal"
-after a time-limit stop, so the mapping also checks the CBC solution status; this is verified
-by a test.
+**No plan vs empty plan.** `selected=None` means the solver produced no plan (`Infeasible`,
+`Error`, or `TimeLimit` with no incumbent). `selected=[]` means a real plan that funds nothing
+(e.g. zero budget).
+
+**Status mapping.** A separate pure function `map_status(pulp_status, sol_status, has_incumbent)`
+turns PuLP/CBC output into one of our statuses: solved to optimality -> `Optimal`; PuLP
+"Infeasible" -> `Infeasible`; stopped by `timeLimit` -> `TimeLimit` (never `Optimal`; the
+best-found plan is reported if there is an incumbent, otherwise `selected=None`,
+`objective=None`); anything else -> `Error`. PuLP can report "Optimal" after a time-limit stop,
+so the function also checks the CBC solution status. It is unit-tested with **mocked**
+statuses; we do not try to force a real timeout.
 
 ### Known-answer tests (written before the model)
 1. **Zero budget** (no must-fund): nothing selected, objective 0.
-2. **Unlimited budget**: every sector's relief equals `min(shortfall, total possible offload)`.
+2. **Ample budget**: `budget = sum of all candidate costs + must_fund_total` (never `inf`);
+   every sector's relief equals `min(shortfall, total possible offload)`.
 3. **Shared candidate**: one candidate relieving 2 sectors, cheaper than two single-sector
-   candidates: the shared one is selected, the singles are not.
-4. **Must-fund above budget**: status `Infeasible`.
+   candidates, with a budget large enough to fund **all three**, so that only the tie-break can
+   explain why the shared one is selected and the singles are not.
+4. **Must-fund above budget**: status `Infeasible` (via the pre-solve check), `selected=None`.
 5. **Zero marginal relief**: a candidate that adds no relief (e.g. its sector is already fully
    covered by another funded candidate) is not funded, thanks to the tie-break.
 6. **Greedy trap**: budget 10, all weights 1, three sectors with one candidate each:
