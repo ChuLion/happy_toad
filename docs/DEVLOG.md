@@ -44,3 +44,9 @@
   SPEC as the pre-solve check from the start.
 - 1.2 schemas: tests first (test_schemas.py, test_hashing.py), then data/schemas.py and
   data/hashing.py (canonical_json, build_input_set). Value checks deferred to 1.4.
+
+### Owner changes, round 4 (same day)
+- Accepted the unconditional pre-solve check for must-fund > budget, and the 1.4-before-1.3 order.
+- All five schemas: ConfigDict(frozen=True, extra="forbid"), with tests.
+- 1.4 gains check 7: stored content_hash must equal the recomputed hash.
+- 1.3 gains a test: generated v1 and v2 pass all load checks.

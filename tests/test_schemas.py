@@ -35,3 +35,36 @@ def test_wrong_type_is_rejected() -> None:
 def test_missing_field_is_rejected() -> None:
     with pytest.raises(ValidationError):
         Candidate(id="C1", type="build")
+
+
+MODELS = [
+    (Sector, dict(id="S1", market="north", shortfall=10.0, trigger_year=2028)),
+    (Candidate, dict(id="C1", type="build", cost=5.0)),
+    (Offload, dict(candidate_id="C1", sector_id="S1", amount=3.0)),
+    (MustFundProject, dict(id="M1", cost=2.0)),
+    (
+        InputSet,
+        dict(
+            version_id="v1",
+            content_hash="abc",
+            sectors=[],
+            candidates=[],
+            offloads=[],
+            must_fund=[],
+        ),
+    ),
+]
+
+
+@pytest.mark.parametrize(("model", "kwargs"), MODELS)
+def test_models_are_frozen(model, kwargs) -> None:
+    obj = model(**kwargs)
+    field = next(iter(kwargs))
+    with pytest.raises(ValidationError):
+        setattr(obj, field, kwargs[field])
+
+
+@pytest.mark.parametrize(("model", "kwargs"), MODELS)
+def test_unknown_field_is_rejected(model, kwargs) -> None:
+    with pytest.raises(ValidationError):
+        model(**kwargs, surprise=1)

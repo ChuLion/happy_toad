@@ -21,6 +21,10 @@ Units: shortfall, offload and cost are plain floats. The unit meaning is documen
 (1.9); the code does no unit conversion.
 
 ### Schemas (pydantic v2)
+All five models use `model_config = ConfigDict(frozen=True, extra="forbid")`: instances cannot be
+mutated after creation and unknown fields are rejected. (Frozen is shallow: the lists inside an
+`InputSet` can still be mutated; treat them as read-only.)
+
 | Model | Fields |
 |---|---|
 | Sector | `id: str`, `market: str`, `shortfall: float`, `trigger_year: int` |
@@ -44,6 +48,10 @@ SHA-256 hex digest of that string, so identical content gives an identical hash 
 5. Sector `shortfall >= 0`.
 6. `trigger_year >= base_year` is **rejected** otherwise (earlier triggers are an error, not
    clamped). `base_year` defaults to 2026.
+7. The stored `content_hash` equals the hash recomputed from the loaded content, so an input
+   file edited by hand (or corrupted) is rejected.
+
+All problems found are reported together in one `InputError`, not just the first.
 
 ### Formulation
 Sets and data: sectors `s`, candidates `c`; `shortfall[s]`, `offload[c,s]` (0 if no row),
@@ -155,6 +163,7 @@ including must-fund) and prints a rich table with columns: `budget`, `must_fund`
   shortfall cap never binds for them.
 - `v2` is derived from `v1` with deliberate changes: new constrained sectors, moved trigger
   years, changed candidate costs, changed offloads. Moved triggers never go below `base_year`.
+- Test: generated `v1` and `v2` pass all load-time checks.
 
 ### Out of scope for M1
 Agent layer, natural-language interface, scenario comparison, multi-year budgets, persistence of
