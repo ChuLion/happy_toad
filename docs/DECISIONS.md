@@ -17,3 +17,10 @@ fixed relief). More rigorous and needs no ε, but doubles the solves per sweep p
 Guard: known-answer test 7 (a candidate costing the full available budget with relief just
 above δ must be selected) ensures ε never trades real relief for savings. Fallback: if tests 3
 or 5 fail because ε is lost in solver tolerance, raise δ to 1e-3, re-run test 7, log in DEVLOG.
+
+## D3 — CBC via `pulp[cbc]` (cbcbox)
+PuLP 4.2 no longer ships a CBC binary: `listSolvers(onlyAvailable=True)` was empty and
+`PULP_CBC_CMD` is gone. Chosen: `uv add 'pulp[cbc]'`, which adds the `cbcbox` binary wheel.
+Same setup locally and in CI, no system install. Alternatives considered: system CBC via
+brew/apt (setup outside uv, CBC version can differ per machine) and switching to HiGHS (departs
+from the CBC spec). Owner approved the new dependency.

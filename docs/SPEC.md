@@ -122,13 +122,23 @@ recorded in `solver_settings` so a run can be reproduced.
 `Error`, or `TimeLimit` with no incumbent). `selected=[]` means a real plan that funds nothing
 (e.g. zero budget).
 
-**Status mapping.** A separate pure function `map_status(pulp_status, sol_status, has_incumbent)`
-turns PuLP/CBC output into one of our statuses: solved to optimality -> `Optimal`; PuLP
-"Infeasible" -> `Infeasible`; stopped by `timeLimit` -> `TimeLimit` (never `Optimal`; the
-best-found plan is reported if there is an incumbent, otherwise `selected=None`,
-`objective=None`); anything else -> `Error`. PuLP can report "Optimal" after a time-limit stop,
-so the function also checks the CBC solution status. It is unit-tested with **mocked**
-statuses; we do not try to force a real timeout.
+**Status mapping.** A separate pure function `map_status(solve_status)` turns PuLP's
+`LpSolveStatus` (PuLP 4.2 reports it on the object returned by `solve()`, alongside
+`has_solution`) into one of our statuses: `Optimal` -> `Optimal`; `GapLimit` -> `Optimal`;
+`Infeasible` -> `Infeasible`; `TimeLimit` -> `TimeLimit`; everything else -> `Error`.
+- `GapLimit` is mapped to `Optimal` because CBC reports "Optimal (within gap tolerance)" whenever
+  its gap test ends the search, and we pin both gap tolerances to 0, so that is a proven optimum.
+  (Found in M1 1.6: CBC logged `integer gap of -3.55e-15 less than 0` and `Gap: 0`.)
+- A time-limit stop is always `TimeLimit`, never `Optimal`. Whether a plan is reported depends on
+  `has_solution`: with an incumbent the best-found plan is reported; without one `selected`,
+  `objective`, `relief` and `spend` are `None`.
+- `map_status` is unit-tested with **mocked** statuses (every `LpSolveStatus` member is covered);
+  the plan/no-plan branches are tested by patching `LpProblem.solve`. We do not force a real
+  timeout.
+
+### Dependencies
+PuLP 4.2 no longer bundles the CBC binary. It comes from the `cbcbox` package via
+`pulp[cbc]` (DECISIONS D3). The solver is `pulp.COIN_CMD` pointing at that binary.
 
 ### Known-answer tests (written before the model)
 1. **Zero budget** (no must-fund): nothing selected, objective 0.

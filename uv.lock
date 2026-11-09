@@ -21,6 +21,18 @@ wheels = [
 ]
 
 [[package]]
+name = "cbcbox"
+version = "2.929"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6a/9e/c41844f3a746500b88982817233f3f2f4fa6d3a554cedb9222bac9efcbea/cbcbox-2.929-py3-none-macosx_15_0_arm64.whl", hash = "sha256:610fd250f737b19f599d56cca299682a4519472b3ff6a13044502eb71e03931e", size = 59626733, upload-time = "2026-03-23T15:28:20.758Z" },
+    { url = "https://files.pythonhosted.org/packages/3f/08/172af0d618ede8668862ae9c83ffcd929bc966610c1ce357b268edb33645/cbcbox-2.929-py3-none-macosx_15_0_x86_64.whl", hash = "sha256:b369071081176fd55ba9d104c2f2330133c36f0264ebe0215c50a366f290a050", size = 87883726, upload-time = "2026-03-23T15:28:24.874Z" },
+    { url = "https://files.pythonhosted.org/packages/d4/c7/a57493dd959a57dcb8dc31aeef468c0e95d066d4bbf8fc59f9dda3a1fd97/cbcbox-2.929-py3-none-manylinux2014_aarch64.whl", hash = "sha256:62841ab4ed4e1c368bcba8d62c66cd7dd03f3dfaf1ecf4a01c6385a122d1946e", size = 145740150, upload-time = "2026-03-23T15:28:29.617Z" },
+    { url = "https://files.pythonhosted.org/packages/4c/86/502b81d060603e1016a8cb471064e4e65d8009c2feed60ea878b8513a728/cbcbox-2.929-py3-none-manylinux2014_x86_64.whl", hash = "sha256:a57a403cc44fb2af0aa53cb790a7642390f1836a5ff6a7a0b31b30eb6597e3e0", size = 181208771, upload-time = "2026-03-23T15:28:35.544Z" },
+    { url = "https://files.pythonhosted.org/packages/0c/85/2fef9c7c3054ebfb9b0e84fabbeac776a18514b025efa5abd768c889f560/cbcbox-2.929-py3-none-win_amd64.whl", hash = "sha256:0a91420befb965ec1763aab62d7908d3a89a51af845e2a4e05c09d99a67f1151", size = 135305901, upload-time = "2026-03-23T15:28:42.021Z" },
+]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -158,7 +170,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "numpy" },
-    { name = "pulp" },
+    { name = "pulp", extra = ["cbc"] },
     { name = "pydantic" },
     { name = "rich" },
     { name = "typer" },
@@ -174,7 +186,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "numpy", specifier = ">=2.5.4" },
-    { name = "pulp", specifier = ">=4.2.0" },
+    { name = "pulp", extras = ["cbc"], specifier = ">=4.2.0" },
     { name = "pydantic", specifier = ">=2.14.3" },
     { name = "rich", specifier = ">=15.0.0" },
     { name = "typer", specifier = ">=0.29.0" },
@@ -388,6 +400,11 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/78/52/446696221680bf93007bd39e5b11f3c2c77f658169435a2a643fafc53c19/pulp-4.2.0-cp315-cp315-win_amd64.whl", hash = "sha256:711967f49bf653bf6350b57f3e36d0e815a303d971324731e11a7cdf2379142c", size = 569315, upload-time = "2026-10-22T10:41:20.284Z" },
     { url = "https://files.pythonhosted.org/packages/11/d9/8fb88dfa2835fda7cc3cbcf31ff23f5fcc0139a8c658e102f678163b0c80/pulp-4.2.0-cp315-cp315t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4ffd52f6cb7d0bc3a6a18cef213c6acd6fb5107d6bc9d01f52e8b012c5466c2c", size = 720226, upload-time = "2026-10-22T10:41:21.384Z" },
     { url = "https://files.pythonhosted.org/packages/f0/c9/43d5ba7d3fc93fe5882404f496c3f2140bd5b3175ad3db0669aca0884105/pulp-4.2.0-cp315-cp315t-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:a7f5a54792c00061802efd33dced53548f27637fa0588e195ac1cd47d07998df", size = 761097, upload-time = "2026-10-22T10:41:22.895Z" },
+]
+
+[package.optional-dependencies]
+cbc = [
+    { name = "cbcbox" },
 ]
 
 [[package]]

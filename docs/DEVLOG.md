@@ -64,3 +64,18 @@
   so they are guaranteed under-served; measured 11-14 of 60 under-served per seed because some
   other sectors end up under-served by chance.
 - Stopped for owner review.
+
+### 2026-11-09 — 1.5/1.6 optimizer
+- Tests first: test_status.py (map_status, mocked statuses) and test_known_answers.py (tests
+  1-7, plus weight, metadata, and no-plan vs empty-plan). Confirmed they failed (modules
+  missing) before writing code.
+- Found: PuLP 4.2 has no bundled CBC. Asked; owner approved `pulp[cbc]` (cbcbox). DECISIONS D3.
+- PuLP 4.2 API: `solve()` returns LpSolveStats (status, has_solution), so map_status takes just
+  the LpSolveStatus. Code: engine/{status,result,model}.py.
+- Tests 5 and 7 passed first time; delta stays 1e-4 (no fallback to 1e-3 needed). Mutation
+  check: with delta=0, tests 3 and 5 fail; with delta=1e-2, test 7 fails. The tie-break is
+  really being tested.
+- Test 2 returned "Error" at first. Root cause (CBC log): CBC exits via its gap test ("integer
+  gap of -3.55e-15 less than 0") and writes "Optimal (within gap tolerance)", which PuLP 4.2
+  reports as GapLimit. The plan was correct. Fix: GapLimit -> Optimal, valid because gaps are
+  pinned at 0. Flagged to owner as a change to the mapping rule.
