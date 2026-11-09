@@ -1,5 +1,6 @@
 """Load-time checks on an input set. All problems are collected and reported together."""
 
+import math
 from collections import Counter
 from collections.abc import Iterator
 
@@ -41,6 +42,15 @@ def _reference_problems(data: InputSet) -> Iterator[str]:
             yield f"offload refers to unknown sector {o.sector_id!r}"
 
 
+def _finite_problems(data: InputSet) -> Iterator[str]:
+    numbers = [(f"cost of {i.id!r}", i.cost) for i in [*data.candidates, *data.must_fund]]
+    numbers += [(f"offload amount {o.candidate_id}/{o.sector_id}", o.amount) for o in data.offloads]
+    numbers += [(f"shortfall of {s.id!r}", s.shortfall) for s in data.sectors]
+    for label, value in numbers:
+        if not math.isfinite(value):
+            yield f"{label} must be finite, got {value}"
+
+
 def _value_problems(data: InputSet, base_year: int) -> Iterator[str]:
     for item in [*data.candidates, *data.must_fund]:
         if item.cost <= 0:
@@ -66,6 +76,7 @@ def check_input_set(data: InputSet, base_year: int = DEFAULT_BASE_YEAR) -> None:
     problems = [
         *_id_problems(data),
         *_reference_problems(data),
+        *_finite_problems(data),
         *_value_problems(data, base_year),
         *_hash_problems(data),
     ]

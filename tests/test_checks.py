@@ -102,3 +102,11 @@ def test_stored_hash_must_match_content(tmp_path) -> None:
     path.write_text(json.dumps(raw))
     with pytest.raises(InputError, match="content_hash"):
         load_input_set(path, BASE_YEAR)
+
+
+@pytest.mark.parametrize("bad", [float("inf"), float("nan")])
+def test_non_finite_numbers_are_rejected(bad) -> None:
+    rejects(good(candidates=[Candidate(id="C1", type="a", cost=bad)]), "finite")
+    rejects(good(must_fund=[MustFundProject(id="M1", cost=bad)]), "finite")
+    rejects(good(offloads=[Offload(candidate_id="C1", sector_id="S1", amount=bad)]), "finite")
+    rejects(good(sectors=[Sector(id="S1", market="n", shortfall=bad, trigger_year=2028)]), "finite")
