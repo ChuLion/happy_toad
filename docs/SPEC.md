@@ -66,9 +66,21 @@ Constraints:
     sum_c cost[c] * x[c] <= budget - must_fund_total
 
 Notes:
-- **Tie-break.** `ε` is small (default `1e-6`) so among solutions with equal weighted relief the
-  cheaper one wins; a candidate adding no relief is never funded. `ε` must stay small enough that
-  `ε * total candidate cost` is below any real relief difference we care about.
+- **Tie-break.** Among solutions with equal weighted relief the cheaper one wins; a candidate
+  adding no relief is never funded. `ε` is computed per solve:
+
+      avail = budget - must_fund_total
+      ε = δ / (10 × avail),   δ = 1e-4  (weighted-relief units)
+
+  Since spend <= avail, `ε × max spend <= δ/10 < δ`: the cost term can never outweigh a
+  relief difference of `δ` or more. If `avail <= 0` then `ε = 0` (nothing is fundable, or the
+  model is infeasible, so no tie-break is needed).
+- **Solver tolerance must stay below the ε term.** CBC `gapAbs` and `gapRel` are set explicitly
+  (both 0) so the solver never stops at a solution that is "close enough" and silently ignores
+  the tie-break. If tests 3 or 5 fail because ε is lost in solver tolerance, raise `δ` to `1e-3`,
+  re-run test 7, and log the change in DEVLOG.
+- **Alternative considered:** a two-stage lexicographic solve (maximize relief, then minimize
+  cost at fixed relief). See DECISIONS.md D2.
 - **Reported objective is weighted relief only**: `sum_s weight[s] * r[s]`, recomputed from the
   solution, never the solver's tie-break objective.
 - Sectors that trigger sooner get larger weight (trigger at `base_year` -> weight 1).
@@ -76,12 +88,12 @@ Notes:
   shared across sectors counts toward every sector it relieves.
 - If `must_fund_total > budget` the right-hand side of the budget row is negative, so no
   selection is feasible: status `infeasible`.
-- `base_year` and `ε` are model parameters, not part of the input data.
+- `base_year`, `δ` and `ε` are model parameters, not part of the input data.
 
 ### Solver result object
 | Field | Meaning |
 |---|---|
-| `status` | one of `optimal`, `infeasible`, `time_limit_feasible`, `time_limit_no_solution`, `error` |
+| `status` | one of `Optimal`, `Infeasible`, `TimeLimit`, `Error` |
 | `objective` | weighted relief only (see above) |
 | `selected` | funded candidate ids |
 | `relief` | relief per sector id |
@@ -91,26 +103,32 @@ Notes:
 | `must_fund_total` | sum of must-fund costs |
 | `base_year` | as used |
 | `version_id`, `content_hash` | of the input set solved |
-| `time_limit`, `threads` | solver settings used (CBC `timeLimit`, `threads`) |
+| `solver_settings` | `threads`, `timeLimit`, `gapRel`, `gapAbs`, `epsilon`, `delta` as used |
 
-Status mapping from PuLP/CBC: solved to optimality -> `optimal`; PuLP "Infeasible" ->
-`infeasible`; stopped by `timeLimit` with an integer-feasible incumbent -> `time_limit_feasible`
-(results are reported, flagged as possibly suboptimal); stopped by `timeLimit` with no incumbent
--> `time_limit_no_solution`; anything else -> `error`. PuLP can report "Optimal" after a time
-limit stop, so the mapping also checks the solution status; this is verified by a test.
+Pinned solver settings: `threads=1`, `timeLimit=30` seconds, `gapRel=0`, `gapAbs=0`. All are
+recorded in `solver_settings` so a run can be reproduced.
+
+Status mapping from PuLP/CBC: solved to optimality -> `Optimal`; PuLP "Infeasible" ->
+`Infeasible`; stopped by `timeLimit` -> `TimeLimit` (the best-found plan is reported, if any,
+and the status is **never** `Optimal`); anything else -> `Error`. PuLP can report "Optimal"
+after a time-limit stop, so the mapping also checks the CBC solution status; this is verified
+by a test.
 
 ### Known-answer tests (written before the model)
 1. **Zero budget** (no must-fund): nothing selected, objective 0.
 2. **Unlimited budget**: every sector's relief equals `min(shortfall, total possible offload)`.
 3. **Shared candidate**: one candidate relieving 2 sectors, cheaper than two single-sector
    candidates: the shared one is selected, the singles are not.
-4. **Must-fund above budget**: status `infeasible`.
+4. **Must-fund above budget**: status `Infeasible`.
 5. **Zero marginal relief**: a candidate that adds no relief (e.g. its sector is already fully
    covered by another funded candidate) is not funded, thanks to the tie-break.
 6. **Greedy trap**: budget 10, all weights 1, three sectors with one candidate each:
    A cost 6 / relief 6, B cost 5 / relief 4.5, C cost 5 / relief 4.5 (sector shortfalls large
    enough not to cap). Greedy by relief-per-cost picks A and stops at relief 6. Expected optimum:
    `{B, C}`, objective 9.
+7. **Tie-break never beats real relief**: one candidate costing the entire available budget
+   (`avail`) with weighted relief just above `δ` (e.g. `1.5e-4`) must be selected. Guards
+   against ε trading real relief for savings.
 
 ### Budget sweep and CLI
 `happy-toad sweep <input.json> --budgets 0,50,100,...` solves once per budget (budget = total
@@ -121,7 +139,8 @@ including must-fund) and prints a rich table with columns: `budget`, `must_fund`
 `happy-toad generate --seed N` writes `v1` and `v2` JSON to `data/inputs/`. Seeded with
 `numpy.random.default_rng`; same seed -> identical files.
 - About 60 sectors, 120 candidates; each candidate relieves 1-4 sectors.
-- N must-fund projects (default 5).
+- N must-fund projects (default N = 5), with total cost ≈ 10% of total candidate cost. The 10%
+  is a generator parameter (`must_fund_share`), documented in the README.
 - Some sectors are deliberately **under-served**: total possible offload < shortfall, so the
   shortfall cap never binds for them.
 - `v2` is derived from `v1` with deliberate changes: new constrained sectors, moved trigger

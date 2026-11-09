@@ -19,3 +19,15 @@
 - Open questions resolved: base_year 2026 and earlier triggers rejected; floats with units
   documented in README; keep labels; no mypy in M1.
 - Added Done-when and subtask 1.9 (README with weight assumption, tag v0.1).
+
+### Owner changes, round 2 (same day)
+- Tie-break ε now computed per solve: ε = δ / (10 × (budget − must_fund_total)), δ = 1e-4;
+  CBC gapAbs/gapRel set explicitly to 0; ε, δ and gaps recorded in the result's solver settings.
+- Added known-answer test 7 (candidate costing the full available budget, relief just above δ,
+  must be selected).
+- Two-stage lexicographic solve recorded as the alternative considered (DECISIONS.md D2).
+- Must-fund N = 5, total ≈ 10% of total candidate cost (generator parameter).
+- Solver settings pinned: threads=1, timeLimit=30s, gapRel=0, gapAbs=0. Time-limit hits report
+  status "TimeLimit" with best-found plan, never "Optimal".
+- Fallback rule: if tests 3 or 5 fail due to ε lost in solver tolerance, raise δ to 1e-3, re-run
+  test 7, log here.
