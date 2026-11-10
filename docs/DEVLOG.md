@@ -94,3 +94,10 @@
   interesting part of the sweep (1.8) is low budgets, roughly 5-40% of candidate cost. The
   optimizer's edge over greedy is small (about 1-2%) on this data; the generator may need
   tighter coverage if we want a more dramatic demo. Not changed; owner's call.
+
+### 2026-11-10 — first CI run
+- Created private repo https://github.com/ChuLion/happy_toad and pushed `main`.
+- First CI run (ubuntu-latest) passed: `uv sync --locked` (installed cbcbox 2.929), ruff check,
+  ruff format --check, pytest: 80 passed. So the CBC dependency works on the CI runner.
+- Annotations only: actions/checkout@v4 and setup-uv@v6 target Node 20 (deprecated), and
+  ubuntu-latest migrates to Ubuntu 26 on 2026-10-19. Not changed.
