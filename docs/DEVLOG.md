@@ -110,3 +110,23 @@
 - Sample on generated v1 (seed 42): relief climbs 384.7 -> 1183.1 and plateaus from budget
   4922 on (spend plateaus at 4090 = 46% of candidate cost). The default 5%-60% range shows the
   whole curve.
+
+### 2026-11-10 — tie-break failure at scale (found by the sweep)
+- Found by the 1.8 budget sweep on generated v1, NOT by the unit tests: at budgets 4922.39 and
+  above, candidates with exactly zero marginal relief are funded (e.g. budget 5369.89: relief is
+  unchanged versus the previous budget, but spend rises). Tests 3/5/7 pass only because their
+  numbers are small. Platform note (owner's report): plateau spend differs between macOS (4090.14)
+  and Linux (4064.59), so the solver returns different optimal plans per platform.
+- Regression test written (tests/test_tiebreak_at_scale.py, not committed yet): for every selected
+  candidate, weighted relief without it must be lower by more than delta. Confirmed it fails now,
+  on 3 of 5 budgets (4922.39, 5369.89, 6264.87). `weighted_relief` moved to engine/relief.py so the
+  test and the comparison script share it.
+- Measurement, delta = 1e-4 vs the spec fallback 1e-3 (12 default budgets): at 1e-4, 3 useless
+  candidates (spend 49.11) at 4922.39 and 2 (spend 68.40) at each larger budget. At 1e-3 the
+  4922.39 case is fixed but 2 zero-marginal candidates (C003, C026, spend 68.40) remain at 5369.89
+  and above. So the delta fallback does NOT fix it.
+- Root cause evidence: the penalty is eps * cost = 2.2e-8 * 68.4 = 1.5e-6 against an objective of
+  about 1183, i.e. relative 1e-9, below CBC's numerical resolution. Setting CBC `increment` to
+  1e-9 (cutoff increment) removes the zero-marginal candidates at 5369.89+ but not at 4922.39, and
+  spend then wanders down with budget (4016, 3949, 3885), so plans are still not cost-minimal.
+  Tuning delta/CBC options cannot fix a scale mismatch; options presented to the owner.

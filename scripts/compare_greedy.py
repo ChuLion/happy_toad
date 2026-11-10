@@ -12,17 +12,8 @@ from rich.table import Table
 
 from happy_toad.data.generator import make_v1
 from happy_toad.data.schemas import InputSet
-from happy_toad.engine.model import BASE_YEAR, sector_weights, solve
-
-
-def weighted_relief(data: InputSet, chosen: set[str]) -> float:
-    """Weighted relief if exactly the `chosen` candidates are funded."""
-    weight = sector_weights(data, BASE_YEAR)
-    supply = {s.id: 0.0 for s in data.sectors}
-    for o in data.offloads:
-        if o.candidate_id in chosen:
-            supply[o.sector_id] += o.amount
-    return sum(weight[s.id] * min(s.shortfall, supply[s.id]) for s in data.sectors)
+from happy_toad.engine.model import BASE_YEAR, solve
+from happy_toad.engine.relief import weighted_relief
 
 
 def greedy(data: InputSet, avail: float) -> tuple[set[str], float]:
@@ -34,7 +25,7 @@ def greedy(data: InputSet, avail: float) -> tuple[set[str], float]:
         for c in data.candidates:
             if c.id in chosen or spend + c.cost > avail:
                 continue
-            gain = weighted_relief(data, chosen | {c.id}) - current
+            gain = weighted_relief(data, chosen | {c.id}, BASE_YEAR) - current
             if gain > 0 and (best is None or gain / c.cost > best[0]):
                 best = (gain / c.cost, c)
         if best is None:
