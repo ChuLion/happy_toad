@@ -101,3 +101,12 @@
   ruff format --check, pytest: 80 passed. So the CBC dependency works on the CI runner.
 - Annotations only: actions/checkout@v4 and setup-uv@v6 target Node 20 (deprecated), and
   ubuntu-latest migrates to Ubuntu 26 on 2026-10-19. Not changed.
+
+### 2026-11-10 — 1.8 sweep
+- Tests first (tests/test_sweep.py), then engine/sweep.py, report.py, `happy-toad sweep`.
+- GapLimit caveat added to the map_status docstring and SPEC.
+- Test 7 already asserted the reported objective equals 1.5e-4 at abs tolerance 1e-12
+  (objective is recomputed from relief), so no change.
+- Sample on generated v1 (seed 42): relief climbs 384.7 -> 1183.1 and plateaus from budget
+  4922 on (spend plateaus at 4090 = 46% of candidate cost). The default 5%-60% range shows the
+  whole curve.

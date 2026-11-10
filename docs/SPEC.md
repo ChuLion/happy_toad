@@ -129,6 +129,9 @@ recorded in `solver_settings` so a run can be reproduced.
 - `GapLimit` is mapped to `Optimal` because CBC reports "Optimal (within gap tolerance)" whenever
   its gap test ends the search, and we pin both gap tolerances to 0, so that is a proven optimum.
   (Found in M1 1.6: CBC logged `integer gap of -3.55e-15 less than 0` and `Gap: 0`.)
+- **Caveat:** `GapLimit` -> `Optimal` holds only while `gapRel` and `gapAbs` are 0. If they are
+  ever loosened, `GapLimit` no longer proves optimality and the mapping must change (the
+  `map_status` docstring says the same).
 - A time-limit stop is always `TimeLimit`, never `Optimal`. Whether a plan is reported depends on
   `has_solution`: with an incumbent the best-found plan is reported; without one `selected`,
   `objective`, `relief` and `spend` are `None`.
@@ -159,9 +162,20 @@ PuLP 4.2 no longer bundles the CBC binary. It comes from the `cbcbox` package vi
    against ε trading real relief for savings.
 
 ### Budget sweep and CLI
-`happy-toad sweep <input.json> --budgets 0,50,100,...` solves once per budget (budget = total
-including must-fund) and prints a rich table with columns: `budget`, `must_fund`, `status`,
-`spend`, `weighted relief`, `# selected`. Infeasible budgets appear as rows with their status.
+`happy-toad sweep <input.json> [--budgets 0,50,100,...]` loads the input set (running all
+load-time checks; a failure prints the problems and exits 1) and solves once per budget, in the
+order given. Budgets are **total** budgets, including must-fund.
+
+If `--budgets` is omitted, the default is 5%, 10%, ..., 60% of total candidate cost (12 budgets),
+each **plus the must-fund total**.
+
+Output: a header line with the version, total candidate cost and must-fund total, then a rich
+table with columns `budget`, `must_fund`, `status`, `spend`, `weighted relief`, `# selected`.
+One row per budget. A budget with no plan (e.g. `Infeasible`) shows its status and `-` in the
+plan columns. Output is deterministic (CBC single thread, no timing column).
+
+Tests: one row per budget, row values, Infeasible rows, header totals, default budgets,
+determinism, rejection of a tampered input file.
 
 ### Synthetic data generator
 `happy-toad generate --seed N` (default 42) writes `v1.json`, `v2.json` and

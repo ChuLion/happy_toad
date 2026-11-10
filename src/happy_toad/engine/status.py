@@ -8,8 +8,13 @@ def map_status(solve_status: LpSolveStatus) -> str:
 
     Only a proven optimum is "Optimal". CBC reports "Optimal (within gap tolerance)" (GapLimit)
     when its gap test ends the search; we pin both gap tolerances to 0, so that is a proven
-    optimum too. A time-limit stop is always "TimeLimit", whether or not a plan was found.
-    Anything unexpected (unbounded, interrupted, ...) is "Error".
+    optimum too.
+
+    Caveat: GapLimit -> Optimal holds only while gapRel and gapAbs are 0. If they are ever
+    loosened, GapLimit no longer proves optimality and this mapping must change.
+
+    A time-limit stop is always "TimeLimit", whether or not a plan was found. Anything
+    unexpected (unbounded, interrupted, ...) is "Error".
     """
     match solve_status:
         case LpSolveStatus.Optimal | LpSolveStatus.GapLimit:
