@@ -187,7 +187,7 @@ because the small tests above passed while the first design was broken at scale:
 load-time checks; a failure prints the problems and exits 1) and solves once per budget, in the
 order given. Budgets are **total** budgets, including must-fund.
 
-If `--budgets` is omitted, the default is 5%, 10%, ..., 60% of total candidate cost (12 budgets),
+If `--budgets` is omitted, the default is 5%, 10%, ..., 100% of total candidate cost (20 budgets),
 each **plus the must-fund total**.
 
 Output: a header line with the version, total candidate cost and must-fund total, then a rich
@@ -206,24 +206,38 @@ Seeded with `numpy.random.default_rng`; same seed -> byte-identical files. All p
 
 | Item | Default |
 |---|---|
-| Size | 60 sectors (`S001`..), 120 candidates (`C001`..), 5 must-fund (`M1`..) |
+| Size | 60 sectors (`S001`..), 5 must-fund (`M1`..); candidates (`C001`..) are **derived**, about 38-39 |
 | Trigger year | 2026-2035, `2026 + floor(10 * Beta(1, 2.5))` (skewed near) |
-| Shortfall | uniform 10-100 |
-| Labels | 4 markets `market_a..d`, 3 types `type_a..c`, uniform |
-| Candidate reach | each candidate relieves 1-4 sectors (random sectors) |
-| Offload per row | 20-80% of that sector's shortfall (uniform) |
-| Candidate cost | (candidate total offload) x uniform(0.7, 1.3) |
+| Shortfall | uniform 10-100 (every sector is need-only: shortfall > 0, no surplus sectors) |
+| Markets | 4 (`market_a..d`) with need rates 7/11/14/18% (`market_need_rates`); sector counts are proportional to the rates, largest-remainder rounding: 8/13/17/22 of 60, exact |
+| Types | `type_a/b/c`; spend shares 85/10/5% (`type_spend_shares`); cost ratios 1.0/0.33/0.1 (`type_cost_ratios`) |
+| Reach | `type_a` relieves 2-4 sectors, `type_b` and `type_c` exactly 1 (`type_reach`) |
+| Coverage | 80% of sectors have exactly one candidate that can relieve them; 20% (`multi_solution_share`, 12 of 60) have 2-3 (`multi_cover_range`) |
+| Offload per row | 60-120% of that sector's shortfall (`offload_share_range`, uniform) |
+| Candidate cost | `unit_cost` (100) x type cost ratio x uniform(0.7, 1.3) |
 | Must-fund | total = 10% (`must_fund_share`) of total candidate cost, split by random weights |
-| Under-served | 17.5% of sectors (10 of 60) are designated under-served |
 
-**Under-served construction.** A designated sector gets exactly one offload row, which is at most
-80% of its shortfall, so it can never be fully covered. Other sectors can also end up
-under-served by chance; across seeds 1, 2, 3, 42 the total was 11-14 of 60 (18-23%).
+**Construction.** (1) Markets are dealt to sectors by the exact counts, in shuffled order.
+(2) Each sector gets a coverage count (1, or 2-3 for a random 20%); the counts add up to the
+coverage slots (about 78). (3) The number of candidates per type is derived from the slots: with
+`counts_i proportional to spend_share_i / cost_ratio_i`, scaled so the mean reach adds up to the
+number of slots. (4) Reach sizes are drawn per candidate and nudged to sum to the slots. (5) Slots
+are shuffled into candidates, reshuffling until no candidate repeats a sector. So "exactly one
+candidate for 80% of sectors" holds by construction, and the type spend shares hold up to rounding
+and the random cost factor (measured 84.5-86.0 / 9.3-10.5 / 4.7-5.2% on seeds 1, 2, 3, 42).
+
+**Supply.** Total supply (sum of all offload amounts) over total need (sum of shortfalls) is about
+1.0-1.3 (measured 1.14-1.27). The brief's offload range (0.1, 0.4) gave only 0.31-0.36 with this
+coverage, so the range was widened to (0.6, 1.2) (owner's choice, DEVLOG). A single candidate can
+relieve a sector fully (share up to 1.2, relief is capped at the shortfall), but the budget still
+binds until about 87% of candidate cost, since each candidate adds relief to its sectors until
+all of them are saturated.
 
 **v2** is derived from v1 (`make_v2`) with these deliberate changes, each recorded in
 `changes_v1_to_v2.json` (one entry per change, with `kind`, ids, `old`, `new`):
-- `sector_added` x3: new constrained sectors, each with a single offload row (so under-served);
-  the entry holds the full sector and its offload row.
+- `sector_added` x3: new sectors (market drawn by need rate), each relieved by one existing
+  candidate through a single new offload row (so that candidate may exceed its type's reach by
+  one row); the entry holds the full sector and its offload row.
 - `trigger_moved` x6: distinct sectors, new year in 2026-2035 (never below `base_year`), always
   different from the old year.
 - `cost_changed` x10: distinct candidates, cost scaled by 0.5-0.9 or 1.1-1.5.
@@ -232,7 +246,9 @@ Nothing else changes (must-fund projects, labels, other fields are identical).
 
 **Tests.** Same seed gives identical data and files; v1 and v2 pass all load-time checks; v2
 differs from v1 in exactly the listed ways (an independent diff of v1 vs v2 is compared to the
-change list); counts and ranges match the table.
+change list); measured properties are checked on seeds 1, 2, 3, 42 within tolerances: type spend
+shares (+-4 points), cost ratios (+-20%), market counts (exact), reach by type, share of
+multi-candidate sectors (20% +-2 points), supply ratio (1.0-1.3), offload share range.
 
 ### Out of scope for M1
 Agent layer, natural-language interface, scenario comparison, multi-year budgets, persistence of

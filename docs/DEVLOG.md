@@ -156,3 +156,33 @@
 - Owner change: regression-test threshold moved from delta to relief_slack (delta/10), the amount the
   method actually guarantees. Test renamed `..._adds_more_than_relief_slack`; still passes at all 5
   budgets on v1 seed 42.
+
+## Generator realism block (settings and structure only, no new model features)
+- Spec first (SPEC generator section rewritten), then tests (tests/test_generator.py: measured
+  properties on seeds 1, 2, 3, 42), confirmed failing, then code. 139 tests pass.
+- Changes: (a) candidate types by spend share 85/10/5, cost ratios 1.0/0.33/0.1, type_a reach 2-4
+  and type_b/type_c reach 1; (b) markets by need rates 7/11/14/18% -> exactly 8/13/17/22 of 60
+  sectors (counts proportional to the rates; shortfall stays uniform 10-100); (c) 80% of sectors
+  have exactly one candidate able to relieve them, 20% have 2-3, by construction; (d) offload share
+  of the sector shortfall widened (see below). `n_candidates`, `under_served_share` and
+  `max_sectors_per_candidate` are gone; candidates are derived (38-39 on the four seeds).
+- Owner decision (offload range): the brief's (0.1, 0.4) cannot give supply 1.0-1.3x need with
+  this coverage: measured 0.31-0.36x on seeds 1, 2, 3, 42 (about 78 coverage rows over 60 sectors,
+  mean share 0.25). Owner chose (0.6, 1.2): supply 1.14-1.27x. Cost: a single candidate can now
+  fully relieve a sector (relief is capped at the shortfall).
+- Measured on seeds 1, 2, 3, 42: type spend shares a/b/c 84.5-86.0 / 9.3-10.5 / 4.7-5.2%;
+  12 of 60 sectors multi-candidate; 77-80 offload rows.
+- Sweep default range extended from 5-60% to 5-100% of candidate cost (20 budgets), because the
+  budget now binds much further out. Plateau test now uses the 90-100% budgets and its range test
+  budgets were re-chosen across the new 20.
+- v2 changes: `sector_added` picks its market by need rate; its one new offload row may take a
+  candidate one row beyond its type's reach (documented in SPEC). v2 passes load checks and the
+  v1-vs-v2 diff equals the change list (existing tests, unchanged).
+- Re-run, v1 seed 42 (total candidate cost 2328.93, must-fund 232.90): relief rises from 242.286 at
+  5% to 1344.323 and stops rising at spend 2021.76 (34 of 39 candidates, about 87% of candidate
+  cost). Plateau spend re-pinned: 3743.94 -> 2021.76 (macOS; CI checks Linux). Sweep of 20 budgets
+  takes about 5 s CPU.
+- Greedy comparison (gap % = optimizer over greedy, budgets 20/50/80% of candidate cost):
+  seed 42: 4.82 / 0.50 / 0.43 (before: 1.81 / 0 / 0); seed 1: 0.00 / 0.09 / 1.47
+  (before: 0.88 / 0 / 0); seed 2: 0.93 / 2.10 / 0.60 (before: 1.22 / 0 / 0). The budget now binds
+  at 50% and 80%, so the optimizer beats greedy there too. Solve times 0.06-0.24 s per budget.

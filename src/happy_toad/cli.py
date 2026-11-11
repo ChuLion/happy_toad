@@ -35,7 +35,7 @@ def sweep(
     input_path: Annotated[Path, typer.Argument(help="Input set JSON (from `generate`).")],
     budgets: Annotated[
         str | None,
-        typer.Option(help="Comma-separated TOTAL budgets (incl. must-fund). Default: 5%-60%."),
+        typer.Option(help="Comma-separated TOTAL budgets (incl. must-fund). Default: 5%-100%."),
     ] = None,
 ) -> None:
     """Solve at several budgets and print spend vs weighted relief."""

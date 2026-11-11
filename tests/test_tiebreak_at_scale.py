@@ -18,7 +18,7 @@ DATA = make_v1(seed=42)
 BUDGETS = default_budgets(sum(c.cost for c in DATA.candidates), sum(m.cost for m in DATA.must_fund))
 
 
-@pytest.mark.parametrize("budget", [BUDGETS[1], BUDGETS[5], BUDGETS[8], BUDGETS[9], BUDGETS[11]])
+@pytest.mark.parametrize("budget", [BUDGETS[i] for i in (1, 5, 9, 13, 17, 19)])
 def test_every_selected_candidate_adds_more_than_relief_slack(budget) -> None:
     result = solve(DATA, budget)
     assert result.status == "Optimal"
@@ -34,13 +34,13 @@ def test_every_selected_candidate_adds_more_than_relief_slack(budget) -> None:
 
 def test_plateau_spend_is_the_same_once_the_budget_stops_binding() -> None:
     """Minimum spend at maximum relief cannot depend on how much extra budget there is."""
-    spends = [solve(DATA, b).spend for b in BUDGETS[9:]]
+    spends = [solve(DATA, b).spend for b in BUDGETS[17:]]
     assert spends == pytest.approx([spends[0]] * len(spends), abs=1e-6)
-    # Pinned value for v1 seed 42: before the two-stage fix macOS gave 4090.14 and Linux 4064.59.
-    assert spends[0] == pytest.approx(3743.94, abs=0.01)
+    # Pinned value for v1 seed 42 (generator v2 structure, see docs/DEVLOG.md).
+    assert spends[0] == pytest.approx(2021.76, abs=0.01)
 
 
-@pytest.mark.parametrize("budget", [BUDGETS[0], BUDGETS[4], BUDGETS[8], BUDGETS[11]])
+@pytest.mark.parametrize("budget", [BUDGETS[i] for i in (0, 6, 12, 17)])
 def test_relief_is_within_slack_of_the_stage1_optimum(budget) -> None:
     must_fund = sum(m.cost for m in DATA.must_fund)
     prob, _ = build_stage1(DATA, budget - must_fund, BASE_YEAR)

@@ -39,11 +39,11 @@ def test_parse_budgets() -> None:
     assert parse_budgets("0, 50,100.5") == [0.0, 50.0, 100.5]
 
 
-def test_default_budgets_are_5_to_60_percent_plus_must_fund() -> None:
+def test_default_budgets_are_5_to_100_percent_plus_must_fund() -> None:
     budgets = default_budgets(total_candidate_cost=200.0, must_fund_total=20.0)
-    assert len(budgets) == 12
+    assert len(budgets) == 20
     assert budgets[0] == pytest.approx(0.05 * 200 + 20)
-    assert budgets[-1] == pytest.approx(0.60 * 200 + 20)
+    assert budgets[-1] == pytest.approx(1.00 * 200 + 20)
 
 
 def test_one_row_per_budget_with_expected_columns(input_file) -> None:
@@ -75,7 +75,7 @@ def test_header_line_has_totals(input_file) -> None:
 
 def test_default_budgets_used_when_omitted(input_file) -> None:
     rows = body_rows(sweep(input_file))
-    assert len(rows) == 12
+    assert len(rows) == 20
     assert [r[0] for r in rows][0] == "2.45"  # 5% of 9 = 0.45, plus must-fund 2
 
 

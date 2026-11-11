@@ -3,7 +3,7 @@
 import numpy as np
 
 from happy_toad.data.config import DEFAULT_CONFIG, GeneratorConfig
-from happy_toad.data.generator import draw_offload, draw_sector
+from happy_toad.data.generator import draw_market, draw_offload, draw_sector
 from happy_toad.data.hashing import build_input_set
 from happy_toad.data.schemas import InputSet
 
@@ -21,10 +21,10 @@ def _pick(rng: np.random.Generator, n_items: int, n: int) -> list[int]:
 
 
 def _new_sectors(rng, cfg, v1: InputSet) -> tuple[list, list, list[Change]]:
-    """New constrained sectors: one offload row each, so they can never be fully covered."""
+    """New sectors, each relieved by exactly one existing candidate (one new offload row)."""
     sectors, offloads, changes = [], [], []
     for k in range(cfg.new_sectors):
-        sector = draw_sector(rng, cfg, f"S{len(v1.sectors) + k + 1:03d}")
+        sector = draw_sector(rng, cfg, f"S{len(v1.sectors) + k + 1:03d}", draw_market(rng, cfg))
         owner = v1.candidates[int(rng.integers(len(v1.candidates)))]
         row = draw_offload(rng, cfg, owner.id, sector)
         sectors.append(sector)

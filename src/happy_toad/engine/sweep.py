@@ -11,9 +11,9 @@ def parse_budgets(text: str) -> list[float]:
 
 
 def default_budgets(total_candidate_cost: float, must_fund_total: float) -> list[float]:
-    """Total budgets for 5%, 10%, ..., 60% of candidate cost, each plus the must-fund total."""
+    """Total budgets for 5%, 10%, ..., 100% of candidate cost, each plus the must-fund total."""
     return [
-        share * total_candidate_cost + must_fund_total for share in (i / 20 for i in range(1, 13))
+        share * total_candidate_cost + must_fund_total for share in (i / 20 for i in range(1, 21))
     ]
 
 
