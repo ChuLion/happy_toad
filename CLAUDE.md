@@ -9,8 +9,9 @@ year, must-fund projects). Never mention real companies, internal tools, or prop
 - Spec first (docs/SPEC.md), then tests, then code. Small commits, clear messages.
 - Ask before adding any dependency beyond: pydantic, numpy, pulp, typer, rich, pytest,
   pytest-cov, ruff (mypy optional).
-- After each subtask: plain-English summary + 2 questions the owner should answer unaided.
-- Keep docs/DEVLOG.md updated (date, what was done, what the owner changed or rejected).
+- After each subtask: a plain-English summary only.
+- Keep docs/DEVLOG.md updated (date, what was done, what the owner changed or rejected), and list
+  any decision made that the owner did not specify.
 - Never commit secrets. `.env` is gitignored; `.env.example` is committed.
 - Keep code simple and readable over clever. Short modules, short functions.
 
