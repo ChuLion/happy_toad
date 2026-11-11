@@ -130,3 +130,26 @@
   1e-9 (cutoff increment) removes the zero-marginal candidates at 5369.89+ but not at 4922.39, and
   spend then wanders down with budget (4016, 3949, 3885), so plans are still not cost-minimal.
   Tuning delta/CBC options cannot fix a scale mismatch; options presented to the owner.
+
+### 2026-11-10 — two-stage solve (owner chose it over post-solve pruning)
+- Replaced the single-solve epsilon cost penalty with a two-stage solve (D2 rewritten): stage 1
+  maximizes weighted relief (R*); stage 2 minimizes spend s.t. relief >= R* - delta/10; gaps 0;
+  one 30 s limit across both stages. Claim: optimal relief within delta/10, then minimum spend
+  among plans that deliver it.
+- The tie-break failure was found by the budget sweep, not by the unit tests (tests 3/5/7 passed
+  because their numbers are small). Evidence and the delta=1e-3 / CBC `increment` experiments are
+  in the entry above and in D2.
+- Test first: updated the settings test (epsilon -> relief_slack), added per-stage time tests,
+  stage-2-timeout and stage-1-uses-all-time tests (via patching `LpProblem.solve`); confirmed they
+  failed, then implemented engine/stages.py and rewrote engine/model.py. Relief and objective are
+  now always recomputed from the funded candidates (engine/relief.py).
+- Regression test committed with the fix (tests/test_tiebreak_at_scale.py): every funded candidate
+  adds > delta; plateau spend identical across budgets (pinned 3743.94); relief within slack of an
+  independent stage-1 solve. Tests 1-7 (test 7 included) all still pass. 103 tests.
+- Stage 2 feasibility is asserted in the code. delta stays 1e-4 (the 1e-3 fallback is gone with
+  epsilon).
+- Re-ran on v1 seed 42: relief unchanged at every budget; plateau spend now 3743.94 from budget
+  4922.39 on (before: 3984.49 then 4090.14 on macOS; 4064.59 on Linux per owner). Stage times
+  0.03-2.2 s. Greedy comparison unchanged: gap at 20% = 1.81% (seed 42), 0.88% (seed 1), 1.22%
+  (seed 2); 0 at 50% and 80%.
+- Test-suite time went from about 1 s to about 15 s because the scale tests run real CBC solves.

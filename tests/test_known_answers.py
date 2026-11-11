@@ -107,8 +107,56 @@ def test_result_records_inputs_and_solver_settings() -> None:
     settings = result.solver_settings
     assert (settings["threads"], settings["timeLimit"]) == (1, 30)
     assert (settings["gapRel"], settings["gapAbs"], settings["delta"]) == (0, 0, 1e-4)
-    assert settings["epsilon"] == pytest.approx(1e-4 / (10 * 10))  # avail = 12 - 2
-    assert result.solve_time >= 0
+    assert settings["relief_slack"] == pytest.approx(1e-5)  # delta / 10
+    assert "epsilon" not in settings
+
+
+def test_per_stage_solve_times_are_recorded() -> None:
+    data = make_set([("S1", 10)], [("C1", 5)], [("C1", "S1", 3)])
+    result = solve(data, budget=10)
+    assert set(result.stage_times) == {"stage1", "stage2"}
+    assert result.solve_time == pytest.approx(sum(result.stage_times.values()))
+
+
+def test_pre_solve_infeasible_runs_no_stage() -> None:
+    data = make_set([("S1", 10)], [("C1", 5)], [("C1", "S1", 3)], must_fund=[8])
+    assert solve(data, budget=5).stage_times == {}
+
+
+def test_stage2_timeout_returns_stage1_plan_with_time_limit(monkeypatch) -> None:
+    real_solve = pulp.LpProblem.solve
+    calls = []
+
+    def second_call_times_out(self, solver=None, **kw):
+        calls.append(1)
+        if len(calls) == 2:
+            return pulp.core.lp_stats.LpSolveStats(
+                status=LpSolveStatus.TimeLimit, has_solution=False
+            )
+        return real_solve(self, solver, **kw)
+
+    monkeypatch.setattr(pulp.LpProblem, "solve", second_call_times_out)
+    data = make_set([("S1", 10)], [("C1", 5)], [("C1", "S1", 3)])
+    result = solve(data, budget=10)
+    assert len(calls) == 2
+    assert result.status == "TimeLimit"  # never "Optimal"
+    assert result.selected == ["C1"]  # the stage-1 plan
+    assert result.objective == pytest.approx(3.0)
+
+
+def test_stage1_using_the_whole_time_budget_skips_stage2(monkeypatch) -> None:
+    real_solve = pulp.LpProblem.solve
+    calls = []
+
+    def slow_stage1(self, solver=None, **kw):
+        calls.append(1)
+        return dataclasses.replace(real_solve(self, solver, **kw), time=30.0)
+
+    monkeypatch.setattr(pulp.LpProblem, "solve", slow_stage1)
+    data = make_set([("S1", 10)], [("C1", 5)], [("C1", "S1", 3)])
+    result = solve(data, budget=10)
+    assert len(calls) == 1
+    assert (result.status, result.selected) == ("TimeLimit", ["C1"])
 
 
 def test_time_limit_without_plan_has_none_not_empty(monkeypatch) -> None:

@@ -56,15 +56,16 @@ All problems found are reported together in one `InputError`, not just the first
 ### Formulation
 Sets and data: sectors `s`, candidates `c`; `shortfall[s]`, `offload[c,s]` (0 if no row),
 `cost[c]`, `budget`, `must_fund_total = sum of must-fund costs`, `base_year`.
+`avail = budget - must_fund_total`.
 
 Decision variables:
 
     x[c] in {0,1}        candidate c is funded
     r[s] >= 0            relief delivered to sector s
 
-Objective (as solved, with cost tie-break):
+Objective:
 
-    maximize sum_s weight[s] * r[s]  -  ε * sum_c cost[c] * x[c]
+    maximize sum_s weight[s] * r[s]
     weight[s] = 1 / (trigger_year[s] - base_year + 1)
 
 Constraints:
@@ -73,24 +74,35 @@ Constraints:
     r[s] <= sum_c offload[c,s] * x[c]             for each sector s
     sum_c cost[c] * x[c] <= budget - must_fund_total
 
+**Two-stage solve.** The model above is solved in two stages:
+
+1. **Stage 1** solves the model exactly as written (maximize weighted relief) and gives the
+   optimal weighted relief `R*` (recomputed from the chosen candidates).
+2. **Stage 2** keeps the same variables and constraints, but minimizes spend and adds one row:
+
+        minimize sum_c cost[c] * x[c]
+        subject to  sum_s weight[s] * r[s] >= R* - relief_slack
+        (plus the three constraint families above)
+
+   with `relief_slack = δ / 10`, `δ = 1e-4` (weighted-relief units, the smallest relief
+   difference we care about).
+
+**The claim:** the plan has *optimal relief within `δ/10`, then minimum spend among plans that
+deliver it*. A candidate is never funded for nothing: if removing a funded candidate kept relief
+within the slack, a cheaper feasible plan would exist and stage 2 would have found it.
+
 Notes:
-- **Tie-break.** Among solutions with equal weighted relief the cheaper one wins; a candidate
-  adding no relief is never funded. `ε` is computed per solve:
-
-      avail = budget - must_fund_total
-      ε = δ / (10 × avail),   δ = 1e-4  (weighted-relief units)
-
-  Since spend <= avail, `ε × max spend <= δ/10 < δ`: the cost term can never outweigh a
-  relief difference of `δ` or more. If `avail <= 0` then `ε = 0` (nothing is fundable, or the
-  model is infeasible, so no tie-break is needed).
-- **Solver tolerance must stay below the ε term.** CBC `gapAbs` and `gapRel` are set explicitly
-  (both 0) so the solver never stops at a solution that is "close enough" and silently ignores
-  the tie-break. If tests 3 or 5 fail because ε is lost in solver tolerance, raise `δ` to `1e-3`,
-  re-run test 7, and log the change in DEVLOG.
-- **Alternative considered:** a two-stage lexicographic solve (maximize relief, then minimize
-  cost at fixed relief). See DECISIONS.md D2.
-- **Reported objective is weighted relief only**: `sum_s weight[s] * r[s]`, recomputed from the
-  solution, never the solver's tie-break objective.
+- **Stage 2 is always feasible**: the stage-1 plan satisfies the new row (its relief is `R*`
+  >= `R* - relief_slack`). The code asserts this; an `Infeasible` stage 2 would be a bug.
+- **Why not one solve with a cost penalty (`ε`)?** That was the first design and it failed at
+  scale; see DECISIONS.md D2.
+- **Solver settings.** Both stages use `gapAbs = gapRel = 0` and `threads = 1`.
+- **Time limit** is 30 s *total*. Stage 1 gets all of it; stage 2 gets what stage 1 left over.
+  - Stage 1 times out: status `TimeLimit` with its best plan (or no plan, if none was found).
+  - Stage 2 times out, or stage 1 used the whole limit: status `TimeLimit` with the **stage-1
+    plan** (valid and relief-optimal, but not minimum spend). Never `Optimal`.
+- **Reported objective is weighted relief only**, recomputed from the funded candidates
+  (`relief[s] = min(shortfall[s], sum of their offloads)`), never read from the solver.
 - Sectors that trigger sooner get larger weight (trigger at `base_year` -> weight 1).
 - Relief is capped by need (row 1) and by what funded candidates supply (row 2), so a candidate
   shared across sectors counts toward every sector it relieves.
@@ -98,7 +110,7 @@ Notes:
   selection is feasible. A **pre-solve check** returns `Infeasible` immediately in that case,
   without calling the solver (CBC may report `Undefined` for such a model, and we do not widen
   the status mapping to cover it).
-- `base_year`, `δ` and `ε` are model parameters, not part of the input data.
+- `base_year` and `δ` are model parameters, not part of the input data.
 
 ### Solver result object
 | Field | Meaning |
@@ -108,15 +120,16 @@ Notes:
 | `selected` | funded candidate ids; `None` if there is no plan (an empty list means "a plan that funds nothing") |
 | `relief` | relief per sector id; `None` if there is no plan |
 | `spend` | candidate spend only (excludes must-fund); `None` if there is no plan |
-| `solve_time` | seconds |
+| `solve_time` | seconds, total over both stages |
+| `stage_times` | seconds per stage that ran: `stage1`, `stage2` (empty for the pre-solve `Infeasible`) |
 | `budget` | total budget given |
 | `must_fund_total` | sum of must-fund costs |
 | `base_year` | as used |
 | `version_id`, `content_hash` | of the input set solved |
-| `solver_settings` | `threads`, `timeLimit`, `gapRel`, `gapAbs`, `epsilon`, `delta` as used |
+| `solver_settings` | `threads`, `timeLimit`, `gapRel`, `gapAbs`, `delta`, `relief_slack` as used |
 
-Pinned solver settings: `threads=1`, `timeLimit=30` seconds, `gapRel=0`, `gapAbs=0`. All are
-recorded in `solver_settings` so a run can be reproduced.
+Pinned solver settings: `threads=1`, `timeLimit=30` seconds (total), `gapRel=0`, `gapAbs=0`.
+All are recorded in `solver_settings` so a run can be reproduced.
 
 **No plan vs empty plan.** `selected=None` means the solver produced no plan (`Infeasible`,
 `Error`, or `TimeLimit` with no incumbent). `selected=[]` means a real plan that funds nothing
@@ -132,7 +145,7 @@ recorded in `solver_settings` so a run can be reproduced.
 - **Caveat:** `GapLimit` -> `Optimal` holds only while `gapRel` and `gapAbs` are 0. If they are
   ever loosened, `GapLimit` no longer proves optimality and the mapping must change (the
   `map_status` docstring says the same).
-- A time-limit stop is always `TimeLimit`, never `Optimal`. Whether a plan is reported depends on
+- A time-limit stop in either stage is always `TimeLimit`, never `Optimal`. Whether a plan is reported depends on
   `has_solution`: with an incumbent the best-found plan is reported; without one `selected`,
   `objective`, `relief` and `spend` are `None`.
 - `map_status` is unit-tested with **mocked** statuses (every `LpSolveStatus` member is covered);
@@ -148,18 +161,26 @@ PuLP 4.2 no longer bundles the CBC binary. It comes from the `cbcbox` package vi
 2. **Ample budget**: `budget = sum of all candidate costs + must_fund_total` (never `inf`);
    every sector's relief equals `min(shortfall, total possible offload)`.
 3. **Shared candidate**: one candidate relieving 2 sectors, cheaper than two single-sector
-   candidates, with a budget large enough to fund **all three**, so that only the tie-break can
-   explain why the shared one is selected and the singles are not.
+   candidates, with a budget large enough to fund **all three**, so that only the cost minimization in
+   stage 2 can explain why the shared one is selected and the singles are not.
 4. **Must-fund above budget**: status `Infeasible` (via the pre-solve check), `selected=None`.
 5. **Zero marginal relief**: a candidate that adds no relief (e.g. its sector is already fully
-   covered by another funded candidate) is not funded, thanks to the tie-break.
+   covered by another funded candidate) is not funded (stage 2 minimizes spend).
 6. **Greedy trap**: budget 10, all weights 1, three sectors with one candidate each:
    A cost 6 / relief 6, B cost 5 / relief 4.5, C cost 5 / relief 4.5 (sector shortfalls large
    enough not to cap). Greedy by relief-per-cost picks A and stops at relief 6. Expected optimum:
    `{B, C}`, objective 9.
-7. **Tie-break never beats real relief**: one candidate costing the entire available budget
+7. **Saving spend never beats real relief**: one candidate costing the entire available budget
    (`avail`) with weighted relief just above `δ` (e.g. `1.5e-4`) must be selected. Guards
-   against ε trading real relief for savings.
+   against stage 2 trading real relief for savings: `R* - relief_slack` must still require it.
+
+Scale regression tests (generated v1, seed 42; `tests/test_tiebreak_at_scale.py`). These exist
+because the small tests above passed while the first design was broken at scale:
+- Every funded candidate adds more than `δ` of relief (removing it lowers relief by more than
+  `δ`), at five budgets.
+- Plateau spend is identical at every budget once the budget stops binding (minimum spend at
+  maximum relief cannot depend on extra budget). This invariant also holds across platforms.
+- Reported relief is within `relief_slack` of an independently solved stage-1 optimum.
 
 ### Budget sweep and CLI
 `happy-toad sweep <input.json> [--budgets 0,50,100,...]` loads the input set (running all

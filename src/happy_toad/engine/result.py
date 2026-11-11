@@ -7,13 +7,22 @@ from pydantic import BaseModel, ConfigDict
 
 @dataclass(frozen=True)
 class SolverSettings:
-    """Pinned CBC settings plus the tie-break delta (weighted-relief units)."""
+    """Pinned CBC settings plus delta, the smallest relief difference we care about.
+
+    Stage 2 may give up at most relief_slack = delta / 10 of relief to save spend. The time limit
+    (seconds) covers both stages together.
+    """
 
     threads: int = 1
     time_limit: int = 30
     gap_rel: float = 0.0
     gap_abs: float = 0.0
     delta: float = 1e-4
+
+    @property
+    def relief_slack(self) -> float:
+        """Relief stage 2 may give up: delta / 10."""
+        return self.delta / 10
 
 
 DEFAULT_SETTINGS = SolverSettings()
@@ -30,6 +39,7 @@ class SolveResult(BaseModel):
     relief: dict[str, float] | None
     spend: float | None
     solve_time: float
+    stage_times: dict[str, float]
     budget: float
     must_fund_total: float
     base_year: int
