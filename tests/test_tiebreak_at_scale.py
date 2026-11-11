@@ -19,7 +19,7 @@ BUDGETS = default_budgets(sum(c.cost for c in DATA.candidates), sum(m.cost for m
 
 
 @pytest.mark.parametrize("budget", [BUDGETS[1], BUDGETS[5], BUDGETS[8], BUDGETS[9], BUDGETS[11]])
-def test_every_selected_candidate_adds_more_than_delta(budget) -> None:
+def test_every_selected_candidate_adds_more_than_relief_slack(budget) -> None:
     result = solve(DATA, budget)
     assert result.status == "Optimal"
     chosen = set(result.selected)
@@ -27,7 +27,7 @@ def test_every_selected_candidate_adds_more_than_delta(budget) -> None:
     useless = [
         c
         for c in sorted(chosen)
-        if total - weighted_relief(DATA, chosen - {c}, BASE_YEAR) <= DEFAULT_SETTINGS.delta
+        if total - weighted_relief(DATA, chosen - {c}, BASE_YEAR) <= DEFAULT_SETTINGS.relief_slack
     ]
     assert useless == []
 

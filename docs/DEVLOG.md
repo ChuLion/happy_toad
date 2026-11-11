@@ -153,3 +153,6 @@
   0.03-2.2 s. Greedy comparison unchanged: gap at 20% = 1.81% (seed 42), 0.88% (seed 1), 1.22%
   (seed 2); 0 at 50% and 80%.
 - Test-suite time went from about 1 s to about 15 s because the scale tests run real CBC solves.
+- Owner change: regression-test threshold moved from delta to relief_slack (delta/10), the amount the
+  method actually guarantees. Test renamed `..._adds_more_than_relief_slack`; still passes at all 5
+  budgets on v1 seed 42.
