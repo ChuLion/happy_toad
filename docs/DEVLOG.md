@@ -186,3 +186,16 @@
   seed 42: 4.82 / 0.50 / 0.43 (before: 1.81 / 0 / 0); seed 1: 0.00 / 0.09 / 1.47
   (before: 0.88 / 0 / 0); seed 2: 0.93 / 2.10 / 0.60 (before: 1.22 / 0 / 0). The budget now binds
   at 50% and 80%, so the optimizer beats greedy there too. Solve times 0.06-0.24 s per budget.
+- Decisions I made that you didn't specify (generator block):
+  - `unit_cost = 100`: candidate cost = 100 x the type's cost ratio x uniform(0.7, 1.3).
+  - Multi-candidate sectors get 2-3 candidates each (`multi_cover_range = (2, 3)`), drawn uniformly.
+  - Need rates only set each market's share of sectors; shortfall stays uniform 10-100 for every
+    market (so market does not change a sector's size).
+  - Default sweep extended from 5-60% to 5-100% of candidate cost (20 budgets).
+  - A v2 `sector_added` row may take a candidate one row beyond its type's reach.
+  - A new v2 sector's market is drawn with probability proportional to the need rates.
+  - Candidate ids are assigned after shuffling the types, so id order does not reveal type.
+  - Candidate counts per type are rounded from the spend-share formula; reach sizes are then
+    nudged at random to fit the coverage slots.
+  - Test tolerances: spend shares +-4 points, cost ratios +-20%, multi-sector share +-2 points,
+    on seeds 1, 2, 3, 42.
