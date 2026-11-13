@@ -23,10 +23,11 @@ def market_counts(cfg: GeneratorConfig) -> list[int]:
     return counts
 
 
-def draw_trigger_year(rng: np.random.Generator, cfg: GeneratorConfig) -> int:
-    """Trigger year in [base_year, last_year], skewed towards the near years (Beta(1, 2.5))."""
+def draw_trigger_year(rng: np.random.Generator, cfg: GeneratorConfig, market: str) -> int:
+    """Trigger year in [base_year, last_year] from the market's Beta profile."""
+    a, b = cfg.trigger_profiles[cfg.markets.index(market)]
     span = cfg.last_year - cfg.base_year + 1
-    return cfg.base_year + min(int(span * rng.beta(1, 2.5)), span - 1)
+    return cfg.base_year + min(int(span * rng.beta(a, b)), span - 1)
 
 
 def draw_market(rng: np.random.Generator, cfg: GeneratorConfig) -> str:
@@ -36,12 +37,12 @@ def draw_market(rng: np.random.Generator, cfg: GeneratorConfig) -> str:
 
 
 def draw_sector(rng: np.random.Generator, cfg: GeneratorConfig, sector_id: str, market: str):
-    """A sector with random shortfall and trigger year."""
+    """A sector with random shortfall and a trigger year from its market's profile."""
     return Sector(
         id=sector_id,
         market=market,
         shortfall=round(float(rng.uniform(*cfg.shortfall_range)), 2),
-        trigger_year=draw_trigger_year(rng, cfg),
+        trigger_year=draw_trigger_year(rng, cfg, market),
     )
 
 
@@ -93,16 +94,32 @@ def fit_sizes(rng: np.random.Generator, ranges: list[tuple[int, int]], total: in
     return sizes
 
 
-def deal(rng: np.random.Generator, slots: list[int], sizes: list[int]) -> list[list[int]]:
-    """Shuffle the slots into groups of the given sizes, reshuffling until no group repeats one."""
-    cuts = np.cumsum(sizes)[:-1]
-    while True:
-        groups = np.split(rng.permutation(slots), cuts)
-        if all(len(set(g)) == len(g) for g in groups):
-            return [[int(s) for s in g] for g in groups]
+def pick_slot(rng: np.random.Generator, pools: dict[str, list[int]], home, group, want_home):
+    """Remove and return a slot not already in the group: from the home pool or from the others."""
+    allowed = [(m, s) for m, pool in pools.items() for s in pool if s not in group]
+    wanted = [(m, s) for m, s in allowed if (m == home) == want_home]
+    market, slot = (wanted or allowed)[int(rng.integers(len(wanted or allowed)))]
+    pools[market].remove(slot)
+    return slot
 
 
-def make_plan(rng: np.random.Generator, cfg: GeneratorConfig) -> Plan:
+def deal(rng, cfg, sectors: list[Sector], slots: list[int], sizes: list[int]) -> list[list[int]]:
+    """Give each candidate its sectors. Multi-sector candidates are filled first, each with a home
+    market from which about home_market_share of its rows come; single-row ones take the rest."""
+    pools: dict[str, list[int]] = {m: [] for m in cfg.markets}
+    for slot in slots:
+        pools[sectors[slot].market].append(slot)
+    weight = np.array([len(pools[m]) for m in cfg.markets], dtype=float)
+    groups: list[list[int]] = [[] for _ in sizes]
+    for k in sorted(range(len(sizes)), key=lambda k: sizes[k] == 1):
+        home = str(rng.choice(cfg.markets, p=weight / weight.sum()))
+        for _ in range(sizes[k]):
+            want_home = sizes[k] == 1 or rng.random() < cfg.home_market_share
+            groups[k].append(pick_slot(rng, pools, home, groups[k], want_home))
+    return groups
+
+
+def make_plan(rng: np.random.Generator, cfg: GeneratorConfig, sectors: list[Sector]) -> Plan:
     """Which candidate types exist and which sectors each relieves."""
     slots = coverage_slots(rng, cfg)
     counts = type_counts(cfg, len(slots))
@@ -110,7 +127,7 @@ def make_plan(rng: np.random.Generator, cfg: GeneratorConfig) -> Plan:
     ranges = [cfg.type_reach[cfg.types.index(t)] for t in kinds]
     order = [int(i) for i in rng.permutation(len(kinds))]
     kinds, ranges = [kinds[i] for i in order], [ranges[i] for i in order]
-    groups = deal(rng, slots, fit_sizes(rng, ranges, len(slots)))
+    groups = deal(rng, cfg, sectors, slots, fit_sizes(rng, ranges, len(slots)))
     return list(zip(kinds, groups, strict=True))
 
 
@@ -151,7 +168,7 @@ def make_v1(seed: int, cfg: GeneratorConfig = DEFAULT_CONFIG) -> InputSet:
     """Generate the base input set; the same seed always gives the same data."""
     rng = np.random.default_rng(seed)
     sectors = make_sectors(rng, cfg)
-    plan = make_plan(rng, cfg)
+    plan = make_plan(rng, cfg, sectors)
     offloads = make_offloads(rng, cfg, sectors, plan)
     candidates = make_candidates(rng, cfg, plan)
     must_fund = make_must_fund(rng, cfg, candidates)

@@ -12,13 +12,19 @@ class GeneratorConfig:
 
     base_year: int = 2026
     last_year: int = 2035
-    n_sectors: int = 60
+    n_sectors: int = 80
     n_must_fund: int = 5
     must_fund_share: float = 0.10
     shortfall_range: tuple[float, float] = (10.0, 100.0)
     offload_share_range: tuple[float, float] = (0.6, 1.2)
-    markets: tuple[str, ...] = ("market_a", "market_b", "market_c", "market_d")
-    market_need_rates: tuple[float, ...] = (0.07, 0.11, 0.14, 0.18)
+    markets: tuple[str, ...] = tuple(f"market_{c}" for c in "abcdefgh")
+    market_need_rates: tuple[float, ...] = (0.07, 0.08, 0.10, 0.11, 0.13, 0.14, 0.16, 0.18)
+    trigger_profiles: tuple[tuple[float, float], ...] = (
+        (2.5, 1.5),  # market_a: relaxed
+        *[(1.0, 2.5)] * 5,  # market_b..f: mixed
+        *[(1.0, 6.0)] * 2,  # market_g, market_h: urgent
+    )
+    home_market_share: float = 0.85
     multi_solution_share: float = 0.20
     multi_cover_range: tuple[int, int] = (2, 3)
     types: tuple[str, ...] = ("type_a", "type_b", "type_c")

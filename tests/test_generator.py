@@ -33,9 +33,9 @@ def candidates_per_sector(data) -> Counter:
 
 
 def test_sizes_and_derived_candidate_count(v1) -> None:
-    assert len(v1.sectors) == 60
+    assert len(v1.sectors) == 80
     assert len(v1.must_fund) == 5
-    assert 30 <= len(v1.candidates) <= 50
+    assert 35 <= len(v1.candidates) <= 55
     assert set(sectors_per_candidate(v1)) == {c.id for c in v1.candidates}
 
 
@@ -46,14 +46,36 @@ def test_passes_load_checks(v1) -> None:
 def test_trigger_years_and_shortfalls(v1) -> None:
     assert all(2026 <= s.trigger_year <= 2035 for s in v1.sectors)
     assert all(10 <= s.shortfall <= 100 for s in v1.sectors)
-    years = [s.trigger_year for s in v1.sectors]
-    assert sum(y <= 2030 for y in years) > len(years) / 2
+
+
+def mean_year(data, markets) -> float:
+    years = [s.trigger_year for s in data.sectors if s.market in markets]
+    return sum(years) / len(years)
+
+
+def test_mean_trigger_year_urgent_before_mixed_before_relaxed(v1) -> None:
+    urgent = mean_year(v1, {"market_g", "market_h"})
+    mixed = mean_year(v1, {"market_b", "market_c", "market_d", "market_e", "market_f"})
+    relaxed = mean_year(v1, {"market_a"})
+    assert urgent < mixed < relaxed
 
 
 def test_market_counts_follow_need_rates(v1) -> None:
-    assert market_counts(CFG) == [8, 13, 17, 22]
+    expected = [6, 7, 8, 9, 11, 11, 13, 15]
+    assert market_counts(CFG) == expected
     counts = Counter(s.market for s in v1.sectors)
-    assert [counts[m] for m in CFG.markets] == [8, 13, 17, 22]
+    assert [counts[m] for m in CFG.markets] == expected
+    assert len(CFG.markets) == 8 and sum(expected) == 80
+
+
+def test_multi_sector_candidates_draw_85_percent_from_their_own_market(v1) -> None:
+    market = {s.id: s.market for s in v1.sectors}
+    rows = defaultdict(list)
+    for o in v1.offloads:
+        rows[o.candidate_id].append(market[o.sector_id])
+    multi = [m for m in rows.values() if len(m) > 1]
+    same = sum(Counter(m).most_common(1)[0][1] for m in multi)
+    assert same / sum(len(m) for m in multi) == pytest.approx(0.85, abs=0.10)
 
 
 def test_spend_shares_by_type_are_85_10_5(v1) -> None:

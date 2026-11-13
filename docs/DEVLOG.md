@@ -199,3 +199,58 @@
     nudged at random to fit the coverage slots.
   - Test tolerances: spend shares +-4 points, cost ratios +-20%, multi-sector share +-2 points,
     on seeds 1, 2, 3, 42.
+
+## Last data change before M2A: 8 markets, trigger profiles, home markets (2026-11-13)
+- Spec first (SPEC generator section), then tests (tests/test_generator.py), confirmed failing, then
+  code. 147 tests pass. Settings and structure only; no model changes.
+- Done: (a) 8 markets `market_a..h`, need rates 7/8/10/11/13/14/16/18%, 80 sectors; (b) per-market
+  trigger-year Beta profiles (`trigger_profiles`); (c) multi-sector candidates draw about 85% of
+  their rows from a home market (`home_market_share`); (d) kept: 80/20 coverage, type spend 85/10/5,
+  offload share (0.6, 1.2), 5 must-fund, derived candidate count.
+- Numbers, v1 seed 42, old (4 markets, 60 sectors) vs new: sectors 60 -> 80; candidates 39 -> 51;
+  total candidate cost 2328.93 -> 3004.30; must-fund 232.90 -> 300.43; max weighted relief
+  1344.323 -> 1810.039; relief at 5% budget 242.286 -> 393.613; spend where relief stops rising
+  2021.76 (34 of 39 candidates, about 87% of cost) -> 2822.92 (44 of 51, about 94%). Plateau test
+  re-pinned 2021.76 -> 2822.92 and now uses the 95% and 100% budgets (BUDGETS[18:]).
+- Greedy comparison, gap % at 20 / 50 / 80% of candidate cost (old -> new):
+  seed 42: 4.82 / 0.50 / 0.43 -> 0.21 / 1.32 / 0.96;
+  seed 1: 0.00 / 0.09 / 1.47 -> 0.49 / 1.25 / 0.13;
+  seed 2: 0.93 / 2.10 / 0.60 -> 0.61 / 2.01 / 0.28.
+  Solve times 0.07-0.31 s. The gap moved to the middle budgets.
+- Measured on seeds 1, 2, 3, 42 (300 seeds in brackets): supply ratio 1.10-1.17 [1.03-1.28];
+  spend shares a/b/c 84.4-86.5 / 8.7-10.8 / 4.8-4.9 [83.2-87.5 / 7.6-11.3 / 4.2-5.8]; candidates
+  50-52 [49-54]; same-market share of multi-sector rows 0.80-0.87 [0.69-0.93, mean 0.81].
+- FLAGGED (not loosened): small markets make two checks seed-dependent.
+  - Trigger-year ordering urgent < mixed < relaxed. With the brief's example Beta(1, 4) for the
+    urgent markets, seed 1 FAILS: urgent mean 2028.04 vs mixed 2027.96 (the expected gap is under a
+    year and only 28 urgent sectors); over 300 seeds it fails on 9 (3%). I changed the urgent
+    profile to Beta(1, 6) (see decisions); it passes on all 300 seeds, margins 0.7-1.9 years on
+    the four test seeds. `market_a` has only 6 sectors, so its mean is noisy (2031.5-2032.8) but
+    far from mixed (about 2028.2).
+  - Same-market share of multi-sector candidate rows, 85% +-10 points: passes on the four test
+    seeds (0.80-0.87) but 26 of 300 seeds (9%) fall outside 0.75-0.95. The measure takes each
+    candidate's modal market as its home, which biases it upward for 2-row candidates, while
+    pool exhaustion pulls it down (mean 0.81). Tolerance kept; do not run it on other seeds
+    without expecting occasional failures.
+  - Supply ratio 1.0-1.3: passes, but the 300-seed maximum is 1.279, close to the limit.
+- Owner decisions, discrepancies in the brief:
+  - Market counts: the brief's 5/6/8/9/11/12/13/14 sum to 78, not 80, and are not proportional to
+    the rates. I derived counts by largest-remainder rounding of 80 x rate/sum(rates) (the rates
+    sum to 97%): 6/7/8/9/11/11/13/15. The test asserts these. Say if you want your list (then
+    n_sectors would be 78) or another rounding.
+- Decisions I made that you didn't specify:
+  - Urgent profile Beta(1, 6) instead of the example Beta(1, 4) (reason above; one-line revert in
+    `config.py`). Relaxed Beta(2.5, 1.5) and mixed Beta(1, 2.5) as given.
+  - Trigger profiles live in `trigger_profiles`, one (a, b) per market in market order; the year
+    is `2026 + min(floor(10 * Beta), 9)` as before.
+  - "Own market" is implemented per candidate: a home market drawn in proportion to the slots per
+    market; each row is home with probability 0.85, else a slot from another market; when the
+    wanted pool is empty or only repeats a sector, any remaining slot is used. Multi-sector
+    candidates are filled first; single-row candidates take the leftover slots in random markets.
+  - The same-market test uses each multi-sector candidate's modal market as its home, tolerance 0.85
+    +-0.10.
+  - Candidate-count check widened to 35-55 (the derived count is now about 50); coverage slots
+    about 90.
+  - New v2 sectors use the same market-dependent trigger profile; moved triggers in v2 stay uniform
+    over 2026-2035 as before (unchanged).
+  - Fuzzed seeds 0-299 for crashes in the dealing step: none.
