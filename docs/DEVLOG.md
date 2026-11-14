@@ -663,3 +663,29 @@
 - Not specified by the owner: the README limitation line that said the agent states no differences
   was corrected, since diff claims read from compare_runs are now allowed; DeepSeek ran as a separate
   process alongside the four-model run (same commit, clean tree, same hashes).
+
+## 2026-11-14 — post-fix round: 5 models x 3 questions x 5 runs (five-trial comparison, not a ranking)
+- State: commit 4a6572b, clean tree, same prompt and frozen-file hashes in both records
+  (bakeoff/20261114T201817.json for Gemma, Gemini, GLM, Sonnet; bakeoff/20261114T202752.json for
+  DeepSeek, run alongside). No error rows, no api_error, no repeated 400.
+- Checked out of 5 (a / b / c), refusals over 15 runs, listed cost for 15 runs, mean s per question:
+  Gemma 4 31B (crusoe/novita bf16) 2 / 3 / 5, 12 refusals, $0.0564, 16.1 s (5 step caps, 62
+  malformed calls); Gemini 2.5 Flash Lite (unpinned) 4 / 2 / 4, 16, $0.0225, 8.0 s; DeepSeek V4
+  Flash 0731 (baseten/baidu fp8) 5 / 5 / 5, 5, $0.0146, 7.1 s; GLM 5.3 Flash (z-ai fp8, reasoning
+  low, not equal terms) 5 / 5 / 5, 11, $0.0079, 20.8 s (a 27.0, b 27.4, c 7.9); Sonnet 5.5
+  reference (anthropic, reasoning low, not equal terms) 5 / 5 / 5, 3, $0.5758, 9.5 s.
+- Refusal reasons: Gemma: invalid metric names (with the unit/entity errors they bring), and on c
+  a claimless "697.01" (missing required_minimum_budget claim) before claiming it; Gemini: diff
+  claims with the sign reversed, unclaimed counts (14, 27), must-fund and forced cost written
+  without the new metrics, missing minimum budget; GLM: unclaimed sector total 80 and counts;
+  DeepSeek: diff count signs, unclaimed small counts; Sonnet: an unclaimed 15 (3 times).
+- Rule (cheapest checked >= 4 of 5 on every question; costs within 2x tie, then fewer refusals,
+  then clearer precision; GLM also under about 15 s per question; reference only if none passes):
+  Gemma fails a and b, Gemini fails b, GLM passes the counts but averages 20.8 s (fails latency),
+  DeepSeek passes. DeepSeek and GLM would be a cost tie (1.85x) and DeepSeek has fewer refusals
+  (5 vs 11), so the outcome is the same. Result: DeepSeek V4 Flash 0731; the reference does not
+  decide. Waiting for the owner before pinning the demo profile.
+- Not specified by the owner: GLM's latency is the mean over all 15 runs (per question it also
+  fails a and b); BaseTen turns show "fp32|fp8" because OpenRouter names both endpoints BaseTen
+  and the response does not say which, while the pin names the baseten/fp8 tag; the reasoning-token
+  count for Sonnet is 0 as reported by the provider, not verified.
