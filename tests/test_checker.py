@@ -124,3 +124,14 @@ def test_summary_numbers_use_the_tolerance_of_the_matching_metric(run, tmp_path)
 
 def test_summary_without_numbers_and_without_claims_passes(run, tmp_path) -> None:
     assert check(run, tmp_path, "I can only report on runs; I cannot say what to fund.").ok
+
+
+def test_the_tolerance_is_inclusive_despite_float_error() -> None:
+    """Found live: 26.3 against a stored 26.25 is one display-rounding step and must pass."""
+    from happy_toad.agent.checker import values_match
+
+    assert values_match("pct_resolved", 26.3, 26.25)
+    assert values_match("pct_resolved", 26.2, 26.25)
+    assert values_match("spend", 11.005, 11.0)
+    assert not values_match("pct_resolved", 26.31, 26.25)
+    assert [t for t, _ in find_numbers("26.3%")] == ["26.3%"]

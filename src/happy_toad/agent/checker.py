@@ -14,6 +14,7 @@ from happy_toad.services.runs import read_run
 
 MONEY_TOLERANCE = 0.005  # shown to 2 decimals
 PERCENT_TOLERANCE = 0.05  # shown to 1 decimal
+FLOAT_SLACK = 1e-9  # tolerances are inclusive: 26.3 vs 26.25 differs by 0.05000000000000071
 TOLERANCE = {
     "weighted_relief": MONEY_TOLERANCE,
     "spend": MONEY_TOLERANCE,
@@ -102,7 +103,10 @@ def stored_value(record: RunRecord, metric: str):
 def values_match(metric: str, claimed, stored) -> bool:
     """Exact for counts, strings and booleans; within the displayed-rounding tolerance otherwise."""
     if metric in TOLERANCE:
-        return isinstance(claimed, int | float) and abs(claimed - stored) <= TOLERANCE[metric]
+        return (
+            isinstance(claimed, int | float)
+            and abs(claimed - stored) <= TOLERANCE[metric] + FLOAT_SLACK
+        )
     return claimed == stored and type(claimed) is type(stored)
 
 
@@ -139,7 +143,7 @@ def check_report(report: Report, runs_dir: Path) -> CheckResult:
     allowed = allowed_numbers(valid, runs_dir)
     numbers = []
     for text, value in find_numbers(report.summary):
-        match = any(abs(value - v) <= max(tol, 1e-9) for v, tol in allowed)
+        match = any(abs(value - v) <= tol + FLOAT_SLACK for v, tol in allowed)
         message = "matches" if match else "does not match any validated claim or request value"
         numbers.append(NumberCheck(text=text, ok=match, message=message))
     return CheckResult(claims=claims, numbers=numbers)

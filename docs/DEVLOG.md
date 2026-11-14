@@ -516,3 +516,19 @@
   `deepseek/deepseek-v4-pro` as the "0423" ID (its listed name; a separate `-0813` ID exists);
   no provider pin for any candidate; one fresh transcript per model and question; runs go to the
   normal `runs/` folder, transcripts to `transcripts/`, results to `bakeoff/` (gitignored).
+
+## 2026-11-14 — smoke check (live)
+- Key came from the gitignored `.env` (loaded per command; never printed). The smoke profile
+  `google/gemma-4-31b-it:free` returned HTTP 429 on every real request (3 tries, also after a wait):
+  "temporarily rate-limited upstream", host Google AI Studio, shared free pool. A 5-token "hi" got
+  through, so the key and routing are fine. Nothing was run on Gemma.
+- Loop checked live with a one-off profile on `inclusionai/ling-3.2-flash:free` (host Ant Digital),
+  demo question (a): 5 turns, tools run_scenario x2, compare_runs, submit_report x3; first report
+  refused by the schema (a made-up metric `budget`), second by the checker, third checked. Tokens
+  23535 in / 8780 out, 218 s, cost 0.0 (free). Transcript and runs saved; provider recorded.
+- Bug found by the live run: the checker tolerance was not inclusive in floating point (26.3 vs
+  stored 26.25 differs by 0.05000000000000071, over the 0.05 tolerance). Test first (failed), then
+  `FLOAT_SLACK = 1e-9`. 278 tests pass.
+- Observation, not changed: the model wrote "of 80 sectors" and the checker rejected the 80, since
+  `total_sectors` is not a claim metric or a request value. This is the stated rule working, but it
+  is a likely source of avoidable failures; the owner can decide to allow it.
