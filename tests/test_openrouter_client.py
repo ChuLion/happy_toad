@@ -163,3 +163,53 @@ def test_a_provider_status_error_keeps_the_status_and_the_whole_body() -> None:
         OpenRouterClient(SMOKE, sdk=Fake).complete([], [])
     assert caught.value.status == 400
     assert "Crusoe" in caught.value.body and "Provider returned error" in caught.value.body
+
+
+def test_reasoning_tokens_are_read_from_usage_details() -> None:
+    done = parse_completion(
+        response(usage={"completion_tokens_details": SimpleNamespace(reasoning_tokens=33)})
+    )
+    assert done.reasoning_tokens == 33
+    assert parse_completion(response()).reasoning_tokens == 0
+
+
+def test_round_profiles_pin_hosts_and_set_reasoning() -> None:
+    from happy_toad.agent.config import ROUND
+
+    assert list(ROUND) == [
+        "gemma_31b",
+        "gemini_flash_lite",
+        "deepseek_flash_0731",
+        "glm_flash",
+        "sonnet_reference",
+    ]
+    deepseek, glm, sonnet = (
+        ROUND["deepseek_flash_0731"],
+        ROUND["glm_flash"],
+        ROUND["sonnet_reference"],
+    )
+    assert deepseek.provider_order == ("baseten/fp8", "baidu/fp8") and deepseek.reasoning_off
+    assert glm.model == "z-ai/glm-5.3-flash" and glm.provider_order == ("z-ai/fp8", "novita/fp8")
+    assert glm.reasoning_effort == "low" and not glm.reasoning_off
+    assert sonnet.model == "anthropic/claude-sonnet-5.5" and sonnet.provider_order == ("anthropic",)
+    assert sonnet.reasoning_effort == "low"
+    assert not any(p.allow_fallbacks for n, p in ROUND.items() if p.provider_order)
+    assert ROUND["gemini_flash_lite"].provider_order == ()
+
+
+def test_an_effort_profile_sends_the_effort_not_enabled_false() -> None:
+    from happy_toad.agent.config import ROUND
+
+    seen = {}
+
+    class Fake:
+        class chat:
+            class completions:
+                @staticmethod
+                def create(**kwargs):
+                    seen.update(kwargs)
+                    return response()
+
+    OpenRouterClient(ROUND["glm_flash"], sdk=Fake).complete([], [])
+    assert seen["extra_body"]["reasoning"] == {"effort": "low"}
+    assert seen["extra_body"]["provider"]["order"] == ["z-ai/fp8", "novita/fp8"]

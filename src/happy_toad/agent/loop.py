@@ -12,7 +12,7 @@ from happy_toad.agent.checker import check_report
 from happy_toad.agent.client import ChatClient, Completion, ProviderError, ToolCall
 from happy_toad.agent.config import MAX_STEPS, Profile
 from happy_toad.agent.prompt import SYSTEM_PROMPT
-from happy_toad.agent.report import Report, coercions
+from happy_toad.agent.report import Report, coercions, defaults
 from happy_toad.agent.tools import TOOLS, ToolRunner
 from happy_toad.agent.transcript import Transcript, TurnRecord
 from happy_toad.services.run import new_run_id
@@ -55,6 +55,7 @@ class Conversation:
     def __init__(self, question, profile, runner, runs_dir, inputs_dir, on_event) -> None:
         self.runner, self.runs_dir, self.on_event = runner, runs_dir, on_event
         self.inputs_dir = inputs_dir
+        self.runs: list[str] = []  # run ids the agent executed, read or compared
         self.transcript = Transcript(
             transcript_id=new_run_id(datetime.now(UTC)),
             question=question,
@@ -74,7 +75,8 @@ class Conversation:
             return {"accepted": False, "error": f"report does not fit the schema: {err}"}
         t = self.transcript
         t.coercions += coercions(call.arguments, report)
-        result = check_report(report, self.runs_dir, self.inputs_dir)
+        t.defaults += defaults(call.arguments, report)
+        result = check_report(report, self.runs_dir, self.inputs_dir, self.runs)
         t.checks.append(result)
         t.report = report
         if result.ok:
@@ -89,7 +91,11 @@ class Conversation:
     def run_call(self, call: ToolCall) -> dict:
         if call.name == "submit_report":
             return self.submit(call)
-        return self.runner.call(call.name, call.arguments)
+        result = self.runner.call(call.name, call.arguments)
+        for key in ("run_id", "run_id_a", "run_id_b"):
+            if isinstance(result.get(key), str) and result[key] not in self.runs:
+                self.runs.append(result[key])
+        return result
 
     def take_turn(self, done: Completion, seconds: float) -> None:
         t = self.transcript
@@ -111,6 +117,7 @@ class Conversation:
                 tool_calls=calls,
                 prompt_tokens=done.prompt_tokens,
                 completion_tokens=done.completion_tokens,
+                reasoning_tokens=done.reasoning_tokens,
                 cost=done.cost,
                 provider=done.provider,
                 quantization=done.quantization,
@@ -158,6 +165,7 @@ def ask(
     t.total_tokens = {
         "prompt": sum(x.prompt_tokens for x in t.turns),
         "completion": sum(x.completion_tokens for x in t.turns),
+        "reasoning": sum(x.reasoning_tokens for x in t.turns),
     }
     t.cost = _sum_cost(t.turns)
     t.elapsed_seconds = time.perf_counter() - started

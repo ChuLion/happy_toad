@@ -517,7 +517,7 @@
   no provider pin for any candidate; one fresh transcript per model and question; runs go to the
   normal `runs/` folder, transcripts to `transcripts/`, results to `bakeoff/` (gitignored).
 
-## 2026-11-14 — smoke check (live)
+## 2026-11-14 — [pre-fix] smoke check (live)
 - Key came from the gitignored `.env` (loaded per command; never printed). The smoke profile
   `google/gemma-4-31b-it:free` returned HTTP 429 on every real request (3 tries, also after a wait):
   "temporarily rate-limited upstream", host Google AI Studio, shared free pool. A 5-token "hi" got
@@ -533,7 +533,7 @@
   `total_sectors` is not a claim metric or a request value. This is the stated rule working, but it
   is a likely source of avoidable failures; the owner can decide to allow it.
 
-## 2026-11-14 — bake-off run (4 paid candidates x 3 demo questions)
+## 2026-11-14 — [pre-fix] bake-off run (4 paid candidates x 3 demo questions)
 - Results file `bakeoff/20261114T161530.json` (gitignored; prices listed at run time inside).
   Listed prices per token in/out: gemini-2.5-flash-lite 1e-7/4e-7; gemma-4-31b-it 2e-7/4e-7;
   deepseek-v4-flash-0731 4.34e-8/3e-7; deepseek-v4-pro 9e-7/1.5e-6.
@@ -561,7 +561,7 @@
 - Not specified by the owner: the SPEC's draft prompt block was replaced by a pointer to
   `agent/prompt.py`, so there is one copy.
 
-### 2026-11-14 — first 5-repeat attempt (aborted), fixes, A/B on the clarify sentence (not a ranking)
+### 2026-11-14 — [pre-fix] first 5-repeat attempt (aborted), fixes, A/B on the clarify sentence (not a ranking)
 - First batch (Gemma pinned to Crusoe/Novita, question a, repeats 1-3, commit 4de0aa6) stopped at
   the first error row. Repeats 1 and 2 were `unverified`: Gemma wrote claim values as JSON strings
   ('485.59', '21'); the checker compared a str with a number, so every claim failed and every summary
@@ -588,7 +588,7 @@
   concatenated (invalid JSON, "Extra data"), which our loop echoes back verbatim in the assistant
   message. Suspected message-format bug in our loop; stopped per the owner's rule, not fixed yet.
 
-### 2026-11-14 — five-trial comparison, 3 models x 3 questions x 5 runs (not a ranking)
+### 2026-11-14 — [pre-fix] five-trial comparison, 3 models x 3 questions x 5 runs (not a ranking)
 - Frozen state: commit 56fc796 (CI green), clean tree, prompt sha256 a7e94a23…fd24; checker.py
   cbb7113d…, report.py 251eeda6…, tools.py 22de2517…, prompt.py 49e10556… (full hashes in
   bakeoff/20261114T183716.json). No error rows, no api_error rows, no repeated 400. Gemma pinned to
@@ -608,7 +608,7 @@
   Flash 0731 qualifies. Its 15 runs were served by seven hosts with mixed quantization (fp8, fp4,
   nvfp4, fp32, unknown), so the demo pin needs the owner's choice of host.
 
-### 2026-11-14 — refusal breakdown (all saved transcripts) and GLM 5.3 Flash facts (no runs)
+### 2026-11-14 — [pre-fix] refusal breakdown (all saved transcripts) and GLM 5.3 Flash facts (no runs)
 - First-refusal reasons differ by model. Gemma 4 31B: schema errors (entity set to a scenario label
   such as "Budget 800", metric "weighted relief"/"budget", unit "currency") on a and b; on c all 5
   rerun runs were first refused for "697.01" in a claimless summary, then a schema error, then
@@ -627,3 +627,27 @@
   default max), so it cannot be turned off; highest listed precision is fp8 (no bf16); tool-call
   error share from the page's embedded data, 2026-10-15..11-14: 0.94% (8.14M requests with
   tool-call errors / 861.8M tool calls). Frozen hashes re-verified against bakeoff/20261114T183716.
+
+
+## 2026-11-14 — checker fixes after the refusal breakdown; results above marked [pre-fix]
+- Owner approved five fixes, built test-first (tests failed for the missing features first):
+  `diff_*` claims citing two runs (b minus a, as compare_runs), `must_fund_cost` and `forced_cost`
+  checked against the input file, `status` of a run without a result is its outcome, `unit` set
+  from the metric and `entity` always "plan" (replaced or missing values logged as `defaults`,
+  counted like coercions), a validated `required_minimum_budget` claim mandatory for every rejected
+  or infeasible run of the conversation or the report that has one, and run ids plus their
+  timestamp and suffix never read as numbers. SPEC report schema and number rules updated.
+- Every result recorded before this entry was produced by the old checker and is labelled
+  [pre-fix]; it is not comparable with the next round.
+- Round profiles (`config.ROUND`): Gemma 4 31B (crusoe/bf16, novita/bf16), Gemini 2.5 Flash Lite
+  (unpinned), DeepSeek V4 Flash 0731 (baseten/fp8, baidu/fp8; reasoning off), GLM 5.3 Flash
+  (z-ai/fp8, novita/fp8; reasoning effort low, mandatory reasoning, not equal terms), Sonnet 5.5
+  reference (anthropic only; reasoning mandatory, effort low). No fallbacks outside each list.
+  Reasoning tokens are recorded per turn and per run.
+- Not specified by the owner: diff counts accept signed whole-number strings; a diff number may
+  appear unsigned in the summary; the mandatory rule covers runs executed, read, compared or cited;
+  loop.py joins the frozen-file hashes; wrong unit/entity values are replaced rather than rejected.
+- DeepSeek native precision (model card config, deepseek-ai/DeepSeek-V4-Flash-0731): quant_method
+  fp8 (e4m3) with `expert_dtype: fp4`; most parameters are stored packed as I8, consistent with fp4
+  experts. Not plain fp8, so the DeepSeek pin waits for the owner. baseten/fp8 and baidu/fp8 both
+  list tools and tool_choice.

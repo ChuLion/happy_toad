@@ -82,7 +82,7 @@ def test_question_to_checked_report_and_transcript(dirs) -> None:
     assert run_ids(dirs) == [real["id"]]
     saved = json.loads(next(dirs["transcripts_dir"].glob("*.json")).read_text())
     assert saved["question"].startswith("Plan on") and saved["model"] == SMOKE.model
-    assert saved["total_tokens"] == {"prompt": 30, "completion": 15}
+    assert saved["total_tokens"] == {"prompt": 30, "completion": 15, "reasoning": 0}
     assert saved["cost"] == pytest.approx(0.003) and saved["status"] == "checked"
     assert saved["turns"][0]["provider"] == "FakeProvider" and saved["elapsed_seconds"] >= 0
 
@@ -442,3 +442,37 @@ def test_an_account_id_in_a_provider_error_body_is_redacted(dirs) -> None:
     t = ask("q", Rejects(), DEMO, **dirs)
     assert "user_3FEB" not in t.api_error["body"] and "[redacted]" in t.api_error["body"]
     assert "user_3FEB" not in next(dirs["transcripts_dir"].glob("*.json")).read_text()
+
+
+def test_a_rejected_run_in_the_conversation_needs_its_minimum_budget_claimed(dirs) -> None:
+    vague = turn(call("submit_report", summary="Rejected; the budget is too small.", claims=[]))
+    client = FakeClient(
+        [
+            turn(
+                call("run_scenario", input_version="test", budget=12, force_in=["X1", "X2", "Y1"])
+            ),
+            vague,
+            vague,
+        ]
+    )
+    t = ask("q", client, DEMO, **dirs)
+    assert t.status == "unverified"
+    assert any("required_minimum_budget" in e for e in t.checks[0].errors())
+
+
+def test_defaulted_entity_and_unit_are_logged_in_the_transcript(dirs) -> None:
+    claims = [dict(metric="n_selected", value=2, run_id="20260101T000000-deadbeef", entity="X")]
+    client = FakeClient([turn(call("submit_report", summary="x", claims=claims))] * 2)
+    t = ask("q", client, DEMO, **dirs)
+    assert {"field": "entity", "metric": "n_selected", "run_id": "20260101T000000-deadbeef",
+            "from": "X", "to": "plan"} in t.defaults  # fmt: skip
+    assert len([d for d in t.defaults if d["field"] == "unit"]) == 2  # logged on both submissions
+
+
+def test_reasoning_tokens_are_recorded_per_turn_and_in_total(dirs) -> None:
+    from happy_toad.agent.client import Completion
+
+    done = Completion(content=None, tool_calls=[call("submit_report", summary="?", claims=[])],
+                      prompt_tokens=10, completion_tokens=50, reasoning_tokens=40)  # fmt: skip
+    t = ask("q", FakeClient([done]), DEMO, **dirs)
+    assert t.turns[0].reasoning_tokens == 40 and t.total_tokens["reasoning"] == 40

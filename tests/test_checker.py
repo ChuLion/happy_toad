@@ -23,15 +23,18 @@ def check(run, tmp_path, summary, *claims):
     )
 
 
-def test_schema_rejects_unknown_metric_wrong_unit_and_extra_fields(run) -> None:
+def test_schema_rejects_unknown_metric_and_extra_fields(run) -> None:
     with pytest.raises(ValidationError):
         Claim(metric="profit", value=1, unit="none", run_id=run.run_id, entity="plan")
     with pytest.raises(ValidationError):
-        Claim(metric="spend", value=1, unit="percent", run_id=run.run_id, entity="plan")
-    with pytest.raises(ValidationError):
         Claim(metric="spend", value=1, unit="cost_units", run_id=run.run_id, entity="plan", x=1)
-    with pytest.raises(ValidationError):
-        Claim(metric="spend", value=1, unit="cost_units", run_id=run.run_id, entity="X1")
+
+
+def test_entity_defaults_to_plan_and_unit_is_derived_from_the_metric(run) -> None:
+    wrong = Claim(metric="spend", value=1, unit="currency", run_id=run.run_id, entity="Budget 800")
+    assert (wrong.unit, wrong.entity) == ("cost_units", "plan")
+    bare = Claim(metric="pct_resolved", value=1, run_id=run.run_id)
+    assert (bare.unit, bare.entity) == ("percent", "plan")
 
 
 def test_every_metric_matches_the_stored_run(run, tmp_path) -> None:
@@ -205,3 +208,109 @@ def test_numbers_are_still_unmatched_when_a_claim_validated(run, tmp_path) -> No
     result = check(run, tmp_path, "Spend is 11.00 and 77.", claim(run, "spend", 11.0, "cost_units"))
     assert [n.ok for n in result.numbers] == [True, False]
     assert "does not match" in result.numbers[1].message
+
+
+def test_defaults_are_listed_like_coercions() -> None:
+    import json
+
+    from happy_toad.agent.report import defaults
+
+    raw = [
+        dict(metric="spend", value=1, unit="currency", run_id="r", entity="Budget 800"),
+        dict(metric="n_selected", value=2, run_id="r"),
+        dict(metric="spend", value=1, unit="cost_units", run_id="r", entity="plan"),
+    ]
+    report = Report(summary="x", claims=raw)
+    found = defaults(json.dumps({"summary": "x", "claims": raw}), report)
+    assert found == [
+        {"field": "unit", "metric": "spend", "run_id": "r", "from": "currency", "to": "cost_units"},
+        {"field": "entity", "metric": "spend", "run_id": "r", "from": "Budget 800", "to": "plan"},
+        {"field": "unit", "metric": "n_selected", "run_id": "r", "from": None, "to": "count"},
+        {"field": "entity", "metric": "n_selected", "run_id": "r", "from": None, "to": "plan"},
+    ]
+
+
+def two_runs(tmp_path):
+    big = make_run(tmp_path)  # budget 12
+    small = make_run(tmp_path, budget=6.0)
+    return big, small
+
+
+def diff_claim(a, b, metric, value):
+    return Claim(metric=metric, value=value, run_id=a.run_id, run_id_b=b.run_id)
+
+
+def test_comparison_claims_are_b_minus_a_as_compare_runs_reports(tmp_path) -> None:
+    from happy_toad.services.runs import compare_runs
+
+    a, b = two_runs(tmp_path)
+    fields = compare_runs(a, b).fields
+    claims = [
+        diff_claim(a, b, "diff_spend", round(fields["spend"].difference, 2)),
+        diff_claim(a, b, "diff_weighted_relief", round(fields["weighted_relief"].difference, 2)),
+        diff_claim(a, b, "diff_n_selected", int(fields["n_selected"].difference)),
+        diff_claim(a, b, "diff_n_resolved", int(fields["n_resolved"].difference)),
+        diff_claim(a, b, "diff_pct_resolved", round(fields["pct_resolved"].difference, 1)),
+    ]
+    result = check_report(
+        Report(summary="ok", claims=claims), tmp_path / "runs", tmp_path / "inputs"
+    )
+    assert result.ok, result.errors()
+    wrong = diff_claim(a, b, "diff_spend", -round(fields["spend"].difference, 2) + 1)
+    assert not check_report(Report(summary="x", claims=[wrong]), tmp_path / "runs").ok
+
+
+def test_a_difference_may_appear_in_the_summary_without_its_sign(tmp_path) -> None:
+    a, b = two_runs(tmp_path)
+    from happy_toad.services.runs import compare_runs
+
+    d = round(compare_runs(a, b).fields["spend"].difference, 2)
+    claim_ = diff_claim(a, b, "diff_spend", d)
+    summary = f"The smaller budget spends {abs(d):.2f} less."
+    assert d < 0
+    assert check_report(Report(summary=summary, claims=[claim_]), tmp_path / "runs").ok
+
+
+def test_comparison_claims_need_a_second_run_and_others_must_not_have_one(run) -> None:
+    with pytest.raises(ValidationError):
+        Claim(metric="diff_spend", value=1, run_id=run.run_id)
+    with pytest.raises(ValidationError):
+        Claim(metric="spend", value=1, run_id=run.run_id, run_id_b=run.run_id)
+
+
+def test_must_fund_and_forced_cost_are_checked_against_the_inputs(tmp_path) -> None:
+    forced = make_run(tmp_path, force_in=["X1", "Y1"])  # toy costs 6 + 6; no must-fund projects
+    claims = [
+        claim(forced, "forced_cost", 12.0, "cost_units"),
+        claim(forced, "must_fund_cost", 0.0, "cost_units"),
+    ]
+    result = check(forced, tmp_path, "Forced 12.00.", *claims)
+    assert all(c.ok for c in result.claims), result.errors()
+    off = check(forced, tmp_path, "x", claim(forced, "forced_cost", 11.0, "cost_units"))
+    assert not off.claims[0].ok
+
+
+def test_status_of_a_rejected_run_is_its_outcome(tmp_path) -> None:
+    rejected = make_run(tmp_path, force_in=["X1", "X2", "Y1"])
+    rmb = claim(rejected, "required_minimum_budget", 17.0, "cost_units")
+    assert check(rejected, tmp_path, "x", claim(rejected, "status", "rejected", "none"), rmb).ok
+    assert not check(rejected, tmp_path, "x", claim(rejected, "status", "Optimal", "none"), rmb).ok
+
+
+def test_a_rejected_run_with_a_minimum_budget_must_be_claimed(tmp_path) -> None:
+    rejected = make_run(tmp_path, force_in=["X1", "X2", "Y1"])
+    runs = tmp_path / "runs"
+    vague = Report(summary="The budget must be at least the required minimum budget.", claims=[])
+    result = check_report(vague, runs, tmp_path / "inputs", conversation_runs=[rejected.run_id])
+    assert not result.ok and any("required_minimum_budget" in e for e in result.errors())
+    rmb = claim(rejected, "required_minimum_budget", 17.0, "cost_units")
+    good = Report(summary="The budget must be at least 17.00.", claims=[rmb])
+    assert check_report(good, runs, tmp_path / "inputs", conversation_runs=[rejected.run_id]).ok
+    cited = Report(summary="x", claims=[claim(rejected, "status", "rejected", "none")])
+    assert not check_report(cited, runs, tmp_path / "inputs").ok  # a cited run counts too
+
+
+def test_run_ids_and_their_digit_only_suffixes_are_never_numbers(tmp_path) -> None:
+    rid = "20261114T184501-78612358"
+    text = f"Run {rid} and run 78612358 and 20261114T184501 spent 11.00."
+    assert [t for t, _ in find_numbers(text, [rid])] == ["11.00"]

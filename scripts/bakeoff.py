@@ -1,6 +1,6 @@
 """Run the demo questions against every bake-off model (needs OPENROUTER_API_KEY).
 
-Usage: uv run python scripts/bakeoff.py [--repeats N] [profile ...]   (default: all candidates)
+Usage: uv run python scripts/bakeoff.py [--repeats N] [profile ...]   (default: the ROUND profiles)
 Writes bakeoff/<timestamp>.json (rows, plus the prices and quantizations listed at run time),
 rewritten after every row, and prints each row, then a summary per model and question.
 Stops at the first error row (a crash or a provider failure) so it can be looked at before more
@@ -16,11 +16,12 @@ from tempfile import TemporaryDirectory
 
 from happy_toad.agent.bakeoff import provenance, run_bakeoff, summary, table
 from happy_toad.agent.client import OpenRouterClient, fetch_quantizations
-from happy_toad.agent.config import BAKEOFF
+from happy_toad.agent.config import BAKEOFF, ROUND
 from happy_toad.data.generator import make_v1
 from happy_toad.data.loader import save_input_set
 
 MODELS_URL = "https://openrouter.ai/api/v1/models"
+CANDIDATES = BAKEOFF | ROUND  # ROUND's pinned profiles replace earlier ones of the same name
 
 
 def listed_prices(model_ids: list[str]) -> dict[str, dict]:
@@ -31,7 +32,7 @@ def listed_prices(model_ids: list[str]) -> dict[str, dict]:
 
 
 def main(names: list[str], repeats: int) -> None:
-    profiles = {n: BAKEOFF[n] for n in names or BAKEOFF}
+    profiles = {n: CANDIDATES[n] for n in names or ROUND}
     models = [p.model for p in profiles.values()]
     prices = listed_prices(models)
     listing = {m: fetch_quantizations(m) for m in models}
@@ -70,7 +71,7 @@ def main(names: list[str], repeats: int) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("profiles", nargs="*", choices=list(BAKEOFF))
+    parser.add_argument("profiles", nargs="*", choices=list(CANDIDATES))
     parser.add_argument("--repeats", type=int, default=1)
     args = parser.parse_args()
     main(args.profiles, args.repeats)

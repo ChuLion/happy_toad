@@ -180,7 +180,13 @@ def test_provenance_records_commit_prompt_hash_and_frozen_files() -> None:
     info = provenance()
     assert info["prompt_sha256"] == hashlib.sha256(SYSTEM_PROMPT.encode()).hexdigest()
     assert len(info["git_sha"]) == 40 and isinstance(info["git_dirty"], bool)
-    assert set(info["frozen_files"]) == {"checker.py", "report.py", "tools.py", "prompt.py"}
+    assert set(info["frozen_files"]) == {
+        "checker.py",
+        "report.py",
+        "tools.py",
+        "prompt.py",
+        "loop.py",
+    }
 
 
 def test_malformed_calls_are_counted_per_row_and_in_the_summary(dirs) -> None:
@@ -209,4 +215,27 @@ def test_summary_ends_with_totals_per_model(dirs) -> None:
     )
     assert lines[-1].startswith(
         "TOTAL fake/two | runs 4 | checked 4 | api_errors 0 | coercions 0 | malformed 0"
+    )
+
+
+def test_rows_carry_defaults_reasoning_tokens_and_an_unequal_terms_note(dirs) -> None:
+    from happy_toad.agent.bakeoff import summary
+    from happy_toad.agent.client import Completion
+
+    effort = Profile("glm", "fake/glm", reasoning_effort="low")
+    claims = [dict(metric="n_selected", value=2, run_id="20260101T000000-deadbeef", entity="X")]
+
+    def make_client(profile):
+        sub = call("submit_report", summary="x", claims=claims)
+        return FakeClient(
+            [Completion(content=None, tool_calls=[sub], completion_tokens=9, reasoning_tokens=7)]
+            * 2
+        )
+
+    rows = run_bakeoff({"glm": effort}, make_client, {"q1": "q"}, **dirs)
+    assert rows[0].defaults == 4 and rows[0].reasoning_tokens == 14
+    assert rows[0].note == "reasoning effort low; not equal terms"
+    text = summary(rows)
+    assert (
+        "defaults 4" in text and "reasoning tokens 14.0 mean" in text and "not equal terms" in text
     )

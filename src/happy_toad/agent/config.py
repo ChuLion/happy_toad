@@ -16,6 +16,7 @@ class Profile:
     provider_order: tuple[str, ...] = ()
     allow_fallbacks: bool = True
     reasoning_off: bool = False
+    reasoning_effort: str | None = None  # for models whose reasoning cannot be switched off
 
 
 SMOKE = Profile("smoke", "inclusionai/ling-3.2-flash:free")
@@ -41,3 +42,36 @@ BAKEOFF = {
     )
 }
 PROFILES |= BAKEOFF
+
+# The round after the checker fixes (docs/DEVLOG.md). Hosts are pinned with a same-precision backup
+# and no fallbacks outside the list; Gemini stays unpinned (one host serves it). GLM and Sonnet
+# cannot switch reasoning off, so they run at the lowest effort: not equal terms.
+ROUND = {
+    p.name: p
+    for p in (
+        BAKEOFF["gemma_31b"],
+        BAKEOFF["gemini_flash_lite"],
+        Profile(
+            "deepseek_flash_0731",
+            "deepseek/deepseek-v4-flash-0731",
+            ("baseten/fp8", "baidu/fp8"),
+            allow_fallbacks=False,
+            reasoning_off=True,
+        ),
+        Profile(
+            "glm_flash",
+            "z-ai/glm-5.3-flash",
+            ("z-ai/fp8", "novita/fp8"),
+            allow_fallbacks=False,
+            reasoning_effort="low",
+        ),
+        Profile(
+            "sonnet_reference",
+            "anthropic/claude-sonnet-5.5",
+            ("anthropic",),
+            allow_fallbacks=False,
+            reasoning_effort="low",
+        ),
+    )
+}
+PROFILES |= ROUND

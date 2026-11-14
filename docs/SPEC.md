@@ -681,16 +681,29 @@ cost is the sum of its turns, and `null` if any turn lacks one.
 | `n_resolved` | `count` | `result.resolved` | exact |
 | `n_sectors` | `count` | number of sectors in the cited run's input version, counted from the input file (not from the run) | exact |
 | `pct_resolved` | `percent` | `result.pct_resolved` | 0.05 |
-| `status` | `none` | `result.status` | exact |
+| `status` | `none` | `result.status`; for a run without a result, its outcome (`rejected`, `error`) | exact |
 | `target_met` | `none` | `result.target_met` | exact |
+| `must_fund_cost` | `cost_units` | sum of must-fund costs in the cited run's input version | 0.005 |
+| `forced_cost` | `cost_units` | sum of the input costs of the run request's `force_in` candidates | 0.005 |
+| `diff_spend`, `diff_weighted_relief` | as base | run `run_id_b` minus run `run_id`, as `compare_runs` reports it; both need a plan | 0.005 |
+| `diff_n_selected`, `diff_n_resolved` | `count` | as above (signed whole numbers) | exact |
+| `diff_pct_resolved` | `percent` | as above | 0.05 |
 
-A claim is `{metric, value, unit, run_id, entity}`; `entity` is `"plan"`. A claim fails if the run
-file is missing, the run was rejected or failed (no result), or the stored value is `None`.
+A claim is `{metric, value, run_id, run_id_b?, unit?, entity?}`. `run_id_b` is required for
+`diff_*` metrics and forbidden otherwise. `unit` is always set from the metric and `entity` is
+always `"plan"`; a missing or different value sent by the model is replaced and logged in the
+transcript (`defaults`, counted like coercions). A plain-number string is coerced for a numeric
+metric (`coercions`). A claim fails if the run file is missing or the stored value is `None`.
+**Minimum budget is mandatory:** every run the agent executed, read, compared or cited that is
+rejected or infeasible and has a `required_minimum_budget` must have a validated
+`required_minimum_budget` claim, or the report fails.
 Report = `{summary, claims}`. Values are reported at displayed precision: 2 decimals for
 `need_units` and `cost_units`, 1 decimal for percent, integers for counts.
 
 **What counts as a "number" in the summary (checker).** The summary is scanned left to right.
-1. Never numbers: run ids (`YYYYMMDDTHHMMSS-xxxxxxxx`) are removed first. A numeric token must
+1. Never numbers: run ids (`YYYYMMDDTHHMMSS-xxxxxxxx`) are removed first, and so are the
+   timestamp and the suffix of any run of the conversation or of a claim written on their own
+   (a digit-only suffix such as `78612358` is not a number). A numeric token must
    not touch a letter, digit or underscore before it, nor a letter or underscore after it, so
    identifiers (candidate `C033`, sector `S001`, must-fund `M1`, version `v1`, market `market_e`)
    contain no numbers. A hyphen is a separator (`2027-2031` is two years).
@@ -704,7 +717,8 @@ Each number must equal, within tolerance, either (a) the value of a validated cl
 metric (percent compares with 0.05, money with 0.005, counts exactly) or (b) **[lead]** a numeric
 request parameter (`budget`, `market_floor_mult`, `market_cap_mult`, `target_pct_resolved`,
 `region_total_sectors`) of a run that one of the claims cites, since a summary naturally says "at a
-budget of 600". Any other number, including a difference the agent computed, fails. So the agent
+budget of 600". A `diff_*` claim also allows its absolute value ("243.70 less"). Any other
+number, including a difference the agent computed itself, fails. So the agent
 states values, not differences (stated in the prompt). Tests cover identifiers, years, percents,
 commas and the unmatched number.
 

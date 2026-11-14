@@ -14,7 +14,7 @@ from happy_toad.agent.demo import QUESTIONS
 from happy_toad.agent.loop import ask
 from happy_toad.agent.prompt import SYSTEM_PROMPT
 
-FROZEN_FILES = ("checker.py", "report.py", "tools.py", "prompt.py")
+FROZEN_FILES = ("checker.py", "report.py", "tools.py", "prompt.py", "loop.py")
 
 
 @dataclass
@@ -41,6 +41,9 @@ class Row:
     api_status: int | None = None  # set when the provider refused a request (status api_error)
     api_step: int | None = None
     malformed_calls: int = 0  # tool calls whose arguments were not valid JSON
+    defaults: int = 0  # claim units and entities the schema set or replaced
+    reasoning_tokens: int = 0
+    note: str | None = None  # set when the run was not on equal terms
 
     def listed_cost(self) -> float | None:
         """Tokens times the per-token prices listed at run time."""
@@ -105,9 +108,18 @@ def _row(profile: Profile, key: str, repeat: int, transcript, price) -> Row:
         quantizations=sorted({x.quantization or "unknown" for x in t.turns}),
         coercions=len(t.coercions),
         malformed_calls=_malformed(t),
+        defaults=len(t.defaults),
+        reasoning_tokens=t.total_tokens.get("reasoning", 0),
+        note=_note(profile),
         api_status=t.api_error["status"] if t.api_error else None,
         api_step=t.api_error["step"] if t.api_error else None,
     )
+
+
+def _note(profile: Profile) -> str | None:
+    if profile.reasoning_effort:
+        return f"reasoning effort {profile.reasoning_effort}; not equal terms"
+    return None
 
 
 def _error_row(profile: Profile, key: str, repeat: int, price, message: str) -> Row:
@@ -214,6 +226,9 @@ def summary(rows: list[Row]) -> str:
             f"api_errors {len(api)} {[(r.api_status, r.api_step) for r in api]} | "
             f"coercions {sum(r.coercions for r in group)} | "
             f"malformed {sum(r.malformed_calls for r in group)} | "
+            f"defaults {sum(r.defaults for r in group)} | "
+            f"reasoning tokens {sum(r.reasoning_tokens for r in group) / len(group):.1f} mean | "
+            f"{group[0].note or 'equal terms'} | "
             f"providers {sorted({p for r in group for p in r.providers})} | "
             f"quantization {sorted({q for r in group for q in r.quantizations})}"
         )
@@ -227,7 +242,9 @@ def _totals(rows: list[Row]) -> list[str]:
     return [
         f"TOTAL {model} | runs {len(g)} | checked {sum(r.status == 'checked' for r in g)} | "
         f"api_errors {sum(r.status == 'api_error' for r in g)} | "
-        f"coercions {sum(r.coercions for r in g)} | malformed {sum(r.malformed_calls for r in g)}"
+        f"coercions {sum(r.coercions for r in g)} | "
+        f"malformed {sum(r.malformed_calls for r in g)} | "
+        f"defaults {sum(r.defaults for r in g)} | refusals {sum(r.refusals for r in g)}"
         for model, g in models.items()
     ]
 

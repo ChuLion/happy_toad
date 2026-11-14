@@ -16,6 +16,7 @@ class TurnRecord(BaseModel):
     tool_calls: list[dict]
     prompt_tokens: int
     completion_tokens: int
+    reasoning_tokens: int = 0  # part of completion_tokens, when the provider reports it
     cost: float | None
     provider: str | None
     quantization: str | None = None
@@ -36,7 +37,8 @@ class Transcript(BaseModel):
     error: str | None = None
     api_error: dict | None = None  # {status, body, step} when the provider refused a request
     coercions: list[dict] = []  # claim values the schema turned from strings into numbers
-    total_tokens: dict[str, int] = {"prompt": 0, "completion": 0}
+    defaults: list[dict] = []  # claim units and entities the schema set or replaced
+    total_tokens: dict[str, int] = {"prompt": 0, "completion": 0, "reasoning": 0}
     cost: float | None = None
     elapsed_seconds: float = 0.0
 

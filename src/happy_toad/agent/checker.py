@@ -4,23 +4,32 @@ Rules are in docs/SPEC.md (M3: tolerances, and what counts as a number in the su
 """
 
 import re
+from collections.abc import Iterable
 from pathlib import Path
 
 from pydantic import BaseModel, computed_field
 
-from happy_toad.agent.report import Claim, Report
+from happy_toad.agent.report import DIFF_BASE, Claim, Report
 from happy_toad.services.run import RunRecord, load_version
-from happy_toad.services.runs import read_run
+from happy_toad.services.runs import metrics, read_run
 
 MONEY_TOLERANCE = 0.005  # shown to 2 decimals
 PERCENT_TOLERANCE = 0.05  # shown to 1 decimal
 FLOAT_SLACK = 1e-9  # tolerances are inclusive: 26.3 vs 26.25 differs by 0.05000000000000071
-TOLERANCE = {
-    "weighted_relief": MONEY_TOLERANCE,
-    "spend": MONEY_TOLERANCE,
-    "required_minimum_budget": MONEY_TOLERANCE,
+MONEY_METRICS = (
+    "weighted_relief",
+    "spend",
+    "required_minimum_budget",
+    "must_fund_cost",
+    "forced_cost",
+    "diff_spend",
+    "diff_weighted_relief",
+)
+TOLERANCE = {m: MONEY_TOLERANCE for m in MONEY_METRICS} | {
     "pct_resolved": PERCENT_TOLERANCE,
+    "diff_pct_resolved": PERCENT_TOLERANCE,
 }
+INPUT_METRICS = ("n_sectors", "must_fund_cost", "forced_cost")
 REQUEST_NUMBERS = (
     "budget",
     "market_floor_mult",
@@ -50,11 +59,14 @@ class NumberCheck(BaseModel):
 class CheckResult(BaseModel):
     claims: list[ClaimCheck]
     numbers: list[NumberCheck]
+    missing: list[str] = []  # claims the report must make but does not
 
     @computed_field
     @property
     def ok(self) -> bool:
-        return all(c.ok for c in self.claims) and all(n.ok for n in self.numbers)
+        return (
+            all(c.ok for c in self.claims) and all(n.ok for n in self.numbers) and not self.missing
+        )
 
     def errors(self) -> list[str]:
         """One line per failure, for the model and for display."""
@@ -71,13 +83,21 @@ class CheckResult(BaseModel):
         ]
         if unchecked:
             bad_numbers.append(f"{len(unchecked)} summary numbers {NOT_CHECKED}")
-        return bad_claims + bad_numbers
+        return bad_claims + self.missing + bad_numbers
 
 
-def find_numbers(text: str) -> list[tuple[str, float]]:
-    """Numbers in a summary as (text, value); identifiers, years and list markers are skipped."""
+def _strip_run_ids(text: str, run_ids: Iterable[str]) -> str:
+    """Remove run ids and, for known runs, their timestamp and suffix written on their own."""
     text = RUN_ID_TEXT.sub(" ", text)
-    text = LIST_MARKER.sub(" ", text)
+    for run_id in run_ids:
+        for part in run_id.split("-"):
+            text = re.sub(rf"(?<![\w.]){re.escape(part)}(?!\w)", " ", text)
+    return text
+
+
+def find_numbers(text: str, run_ids: Iterable[str] = ()) -> list[tuple[str, float]]:
+    """Numbers in a summary as (text, value); identifiers, years and list markers are skipped."""
+    text = LIST_MARKER.sub(" ", _strip_run_ids(text, run_ids))
     found = []
     for m in NUMBER.finditer(text):
         token = m.group()
@@ -88,10 +108,12 @@ def find_numbers(text: str) -> list[tuple[str, float]]:
 
 
 def stored_value(record: RunRecord, metric: str):
-    """The value of a metric in a stored run, or None if the run has none."""
+    """The value of a run metric in a stored run, or None if the run has none."""
     if metric == "required_minimum_budget":
         return record.required_minimum_budget
     r = record.result
+    if metric == "status":
+        return record.outcome if r is None else r.status
     if r is None:
         return None
     values = {
@@ -100,10 +122,32 @@ def stored_value(record: RunRecord, metric: str):
         "n_selected": None if r.selected is None else len(r.selected),
         "n_resolved": r.resolved,
         "pct_resolved": r.pct_resolved,
-        "status": r.status,
         "target_met": r.target_met,
     }
     return values[metric]
+
+
+def input_value(record: RunRecord, metric: str, inputs_dir: Path):
+    """Sector count, must-fund cost or forced-in cost, from the run's input version file."""
+    data = load_version(record.input_version, inputs_dir)
+    if data is None:
+        return None
+    if metric == "n_sectors":
+        return len(data.sectors)
+    if metric == "must_fund_cost":
+        return sum(m.cost for m in data.must_fund)
+    costs = {c.id: c.cost for c in data.candidates}
+    return sum(costs[i] for i in record.request.get("force_in") or [] if i in costs)
+
+
+def difference(a: RunRecord, run_id_b: str, metric: str, runs_dir: Path):
+    """Run b minus run a for a compared metric, as compare_runs reports it; None without plans."""
+    b = read_run(run_id_b, runs_dir)
+    plans = [r for r in (a, b) if r is not None and r.result and r.result.selected is not None]
+    if len(plans) < 2:
+        return None
+    base = DIFF_BASE[metric]
+    return metrics(b)[base] - metrics(a)[base]
 
 
 def values_match(metric: str, claimed, stored) -> bool:
@@ -116,38 +160,45 @@ def values_match(metric: str, claimed, stored) -> bool:
     return claimed == stored and type(claimed) is type(stored)
 
 
-def sector_count(record: RunRecord, inputs_dir: Path) -> int | None:
-    """Sectors in the cited run's input version, counted from the file, not from the run."""
-    data = load_version(record.input_version, inputs_dir)
-    return None if data is None else len(data.sectors)
+def _stored(claim: Claim, record: RunRecord, runs_dir: Path, inputs_dir: Path):
+    if claim.metric in DIFF_BASE:
+        return difference(record, claim.run_id_b, claim.metric, runs_dir), "both runs need a plan"
+    if claim.metric in INPUT_METRICS:
+        return input_value(record, claim.metric, inputs_dir), "input version not found"
+    return stored_value(record, claim.metric), "the run has no value for this metric"
 
 
 def check_claim(claim: Claim, runs_dir: Path, inputs_dir: Path) -> ClaimCheck:
     record = read_run(claim.run_id, runs_dir)
     if record is None:
         return ClaimCheck(claim=claim, ok=False, message="run not found")
-    if claim.metric == "n_sectors":
-        count = sector_count(record, inputs_dir)
-        if count is None:
-            return ClaimCheck(claim=claim, ok=False, message="input version not found")
-        stored = count
-    else:
-        stored = stored_value(record, claim.metric)
+    stored, why_none = _stored(claim, record, runs_dir, inputs_dir)
     if stored is None:
-        return ClaimCheck(claim=claim, ok=False, message="the run has no value for this metric")
+        return ClaimCheck(claim=claim, ok=False, message=why_none)
     if not values_match(claim.metric, claim.value, stored):
         message = f"claimed {claim.value!r} ({type(claim.value).__name__}), stored {stored!r}"
         return ClaimCheck(claim=claim, ok=False, message=message)
     return ClaimCheck(claim=claim, ok=True, message="matches")
 
 
+def _run_ids(report: Report) -> list[str]:
+    ids = [c.run_id for c in report.claims] + [c.run_id_b for c in report.claims if c.run_id_b]
+    return list(dict.fromkeys(ids))
+
+
 def allowed_numbers(report: Report, runs_dir: Path) -> list[tuple[float, float]]:
-    """(value, tolerance) pairs a summary number may equal: claim values and request values."""
+    """(value, tolerance) pairs a summary number may equal: claim values and request values.
+
+    A difference may be written without its sign ("243.70 less").
+    """
     allowed = []
     for claim in report.claims:
         if isinstance(claim.value, int | float) and not isinstance(claim.value, bool):
-            allowed.append((float(claim.value), TOLERANCE.get(claim.metric, 0.0)))
-    for run_id in {c.run_id for c in report.claims}:
+            tol = TOLERANCE.get(claim.metric, 0.0)
+            allowed.append((float(claim.value), tol))
+            if claim.metric in DIFF_BASE:
+                allowed.append((abs(float(claim.value)), tol))
+    for run_id in _run_ids(report):
         record = read_run(run_id, runs_dir)
         for name in REQUEST_NUMBERS if record else ():
             if record.request.get(name) is not None:
@@ -155,20 +206,51 @@ def allowed_numbers(report: Report, runs_dir: Path) -> list[tuple[float, float]]
     return allowed
 
 
+def _needs_minimum_budget(record: RunRecord) -> bool:
+    blocked = record.outcome == "rejected" or (
+        record.result is not None and record.result.status == "Infeasible"
+    )
+    return blocked and record.required_minimum_budget is not None
+
+
+def missing_minimum_budgets(valid: Report, run_ids: Iterable[str], runs_dir: Path) -> list[str]:
+    """A rejected or infeasible run with a required_minimum_budget must have that claim."""
+    claimed = {c.run_id for c in valid.claims if c.metric == "required_minimum_budget"}
+    missing = []
+    for run_id in run_ids:
+        record = read_run(run_id, runs_dir)
+        if record is not None and _needs_minimum_budget(record) and run_id not in claimed:
+            missing.append(
+                f"run {run_id} is {record.outcome if record.result is None else 'infeasible'} "
+                f"and has required_minimum_budget {record.required_minimum_budget}; "
+                "the report must claim it (metric required_minimum_budget)"
+            )
+    return missing
+
+
 def check_report(
-    report: Report, runs_dir: Path, inputs_dir: Path = Path("data/inputs")
+    report: Report,
+    runs_dir: Path,
+    inputs_dir: Path = Path("data/inputs"),
+    conversation_runs: Iterable[str] = (),
 ) -> CheckResult:
-    """Check every claim against its stored run and every summary number against the claims."""
+    """Check every claim against its stored run and every summary number against the claims.
+
+    `conversation_runs` are the runs the agent executed or read; with the cited runs they decide
+    which minimum budgets must be claimed and which run ids are not numbers.
+    """
     claims = [check_claim(c, runs_dir, inputs_dir) for c in report.claims]
     valid = Report(summary=report.summary, claims=[c.claim for c in claims if c.ok])
+    run_ids = list(dict.fromkeys([*conversation_runs, *_run_ids(report)]))
     allowed = allowed_numbers(valid, runs_dir)
     nothing_validated = bool(claims) and not valid.claims
     numbers = []
-    for text, value in find_numbers(report.summary):
+    for text, value in find_numbers(report.summary, run_ids):
         if nothing_validated:
             numbers.append(NumberCheck(text=text, ok=False, message=NOT_CHECKED))
             continue
         match = any(abs(value - v) <= tol + FLOAT_SLACK for v, tol in allowed)
         message = "matches" if match else "does not match any validated claim or request value"
         numbers.append(NumberCheck(text=text, ok=match, message=message))
-    return CheckResult(claims=claims, numbers=numbers)
+    missing = missing_minimum_budgets(valid, run_ids, runs_dir)
+    return CheckResult(claims=claims, numbers=numbers, missing=missing)

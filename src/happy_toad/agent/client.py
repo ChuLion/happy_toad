@@ -27,6 +27,7 @@ class Completion:
     tool_calls: list[ToolCall] = field(default_factory=list)
     prompt_tokens: int = 0
     completion_tokens: int = 0
+    reasoning_tokens: int = 0
     cost: float | None = None
     provider: str | None = None
     quantization: str | None = None
@@ -65,11 +66,13 @@ def parse_completion(response) -> Completion:
     ]
     usage = response.usage
     tokens = (usage.prompt_tokens, usage.completion_tokens) if usage else (0, 0)
+    details = _extra(usage, "completion_tokens_details") if usage else None
     return Completion(
         content=message.content,
         tool_calls=calls,
         prompt_tokens=tokens[0],
         completion_tokens=tokens[1],
+        reasoning_tokens=(_extra(details, "reasoning_tokens") or 0) if details else 0,
         cost=_extra(usage, "cost") if usage else None,
         provider=_extra(response, "provider"),
         model=response.model,
@@ -125,6 +128,8 @@ class OpenRouterClient:
         extra = {"provider": self.routing(), "usage": {"include": True}}
         if self.profile.reasoning_off:
             extra["reasoning"] = {"enabled": False}
+        elif self.profile.reasoning_effort:
+            extra["reasoning"] = {"effort": self.profile.reasoning_effort}
         try:
             response = self.sdk.chat.completions.create(
                 model=self.profile.model, messages=messages, tools=tools, extra_body=extra
