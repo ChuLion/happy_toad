@@ -587,3 +587,23 @@
   400 runs (first batch and A/B) the model's turn-1 `run_scenario` arguments were two JSON objects
   concatenated (invalid JSON, "Extra data"), which our loop echoes back verbatim in the assistant
   message. Suspected message-format bug in our loop; stopped per the owner's rule, not fixed yet.
+
+### 2026-11-14 — five-trial comparison, 3 models x 3 questions x 5 runs (not a ranking)
+- Frozen state: commit 56fc796 (CI green), clean tree, prompt sha256 a7e94a23…fd24; checker.py
+  cbb7113d…, report.py 251eeda6…, tools.py 22de2517…, prompt.py 49e10556… (full hashes in
+  bakeoff/20261114T183716.json). No error rows, no api_error rows, no repeated 400. Gemma pinned to
+  crusoe/bf16 and novita/bf16 (no fallbacks); the other two unpinned, providers recorded per turn.
+- Checked runs out of 5 (question a / b / c): Gemma 4 31B 4 / 3 / 5; Gemini 2.5 Flash Lite 1 / 4 / 5;
+  DeepSeek V4 Flash 0731 4 / 5 / 5. Totals checked: 12, 10, 14 of 15.
+- Counts: coercions Gemma 31, Gemini 0, DeepSeek 0; malformed tool-call arguments Gemma 32 (25 in
+  question b), others 0; api_error 0 for all. Refusals (corrections) summed per cell are in the
+  bake-off file.
+- Failures: Gemma a#4 and b#1, b#2 hit the 10-step cap looping on malformed (glued) run_scenario
+  arguments. Gemini: unmatched summary numbers (13, 14, 24, 27, 0.22) and one step cap. DeepSeek a#1:
+  claimed n_resolved 24, stored 45.
+- Listed cost for all 15 runs (tokens x per-token prices listed at run time): DeepSeek $0.0167,
+  Gemini $0.0307, Gemma $0.0500 (Gemma priced at the model-level listing, 2e-7 in / 4e-7 out, not
+  the 1.4e-7 in the Crusoe/Novita endpoint listing).
+- Decision rule (cheapest model checked in at least 4 of 5 on every question): only DeepSeek V4
+  Flash 0731 qualifies. Its 15 runs were served by seven hosts with mixed quantization (fp8, fp4,
+  nvfp4, fp32, unknown), so the demo pin needs the owner's choice of host.
