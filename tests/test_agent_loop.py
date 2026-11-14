@@ -301,3 +301,8 @@ def test_a_number_in_a_claimless_summary_is_still_refused(dirs) -> None:
     client = FakeClient([turn(call("submit_report", summary="Is 500 enough?", claims=[]))] * 2)
     t = ask("What would you fund?", client, DEMO, **dirs)
     assert t.status == "unverified"
+
+
+def test_submit_report_description_tells_the_model_how_to_ask_or_decline() -> None:
+    spec = next(t for t in TOOLS if t["function"]["name"] == "submit_report")["function"]
+    assert "empty list" in spec["description"] and "no numbers" in spec["description"]

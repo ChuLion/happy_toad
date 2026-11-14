@@ -553,3 +553,10 @@
   question ends in 2 turns, and a number in a claimless summary is still refused.
 - Decision not specified by the owner: ruff E501 is ignored for `agent/prompt.py` only, because the
   owner's hand-written rules are long prose lines.
+
+### 2026-11-14 — submit_report description, final prompt
+- Owner finalized `agent/prompt.py` (rule 11 now covers questions and declines) and asked for one
+  sentence in the `submit_report` tool description: to ask or decline, send claims as an empty list
+  and a summary with no numbers. Added with a test that pins it; SPEC tool list updated.
+- Not specified by the owner: the SPEC's draft prompt block was replaced by a pointer to
+  `agent/prompt.py`, so there is one copy.

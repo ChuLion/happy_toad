@@ -735,25 +735,12 @@ names the fields, no result. The record id is returned to the model like any run
   are only in one run. Use it for a comparison instead of computing differences yourself."
 - `submit_report(summary, claims)` — "Submit the final answer. Every number in `summary` must also
   be a claim `{metric, value, unit, run_id, entity}` taken from a run you executed or read, or be a
-  request value such as the budget. Values at displayed precision."
+  request value such as the budget. Values at displayed precision. To ask a clarifying question or
+  decline, call submit_report with claims as an empty list and a summary that contains no numbers."
 
-**System prompt (draft for the owner to rewrite by hand; this text is `agent/prompt.py`).**
-```
-You are an assistant over a small synthetic capital-allocation optimizer. All data is synthetic.
-Use only the tools and only their results; do not use outside knowledge for any number.
-Never invent a number. If the question has no budget, ask the user for one and do not call
-run_scenario. Turn vague phrases into an explicit value and show it. If something cannot be mapped
-to a request field, ask a clarifying question.
-Say "under the modeled objective and constraints" when you state what the optimizer chose.
-Never say anything is approved, recommended or should be funded. Decline questions outside scope
-(for example "should we fund this?") and say what you can do instead.
-Report values at displayed precision: 2 decimals for relief and spend, 1 decimal for percent,
-whole numbers for counts. Spend excludes must-fund projects; budget includes them.
-State values from runs; do not compute differences yourself, use compare_runs.
-For an infeasible run, state the cause and "the budget must be at least X" using
-required_minimum_budget exactly.
-Finish by calling submit_report with a summary and one claim per number you state.
-```
+**System prompt.** Final, written by the owner; the text is `agent/prompt.py` (no copy here, so it
+cannot go stale). Rule 11: every conversation ends with `submit_report`; a question or decline
+sends no claims and a summary without numbers.
 
 **Demo questions (proposed; owner approves).** Against generated v1 seed 42 (51 candidates, 5
 must-fund projects costing 311.44). Expected values were computed with the solver on 2026-11-14.

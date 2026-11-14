@@ -64,7 +64,9 @@ TOOLS = [
         "submit_report",
         "Submit the final answer. Every number in `summary` must also be a claim "
         "`{metric, value, unit, run_id, entity}` taken from a run you executed or read, or be a "
-        "request value such as the budget. Values at displayed precision.",
+        "request value such as the budget. Values at displayed precision. To ask a clarifying "
+        "question or decline, call submit_report with claims as an empty list and a summary that "
+        "contains no numbers.",
         Report.model_json_schema(),
     ),
 ]
