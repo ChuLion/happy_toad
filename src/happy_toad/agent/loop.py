@@ -38,8 +38,9 @@ def _sum_cost(turns: list[TurnRecord]) -> float | None:
 class Conversation:
     """State of one question: messages, transcript, tool runner and the checker flow."""
 
-    def __init__(self, question, profile, runner, runs_dir, on_event) -> None:
+    def __init__(self, question, profile, runner, runs_dir, inputs_dir, on_event) -> None:
         self.runner, self.runs_dir, self.on_event = runner, runs_dir, on_event
+        self.inputs_dir = inputs_dir
         self.transcript = Transcript(
             transcript_id=new_run_id(datetime.now(UTC)),
             question=question,
@@ -58,7 +59,7 @@ class Conversation:
         except ValidationError as err:
             return {"accepted": False, "error": f"report does not fit the schema: {err}"}
         t = self.transcript
-        result = check_report(report, self.runs_dir)
+        result = check_report(report, self.runs_dir, self.inputs_dir)
         t.checks.append(result)
         t.report = report
         if result.ok:
@@ -118,7 +119,9 @@ def ask(
 ) -> Transcript:
     """Answer one question. Every outcome, including failures, leaves a saved transcript."""
     started = time.perf_counter()
-    convo = Conversation(question, profile, ToolRunner(inputs_dir, runs_dir), runs_dir, on_event)
+    convo = Conversation(
+        question, profile, ToolRunner(inputs_dir, runs_dir), runs_dir, inputs_dir, on_event
+    )
     t = convo.transcript
     t.status = "step_cap"
     try:

@@ -18,7 +18,7 @@ class Profile:
     reasoning_off: bool = False
 
 
-SMOKE = Profile("smoke", "google/gemma-4-31b-it:free")
+SMOKE = Profile("smoke", "inclusionai/ling-3.2-flash:free")
 DEMO = Profile("demo", "anthropic/claude-sonnet-5.5", ("anthropic",), allow_fallbacks=False)
 PROFILES = {p.name: p for p in (SMOKE, DEMO)}
 

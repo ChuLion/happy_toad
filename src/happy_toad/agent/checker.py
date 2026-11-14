@@ -9,7 +9,7 @@ from pathlib import Path
 from pydantic import BaseModel, computed_field
 
 from happy_toad.agent.report import Claim, Report
-from happy_toad.services.run import RunRecord
+from happy_toad.services.run import RunRecord, load_version
 from happy_toad.services.runs import read_run
 
 MONEY_TOLERANCE = 0.005  # shown to 2 decimals
@@ -110,11 +110,23 @@ def values_match(metric: str, claimed, stored) -> bool:
     return claimed == stored and type(claimed) is type(stored)
 
 
-def check_claim(claim: Claim, runs_dir: Path) -> ClaimCheck:
+def sector_count(record: RunRecord, inputs_dir: Path) -> int | None:
+    """Sectors in the cited run's input version, counted from the file, not from the run."""
+    data = load_version(record.input_version, inputs_dir)
+    return None if data is None else len(data.sectors)
+
+
+def check_claim(claim: Claim, runs_dir: Path, inputs_dir: Path) -> ClaimCheck:
     record = read_run(claim.run_id, runs_dir)
     if record is None:
         return ClaimCheck(claim=claim, ok=False, message="run not found")
-    stored = stored_value(record, claim.metric)
+    if claim.metric == "n_sectors":
+        count = sector_count(record, inputs_dir)
+        if count is None:
+            return ClaimCheck(claim=claim, ok=False, message="input version not found")
+        stored = count
+    else:
+        stored = stored_value(record, claim.metric)
     if stored is None:
         return ClaimCheck(claim=claim, ok=False, message="the run has no value for this metric")
     if not values_match(claim.metric, claim.value, stored):
@@ -136,9 +148,11 @@ def allowed_numbers(report: Report, runs_dir: Path) -> list[tuple[float, float]]
     return allowed
 
 
-def check_report(report: Report, runs_dir: Path) -> CheckResult:
+def check_report(
+    report: Report, runs_dir: Path, inputs_dir: Path = Path("data/inputs")
+) -> CheckResult:
     """Check every claim against its stored run and every summary number against the claims."""
-    claims = [check_claim(c, runs_dir) for c in report.claims]
+    claims = [check_claim(c, runs_dir, inputs_dir) for c in report.claims]
     valid = Report(summary=report.summary, claims=[c.claim for c in claims if c.ok])
     allowed = allowed_numbers(valid, runs_dir)
     numbers = []

@@ -18,7 +18,9 @@ def run(tmp_path):
 
 
 def check(run, tmp_path, summary, *claims):
-    return check_report(Report(summary=summary, claims=list(claims)), tmp_path / "runs")
+    return check_report(
+        Report(summary=summary, claims=list(claims)), tmp_path / "runs", tmp_path / "inputs"
+    )
 
 
 def test_schema_rejects_unknown_metric_wrong_unit_and_extra_fields(run) -> None:
@@ -135,3 +137,21 @@ def test_the_tolerance_is_inclusive_despite_float_error() -> None:
     assert values_match("spend", 11.005, 11.0)
     assert not values_match("pct_resolved", 26.31, 26.25)
     assert [t for t, _ in find_numbers("26.3%")] == ["26.3%"]
+
+
+def test_n_sectors_is_checked_against_the_real_sector_count_of_the_inputs(run, tmp_path) -> None:
+    right = claim(run, "n_sectors", 3, "count")  # the toy version has sectors sX1, sX2, sY1
+    assert check(run, tmp_path, "3 sectors are modelled.", right).ok
+    assert not check(run, tmp_path, "x", claim(run, "n_sectors", 4, "count")).ok
+
+
+def test_n_sectors_fails_when_the_input_version_is_missing(run, tmp_path) -> None:
+    (tmp_path / "inputs" / "test.json").unlink()
+    result = check(run, tmp_path, "x", claim(run, "n_sectors", 3, "count"))
+    assert not result.ok and "input version" in result.claims[0].message
+
+
+def test_resolved_of_total_passes_when_both_are_claims(run, tmp_path) -> None:
+    claims = [claim(run, "n_resolved", 2, "count"), claim(run, "n_sectors", 3, "count")]
+    assert check(run, tmp_path, "2 of 3 sectors resolved.", *claims).ok
+    assert not check(run, tmp_path, "2 of 80 sectors resolved.", *claims).ok

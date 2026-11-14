@@ -653,7 +653,7 @@ or written to a transcript. Two profiles in `agent/config.py`:
 
 | Profile | Use | Model ID (**[lead]**, from OpenRouter's listing filtered to tool support; owner approves) | Routing |
 |---|---|---|---|
-| `smoke` | free model, only to check the loop | `google/gemma-4-31b-it:free` | fallbacks allowed; served provider recorded |
+| `smoke` | free model, only to check the loop | `inclusionai/ling-3.2-flash:free` (owner approved; the Gemma free pool was rate-limited) | fallbacks allowed; served provider recorded |
 | `demo` | the demo, the video and M4 | `anthropic/claude-sonnet-5.5` | provider order `["anthropic"]`, `allow_fallbacks: false` |
 
 Listing check (2026-11-14, `GET /api/v1/models?supported_parameters=tools`): both IDs list `tools`
@@ -679,6 +679,7 @@ cost is the sum of its turns, and `null` if any turn lacks one.
 | `required_minimum_budget` | `cost_units` | the run record's top-level `required_minimum_budget`, valid only if the run has one | 0.005 |
 | `n_selected` | `count` | `len(result.selected)` | exact |
 | `n_resolved` | `count` | `result.resolved` | exact |
+| `n_sectors` | `count` | number of sectors in the cited run's input version, counted from the input file (not from the run) | exact |
 | `pct_resolved` | `percent` | `result.pct_resolved` | 0.05 |
 | `status` | `none` | `result.status` | exact |
 | `target_met` | `none` | `result.target_met` | exact |
