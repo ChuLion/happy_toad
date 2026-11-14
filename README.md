@@ -128,28 +128,29 @@ is shown as UNVERIFIED. It reaches the model through OpenRouter's OpenAI-compati
 - Demo model: DeepSeek V4 Flash 0731 via OpenRouter, pinned to the host Baseten (fp8) with Baidu
   (fp8) as the only backup, reasoning off. In a real deployment, which models and providers are
   approved is the customer's decision. The three demo questions each ended with every claim
-  checked in the live run tagged v0.3.
+  checked in the live run tagged v0.3.1.
 
 #### Model comparison (one round, synthetic data)
-75 conversations: 5 models x 3 demo questions x 5 runs, all on one frozen state (commit 4a6572b:
-same system prompt, tools, checker and loop for every run). Rule, set before the round: the
-cheapest model checked in at least 4 of 5 runs on every question; costs within 2x count as a tie,
-broken by fewer refusals, then clearer host precision; GLM must also average under about 15 s per
-question; the Sonnet reference decides only if none of the other four passes. Cost is tokens times
-the per-token prices OpenRouter listed at run time, for all 15 runs of a model.
+75 conversations: 5 models x 3 demo questions x 5 runs, all on one frozen state (commit 78ba102,
+after the code-review fixes: same system prompt, tools, checker and loop for every run). Rule, set
+before the round: the cheapest model checked in at least 4 of 5 runs on every question; costs
+within 2x count as a tie, broken by fewer refusals, then clearer host precision; GLM must also
+average under about 15 s per question; the Sonnet reference decides only if none of the other four
+passes. Cost is tokens times the per-token prices OpenRouter listed at run time, for all 15 runs of
+a model. Refusals count only refused reports that the model went on to correct.
 
 | Model (host, precision as listed) | Checked a / b / c | Refusals | Cost, 15 runs | Mean s per question |
 |---|---|---|---|---|
-| Gemma 4 31B (Crusoe or Novita, bf16) | 2 / 3 / 5 | 12 | $0.0564 | 16.1 |
-| Gemini 2.5 Flash Lite (Google AI Studio, not listed) | 4 / 2 / 4 | 16 | $0.0225 | 8.0 |
-| DeepSeek V4 Flash 0731 (Baseten or Baidu, fp8) | 5 / 5 / 5 | 5 | $0.0146 | 7.1 |
-| GLM 5.3 Flash (Z.AI, fp8), reasoning effort low: not equal terms | 5 / 5 / 5 | 11 | $0.0079 | 20.8 |
-| Claude Sonnet 5.5 reference (Anthropic, not listed), reasoning effort low: not equal terms | 5 / 5 / 5 | 3 | $0.5758 | 9.5 |
+| Gemma 4 31B (Crusoe or Novita, bf16) | 1 / 0 / 5 | 7 | $0.0583 | 19.4 |
+| Gemini 2.5 Flash Lite (Google AI Studio, not listed) | 1 / 3 / 5 | 12 | $0.0249 | 7.0 |
+| DeepSeek V4 Flash 0731 (Baseten, fp8) | 4 / 4 / 5 | 10 | $0.0170 | 9.1 |
+| GLM 5.3 Flash (Z.AI, fp8), reasoning effort low: not equal terms | 2 / 5 / 5 | 11 | $0.0075 | 19.2 |
+| Claude Sonnet 5.5 reference (Anthropic, not listed), reasoning effort low: not equal terms | 5 / 5 / 5 | 1 | $0.5238 | 8.5 |
 
-Under the rule, Gemma and Gemini miss the 4-of-5 bar on at least one question, GLM passes the
-counts but misses the latency bar, and DeepSeek passes; GLM and Sonnet cannot switch reasoning
+Under the rule, only DeepSeek passes: Gemma, Gemini and GLM miss the 4-of-5 bar on question a
+(Gemma also on b), and GLM also misses the latency bar. GLM and Sonnet cannot switch reasoning
 off, so they ran at the lowest effort and are not on equal terms with the others. Details and the
-refusal reasons per model are in docs/DEVLOG.md.
+failure reasons per model are in docs/DEVLOG.md.
 - DeepSeek V4 Flash 0731 is served at fp8 as listed by the hosts; the checkpoint ships mixed
   fp8/fp4 per its model card.
 - Reporting caveat: OpenRouter lists two Baseten endpoints for this model under the same name

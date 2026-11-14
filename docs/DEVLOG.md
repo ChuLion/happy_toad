@@ -783,3 +783,34 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
 - #7: `request_hash` covers `input_version`, not the data's `content_hash`.
 - #16: each `OpenRouterClient(profile)` built without a listing fetches it again.
 - #17: error-body redaction covers only `user_…` ids; the rest of the body is kept.
+
+## 2026-11-14 — round on the fixed state; live demo; tag v0.3.1
+- CI green on 78ba102. Re-frozen hashes (bakeoff/20261114T210127.json, clean tree): checker.py
+  1e34325e…, loop.py 715c0020… (both changed by the triage); report.py, tools.py and prompt.py, and
+  the prompt hash, unchanged. data/inputs/v1.json equals generated v1 seed 42.
+- Full round, same rule and pins, 5 models x 3 questions x 5 runs, one process: no error rows, no
+  api_error. Checked a / b / c, refusals (corrected only), listed cost for 15 runs, mean s:
+  Gemma 4 31B 1 / 0 / 5, 7, $0.0583, 19.4 (9 step caps, 76 malformed calls); Gemini 2.5 Flash
+  Lite 1 / 3 / 5, 12, $0.0249, 7.0; DeepSeek V4 Flash 0731 4 / 4 / 5, 10, $0.0170, 9.1 (all
+  turns BaseTen); GLM 5.3 Flash 2 / 5 / 5, 11, $0.0075, 19.2 (a 24.0, b 24.1, c 9.5); Sonnet 5.5
+  reference 5 / 5 / 5, 1, $0.5238, 8.5.
+- Decision unchanged: DeepSeek V4 Flash 0731 is the only model at 4 of 5 or better on every
+  question. It is closer to the bar than last round (5 / 5 / 5 then).
+- Failure reasons: Gemma's step caps are glued JSON arguments (two run_scenario objects in one
+  call, 6-10 schema-invalid calls per capped run), the same as before. DeepSeek a: unclaimed
+  counts 15 and 2; DeepSeek b: `diff_n_selected` claimed as -2.0 (a float) while the stored count
+  is the int -2. Counts are compared exactly, type included (unchanged rule). GLM a: unclaimed 15
+  and 2. Gemini: unclaimed 14 and 27, a reversed diff sign, 2 step caps, and one claim citing the
+  made-up run id 20220408T084943-70e93c2c (refused by the new #9 rule; the old checker would also
+  have failed it as "run not found"). The new one-submit-per-turn rule never fired.
+- Live demo on 78ba102 (`--profile demo`, every turn BaseTen): (a) 4 turns, 0 refusals, 19/19
+  claims, 24/24 numbers; (b) 4 turns, 1 refusal (relief claimed truncated to 1 decimal), 17/17,
+  13/13; (c) 3 turns, 1 refusal (297.57 and 311.44 unclaimed), 2/2, 2/2. Transcripts
+  20261114T210145-c04c55d4, 20261114T210154-e11f5b1d, 20261114T210201-5276b834. Hand check: (c)
+  says the budget must be at least 697.01 "for this scenario to be feasible". That overstates a
+  lower bound, and the checker cannot see wording.
+- v0.3 already existed on 06c4d5e (tagged before the fixes). Owner chose to leave it and tag
+  v0.3.1 (annotated) on 78ba102, the demo-checked commit.
+- README comparison replaced with this round's figures only.
+- Not specified by the owner: the demo ran while the round was in progress (separate profile name,
+  real data/inputs); the round ran as one process this time.
