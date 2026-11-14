@@ -42,7 +42,9 @@ def call(name, **arguments) -> ToolCall:
     return ToolCall(id=f"call_{name}", name=name, arguments=json.dumps(arguments))
 
 
-def turn(*calls, content=None, tokens=(10, 5), cost=0.001, provider="FakeProvider") -> Completion:
+def turn(
+    *calls, content=None, tokens=(10, 5), cost=0.001, provider="FakeProvider", quantization=None
+) -> Completion:
     return Completion(
         content=content,
         tool_calls=list(calls),
@@ -50,6 +52,7 @@ def turn(*calls, content=None, tokens=(10, 5), cost=0.001, provider="FakeProvide
         completion_tokens=tokens[1],
         cost=cost,
         provider=provider,
+        quantization=quantization,
         model="fake/model",
     )
 

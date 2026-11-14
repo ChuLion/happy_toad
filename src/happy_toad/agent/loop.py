@@ -97,6 +97,7 @@ class Conversation:
                 completion_tokens=done.completion_tokens,
                 cost=done.cost,
                 provider=done.provider,
+                quantization=done.quantization,
                 model=done.model,
                 seconds=seconds,
             )

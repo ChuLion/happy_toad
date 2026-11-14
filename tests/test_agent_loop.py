@@ -306,3 +306,19 @@ def test_a_number_in_a_claimless_summary_is_still_refused(dirs) -> None:
 def test_submit_report_description_tells_the_model_how_to_ask_or_decline() -> None:
     spec = next(t for t in TOOLS if t["function"]["name"] == "submit_report")["function"]
     assert "empty list" in spec["description"] and "no numbers" in spec["description"]
+
+
+def test_every_turn_records_provider_and_quantization(dirs) -> None:
+    client = FakeClient(
+        [
+            turn(
+                call("submit_report", summary="Which budget?", claims=[]),
+                provider="Crusoe",
+                quantization="bf16",
+            )
+        ]
+    )
+    t = ask("q", client, DEMO, **dirs)
+    saved = json.loads(next(dirs["transcripts_dir"].glob("*.json")).read_text())
+    assert (t.turns[0].provider, t.turns[0].quantization) == ("Crusoe", "bf16")
+    assert saved["turns"][0]["quantization"] == "bf16"

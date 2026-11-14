@@ -101,3 +101,39 @@ def test_a_response_without_usage_counts_zero_tokens_and_no_cost() -> None:
     resp.usage = None
     done = parse_completion(resp)
     assert (done.prompt_tokens, done.completion_tokens, done.cost) == (0, 0, None)
+
+
+def test_gemma_is_pinned_to_the_two_bf16_hosts_with_no_fallbacks() -> None:
+    gemma = BAKEOFF["gemma_31b"]
+    assert gemma.provider_order == ("crusoe/bf16", "novita/bf16") and not gemma.allow_fallbacks
+    assert all(not p.provider_order for n, p in BAKEOFF.items() if n != "gemma_31b")
+
+
+def test_quantizations_are_read_from_the_endpoint_listing() -> None:
+    from happy_toad.agent.client import quantization_by_provider
+
+    listing = {"data": {"endpoints": [
+        {"provider_name": "Crusoe", "quantization": "bf16"},
+        {"provider_name": "KT", "quantization": "unknown"},
+        {"provider_name": "DeepInfra", "quantization": "fp4"},
+        {"provider_name": "DeepInfra", "quantization": "fp8"},
+        {"provider_name": "Anon", "quantization": None},
+    ]}}  # fmt: skip
+    assert quantization_by_provider(listing) == {
+        "Crusoe": "bf16", "KT": "unknown", "DeepInfra": "fp4|fp8", "Anon": "unknown",
+    }  # fmt: skip
+
+
+def test_the_serving_providers_quantization_is_on_every_completion() -> None:
+    class Fake:
+        class chat:
+            class completions:
+                @staticmethod
+                def create(**kwargs):
+                    return response(provider=Fake.host)
+
+    client = OpenRouterClient(BAKEOFF["gemma_31b"], sdk=Fake, quantizations={"Crusoe": "bf16"})
+    Fake.host = "Crusoe"
+    assert client.complete([], []).quantization == "bf16"
+    Fake.host = "Elsewhere"
+    assert client.complete([], []).quantization == "unknown"

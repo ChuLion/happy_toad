@@ -18,6 +18,7 @@ class TurnRecord(BaseModel):
     completion_tokens: int
     cost: float | None
     provider: str | None
+    quantization: str | None = None
     model: str
     seconds: float
 

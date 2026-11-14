@@ -1,7 +1,9 @@
 """Provider adapter: messages and tools in, one completion out (SPEC, M3 decision 1)."""
 
+import json
 import os
-from dataclasses import dataclass, field
+import urllib.request
+from dataclasses import dataclass, field, replace
 from typing import Protocol
 
 from happy_toad.agent.config import BASE_URL, KEY_ENV, Profile
@@ -24,6 +26,7 @@ class Completion:
     completion_tokens: int = 0
     cost: float | None = None
     provider: str | None = None
+    quantization: str | None = None
     model: str = ""
 
 
@@ -58,10 +61,27 @@ def parse_completion(response) -> Completion:
     )
 
 
+def quantization_by_provider(listing: dict) -> dict[str, str]:
+    """Provider name to quantization from an OpenRouter endpoint listing; "a|b" if it varies."""
+    found: dict[str, set[str]] = {}
+    for e in listing["data"]["endpoints"]:
+        found.setdefault(e["provider_name"], set()).add(e.get("quantization") or "unknown")
+    return {name: "|".join(sorted(q)) for name, q in found.items()}
+
+
+def fetch_quantizations(model: str) -> dict[str, str]:
+    """The public endpoint listing for a model; empty if it cannot be read (recorded as unknown)."""
+    try:
+        with urllib.request.urlopen(f"{BASE_URL}/models/{model}/endpoints") as response:
+            return quantization_by_provider(json.load(response))
+    except OSError:
+        return {}
+
+
 class OpenRouterClient:
     """The openai SDK pointed at OpenRouter. The key comes from the environment only."""
 
-    def __init__(self, profile: Profile, sdk=None) -> None:
+    def __init__(self, profile: Profile, sdk=None, quantizations: dict | None = None) -> None:
         self.profile = profile
         if sdk is None:
             key = os.environ.get(KEY_ENV)
@@ -70,7 +90,11 @@ class OpenRouterClient:
             from openai import OpenAI
 
             sdk = OpenAI(base_url=BASE_URL, api_key=key)
+            quantizations = (
+                fetch_quantizations(profile.model) if quantizations is None else quantizations
+            )
         self.sdk = sdk
+        self.quantizations = quantizations or {}
 
     def routing(self) -> dict:
         # require_parameters: only route to hosts that support every parameter we send (tools)
@@ -89,4 +113,6 @@ class OpenRouterClient:
         response = self.sdk.chat.completions.create(
             model=self.profile.model, messages=messages, tools=tools, extra_body=extra
         )
-        return parse_completion(response)
+        done = parse_completion(response)
+        known = self.quantizations.get(done.provider, "unknown")
+        return replace(done, quantization=known)
