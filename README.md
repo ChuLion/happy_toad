@@ -115,6 +115,8 @@ add up inside a market (for example floors that no combination of whole candidat
 the budget); `region_total_sectors` only changes the reported percentage.
 
 ### M3 — the agent (`happy-toad ask`)
+Checkpoint version: tag v0.3.1.
+
 A thin agent layer over the M2A services: it turns a plain-English question into tool calls
 (`list_input_versions`, `run_scenario`, `get_run`, `compare_runs`, `submit_report`), then submits a
 report of claims (metric, value, unit, run id) that a checker compares with the stored runs and
@@ -151,6 +153,9 @@ Under the rule, only DeepSeek passes: Gemma, Gemini and GLM miss the 4-of-5 bar 
 (Gemma also on b), and GLM also misses the latency bar. GLM and Sonnet cannot switch reasoning
 off, so they ran at the lowest effort and are not on equal terms with the others. Details and the
 failure reasons per model are in docs/DEVLOG.md.
+- An earlier round on a slightly different checker (commit 4a6572b, before the code-review fixes)
+  gave different counts out of 15: DeepSeek 15, GLM 15, Gemini 10, Gemma 10. With five runs per
+  cell, the comparison is suggestive, not conclusive.
 - DeepSeek V4 Flash 0731 is served at fp8 as listed by the hosts; the checkpoint ships mixed
   fp8/fp4 per its model card.
 - Reporting caveat: OpenRouter lists two Baseten endpoints for this model under the same name
@@ -163,6 +168,15 @@ failure reasons per model are in docs/DEVLOG.md.
   "infeasible". The defaults count (units and entities the schema filled in) records schema
   behaviour and is not a quality signal. Claims are about whole plans only; differences are
   allowed only as `compare_runs` reports them, never computed by the agent.
+- Also not checked yet, logged for the M4 fix pass: candidate ids named in the summary are not
+  checked against the runs, and a count claimed as a whole-valued float (2.0 instead of 2) is
+  rejected.
+
+## What is next (planned, not done)
+- M2B: diagnostics (for example the smallest budget that meets a target).
+- M4: evaluations.
+- M5: revision analysis.
+- M6: an MCP server.
 
 ### Layout
 `src/happy_toad/{data,engine,services,agent}`, `cli.py`, `report.py`, `tests/`, `scripts/`, `docs/{SPEC,DECISIONS,DEVLOG}.md`.

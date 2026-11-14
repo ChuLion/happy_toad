@@ -814,3 +814,14 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
 - README comparison replaced with this round's figures only.
 - Not specified by the owner: the demo ran while the round was in progress (separate profile name,
   real data/inputs); the round ran as one process this time.
+
+## 2026-11-14 — README additions; open items for the M4 fix pass
+- Owner asked for: the checkpoint version (tag v0.3.1), two limitations, the earlier round's counts
+  (4a6572b: DeepSeek 15, GLM 15, Gemini 10, Gemma 10 of 15) with "suggestive at five runs per
+  cell", and the planned milestones (M2B diagnostics, M4 evaluations, M5 revision analysis, M6 MCP)
+  marked as not done.
+- Open for the M4 fix pass: (1) candidate ids in the summary are not checked against the runs;
+  (2) a count claimed as a whole-valued float (2.0) is rejected (`values_match` requires the same
+  type as the stored int; confirmed on the current tree).
+- Not specified by the owner: the SPEC profile table still listed the Sonnet placeholder as `demo`;
+  corrected to the approved DeepSeek pin.

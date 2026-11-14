@@ -664,7 +664,7 @@ or written to a transcript. Two profiles in `agent/config.py`:
 | Profile | Use | Model ID (**[lead]**, from OpenRouter's listing filtered to tool support; owner approves) | Routing |
 |---|---|---|---|
 | `smoke` | free model, only to check the loop | `inclusionai/ling-3.2-flash:free` (owner approved; the Gemma free pool was rate-limited) | fallbacks allowed; served provider recorded |
-| `demo` | the demo, the video and M4 | `anthropic/claude-sonnet-5.5` | provider order `["anthropic"]`, `allow_fallbacks: false` |
+| `demo` | the demo, the video and M4 | `deepseek/deepseek-v4-flash-0731` (owner approved after the post-fix round; was a Sonnet placeholder) | provider order `["baseten/fp8", "baidu/fp8"]`, `allow_fallbacks: false`, reasoning off |
 
 Listing check (2026-11-14, `GET /api/v1/models?supported_parameters=tools`): both IDs list `tools`
 and `tool_choice` among supported parameters. Other free tool-capable IDs seen, in case the smoke
