@@ -825,3 +825,16 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   type as the stored int; confirmed on the current tree).
 - Not specified by the owner: the SPEC profile table still listed the Sonnet placeholder as `demo`;
   corrected to the approved DeepSeek pin.
+
+## 2026-11-14 — README restructure
+- Owner asked for a new top section (description, status, Why, Mermaid architecture, live demo
+  excerpt of question c, How it was built, quick start), a headline above the model table, and the
+  order Layout, M1, M2A, M3, comparison, What is next. Existing content moved, not rewritten; the
+  limitations block is unchanged (checked by diff). The original intro paragraph moved to M1.
+- Live demo on 78ba102 confirmed from the earlier DEVLOG entry and transcript times (21:01 UTC, after
+  the 78ba102 commit); no code change between 78ba102 and HEAD. Not rerun. Transcripts and run
+  records do not store a commit SHA, which is a provenance gap.
+- Not specified by the owner: M3 and the comparison became level-2/3 headings; the diagram adds
+  two edges that the code has (gate rejections also write a run record; the checker refuses back
+  to the agent once); "Working rule:" phrasing for spec-first/tests-first; "about 30x" is the
+  latest round (Sonnet $0.5238 vs DeepSeek $0.0170, 30.8x; the earlier round was 39x).

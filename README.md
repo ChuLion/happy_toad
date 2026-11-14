@@ -1,11 +1,72 @@
 # happy_toad
 
+A small synthetic reference build of a budget-constrained capital-allocation optimizer, with an
+agent layer that answers plain-English questions by running scenarios and reporting checked
+numbers. All data is synthetic and generated from a seed. It is not a product.
+
+**Status:** M1 to M3 complete (tag v0.3.1); M2B and M4 to M6 planned.
+
+## Why
+Planners ask follow-up questions of an optimizer: what if the budget were larger, what if this
+candidate were forced in, why was this request rejected. An agent can run those scenarios and
+report only numbers that trace back to a stored run, with a checker refusing any number it cannot
+trace. A human decides; the agent approves nothing.
+
+## Architecture
+```mermaid
+flowchart LR
+    Q[Question] --> A[Agent: tool calls]
+    A --> G[Gate: accept or reject, all reasons]
+    G -->|accepted| O[Optimizer: PuLP + CBC, two stages]
+    G -->|rejected| R
+    O --> R[Run record: every attempt]
+    R --> P[Report: claims as data]
+    P --> C[Checker: numbers vs stored runs]
+    C -->|refused once| A
+    C --> S[Summary to a human]
+```
+The agent approves nothing: it runs scenarios and reports; a human decides.
+
+## Demo excerpt (live, question c)
+From the live transcript `20261114T210201-5276b834` (commit 78ba102, DeepSeek V4 Flash 0731 on
+Baseten; account id redaction applied, nothing to redact here), shortened:
+```text
+Question: On v1 at a total budget of 600, force in the three most expensive candidates:
+          C033, C034 and C024.
+Tool call: run_scenario {"input_version": "v1", "budget": 600,
+                         "force_in": ["C033", "C034", "C024"]}
+Result:    outcome rejected, FORCED_COST_EXCEEDS_BUDGET: "must-fund 311.44 plus forced-in
+           385.57 exceeds the budget 600.0"; required_minimum_budget 697.01
+Report:    "... was rejected. The forced-in candidates combined with must-fund projects exceed
+           the budget. The budget must be at least 697.01 for this scenario to be feasible."
+           claims: status = rejected; required_minimum_budget = 697.01
+Checker:   ok=True, claims 2/2 valid, numbers 2/2 matched (after one refusal: 297.57 and
+           311.44 in the first summary had no claim)
+```
+
+## How it was built
+Built with Claude Code. Working rule: spec first (docs/SPEC.md), tests written before code, and
+every decision logged in docs/DEVLOG.md, including the ones the owner did not specify.
+
+## Run it
+```
+uv sync
+uv run happy-toad generate --seed 42           # synthetic inputs in data/inputs/
+uv run happy-toad sweep data/inputs/v1.json    # budget sweep table
+export OPENROUTER_API_KEY=...                  # only for ask
+uv run happy-toad ask "Using input version v1, compare budget 800 with budget 1500"
+uv run pytest
+```
+
+## Layout
+`src/happy_toad/{data,engine,services,agent}`, `cli.py`, `report.py`, `tests/`, `scripts/`, `docs/{SPEC,DECISIONS,DEVLOG}.md`.
+
+## Milestone 1: data and the optimizer core
+
 A small synthetic reference build of a budget-constrained capital-allocation optimizer. Given
 synthetic sectors with shortfalls, candidate solutions that relieve them, and a budget, it picks
 which candidates to fund so that weighted shortfall relief is as large as possible, using PuLP
 with CBC. It is not a product. All data is synthetic and generated from a seed.
-
-## Milestone 1: data and the optimizer core
 
 What M1 contains: pydantic schemas, a seeded generator, load-time checks, the optimization model,
 known-answer tests and a CLI budget sweep. There is no agent layer yet.
@@ -114,7 +175,7 @@ for M2B); the "cause unknown" label also covers infeasibility that comes from ho
 add up inside a market (for example floors that no combination of whole candidates can meet within
 the budget); `region_total_sectors` only changes the reported percentage.
 
-### M3 — the agent (`happy-toad ask`)
+## Milestone 3: the agent (`happy-toad ask`)
 Checkpoint version: tag v0.3.1.
 
 A thin agent layer over the M2A services: it turns a plain-English question into tool calls
@@ -130,9 +191,10 @@ is shown as UNVERIFIED. It reaches the model through OpenRouter's OpenAI-compati
 - Demo model: DeepSeek V4 Flash 0731 via OpenRouter, pinned to the host Baseten (fp8) with Baidu
   (fp8) as the only backup, reasoning off. In a real deployment, which models and providers are
   approved is the customer's decision. The three demo questions each ended with every claim
-  checked in the live run tagged v0.3.1.
+  checked in the live run on commit 78ba102, the commit tagged v0.3.1 (transcripts
+  20261114T210145-c04c55d4, 20261114T210154-e11f5b1d, 20261114T210201-5276b834).
 
-#### Model comparison (one round, synthetic data)
+### Model comparison (one round, synthetic data)
 75 conversations: 5 models x 3 demo questions x 5 runs, all on one frozen state (commit 78ba102,
 after the code-review fixes: same system prompt, tools, checker and loop for every run). Rule, set
 before the round: the cheapest model checked in at least 4 of 5 runs on every question; costs
@@ -140,6 +202,10 @@ within 2x count as a tie, broken by fewer refusals, then clearer host precision;
 average under about 15 s per question; the Sonnet reference decides only if none of the other four
 passes. Cost is tokens times the per-token prices OpenRouter listed at run time, for all 15 runs of
 a model. Refusals count only refused reports that the model went on to correct.
+
+**The Sonnet reference was the most reliable (15 of 15 in both rounds) at about 30x the cost;
+DeepSeek was the cheapest model to pass the rule. Differences between the other models are within
+run-to-run noise at five runs per cell.**
 
 | Model (host, precision as listed) | Checked a / b / c | Refusals | Cost, 15 runs | Mean s per question |
 |---|---|---|---|---|
@@ -171,9 +237,6 @@ failure reasons per model are in docs/DEVLOG.md.
 - Also not checked yet, logged for the M4 fix pass: candidate ids named in the summary are not
   checked against the runs, and a count claimed as a whole-valued float (2.0 instead of 2) is
   rejected.
-
-## Layout
-`src/happy_toad/{data,engine,services,agent}`, `cli.py`, `report.py`, `tests/`, `scripts/`, `docs/{SPEC,DECISIONS,DEVLOG}.md`.
 
 ## What is next (planned, not done)
 - M2B: diagnostics (for example the smallest budget that meets a target).
