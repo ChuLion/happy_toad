@@ -607,3 +607,23 @@
 - Decision rule (cheapest model checked in at least 4 of 5 on every question): only DeepSeek V4
   Flash 0731 qualifies. Its 15 runs were served by seven hosts with mixed quantization (fp8, fp4,
   nvfp4, fp32, unknown), so the demo pin needs the owner's choice of host.
+
+### 2026-11-14 — refusal breakdown (all saved transcripts) and GLM 5.3 Flash facts (no runs)
+- First-refusal reasons differ by model. Gemma 4 31B: schema errors (entity set to a scenario label
+  such as "Budget 800", metric "weighted relief"/"budget", unit "currency") on a and b; on c all 5
+  rerun runs were first refused for "697.01" in a claimless summary, then a schema error, then
+  accepted with "the budget must be at least the required minimum budget" (checked, but the number
+  the owner's rule 10 asks for was dropped). Gemini 2.5 Flash Lite: entity literal errors (15 of 18
+  first refusals). DeepSeek V4 Flash 0731: summary numbers no claim can back (16 of 18): differences
+  read from compare_runs (700.73, 694.77, 13, 24), the sector total 80, must-fund 311.44 and forced
+  cost 385.57 from gate reasons, small counts (1, 2); plus `status` claims on rejected runs (no
+  result, so "no value for this metric"). One run id written as its digit-only suffix (78612358)
+  was read as a number.
+- Proposed (not applied; state frozen): metrics that cite compare_runs and gate-reason values,
+  status falling back to the run outcome, entity defaulting to "plan" and unit derived from metric,
+  and a checker rule that a rejected/infeasible run with required_minimum_budget needs that claim.
+- GLM 5.3 Flash: ID z-ai/glm-5.3-flash (canonical z-ai/glm-5.3-flash-20260826); tools and
+  tool_choice listed (one endpoint lacks tool_choice); reasoning is mandatory (efforts max/high/low,
+  default max), so it cannot be turned off; highest listed precision is fp8 (no bf16); tool-call
+  error share from the page's embedded data, 2026-10-15..11-14: 0.94% (8.14M requests with
+  tool-call errors / 861.8M tool calls). Frozen hashes re-verified against bakeoff/20261114T183716.
