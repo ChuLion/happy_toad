@@ -294,7 +294,8 @@
   the 90% budget on (41 of 51 candidates, about 88% of candidate cost); plateau test re-pinned,
   now BUDGETS[17:]. Resolved sectors at plateau: 76 of 80; still short 34.39.
 - Resolved sectors first reach 50% (40 of 80) at 34% of candidate cost on seed 42 (41/80;
-  budget 1370.2 including must-fund; 1% steps). In the 5% sweep: 36/80 at 25%, 42/80 at 30%.
+  budget 1370.3 including must-fund; 1% steps; 39/80 at 33%). In the 5% sweep: 32/80 at 25%,
+  36/80 at 30%, 42/80 at 35%.
   Resolved counts at 20/30/40/50/60/80/100%: 28 / 36 / 47 / 54 / 62 / 72 / 76. The optimizer
   maximizes weighted relief, not the count of resolved sectors.
 - Greedy gap % at 20 / 50 / 80% (old -> new): seed 42: 0.21 / 1.32 / 0.96 -> 1.51 / 1.51 / 0.73;
@@ -324,3 +325,18 @@
   - The ">= 50% resolved" share uses a 1% grid and the first share where resolved >= 40 of 80.
   - Plateau test and the other scale tests re-use budget indexes (17, 19 and so on) chosen after
     seeing the new sweep.
+
+## Two small fixes (2026-11-14)
+- Sweep table: the `still short` column (total unrelieved shortfall) is replaced by `% resolved`
+  (`100 * resolved / total sectors`, one decimal, `-` when there is no plan); shortfall magnitudes
+  no longer appear in demo tables. `still_short` removed from `engine/relief.py`; `report.py`
+  uses one `COLUMNS` tuple (the duplicated column list is gone); SPEC and tests updated, one new
+  test (1 of 3 sectors -> `33.3%`). This supersedes the `still short` decision in the entry above.
+- Correction to the calibration entry: the resolved counts in the 5% sweep were attached to the
+  wrong shares. Right: 32/80 at 25%, 36/80 at 30%, 42/80 at 35% (the earlier text said 36 at 25% and
+  42 at 30%). Re-checked every other figure from that scan against a fresh 1% scan of seed 42:
+  resolved at 5%..100% in 5% steps = 8, 17, 23, 28, 32, 36, 42, 47, 50, 54, 58, 62, 63, 66, 70, 72,
+  74, 76, 76, 76. The "20/30/40/50/60/80/100%: 28 / 36 / 47 / 54 / 62 / 72 / 76" list, "first
+  reaches 50% at 34%" (41/80; 33% gives 39), the plateau from the 90% budget (spend 2749.51, 41
+  candidates, 76 resolved, 88.3% of candidate cost) are correct. One more slip fixed: the budget
+  at 34% is 1370.3 (0.34 x 3114.38 + 311.44 = 1370.33), not 1370.2.

@@ -50,17 +50,17 @@ def test_one_row_per_budget_with_expected_columns(input_file) -> None:
     out = sweep(input_file, "2,6,20")
     for column in ("budget", "must_fund", "status", "spend", "weighted relief", "# selected"):
         assert column in out
-    for column in ("resolved", "still short"):
+    for column in ("resolved", "% resolved"):
         assert column in out
     assert len(body_rows(out)) == 3
 
 
 def test_row_values(input_file) -> None:
     rows = body_rows(sweep(input_file, "2,6,20"))
-    # [budget, must_fund, status, spend, weighted relief, # selected, resolved, still short]
-    assert rows[0] == ["2.00", "2.00", "Optimal", "0.00", "0.000", "0", "0/1", "10.00"]  # nothing
-    assert rows[1] == ["6.00", "2.00", "Optimal", "4.00", "6.000", "1", "0/1", "4.00"]  # C2 only
-    assert rows[2] == ["20.00", "2.00", "Optimal", "9.00", "9.000", "2", "0/1", "1.00"]  # both
+    # [budget, must_fund, status, spend, weighted relief, # selected, resolved, % resolved]
+    assert rows[0] == ["2.00", "2.00", "Optimal", "0.00", "0.000", "0", "0/1", "0.0%"]  # nothing
+    assert rows[1] == ["6.00", "2.00", "Optimal", "4.00", "6.000", "1", "0/1", "0.0%"]  # C2 only
+    assert rows[2] == ["20.00", "2.00", "Optimal", "9.00", "9.000", "2", "0/1", "0.0%"]  # both
 
 
 def test_resolved_counts_sectors_whose_shortfall_is_fully_relieved(tmp_path) -> None:
@@ -72,8 +72,16 @@ def test_resolved_counts_sectors_whose_shortfall_is_fully_relieved(tmp_path) -> 
     path = tmp_path / "in.json"
     save_input_set(data, path)
     rows = body_rows(sweep(path, "5,10"))
-    assert rows[0][-2:] == ["1/2", "10.00"]  # C1 resolves S1 only
-    assert rows[1][-2:] == ["1/2", "6.00"]  # C2 adds 4 to S2
+    assert rows[0][-2:] == ["1/2", "50.0%"]  # C1 resolves S1 only
+    assert rows[1][-2:] == ["1/2", "50.0%"]  # C2 adds 4 to S2, still short
+
+
+def test_percent_resolved_is_resolved_over_total_sectors(tmp_path) -> None:
+    sectors = [("S1", 10), ("S2", 10), ("S3", 10)]
+    data = make_set(sectors, [("C1", 5)], [("C1", "S1", 10)])
+    path = tmp_path / "in.json"
+    save_input_set(data, path)
+    assert body_rows(sweep(path, "5"))[0][-2:] == ["1/3", "33.3%"]
 
 
 def test_infeasible_budget_shows_status_and_dashes(input_file) -> None:

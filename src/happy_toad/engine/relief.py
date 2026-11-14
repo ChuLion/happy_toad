@@ -26,12 +26,6 @@ def resolved_count(data: InputSet, chosen: set[str]) -> int:
     return sum(relief[s.id] >= s.shortfall - RESOLVED_TOLERANCE for s in data.sectors)
 
 
-def still_short(data: InputSet, chosen: set[str]) -> float:
-    """Total shortfall left unrelieved: sum of (shortfall - relief) over all sectors."""
-    relief = sector_relief(data, chosen)
-    return sum(s.shortfall - relief[s.id] for s in data.sectors)
-
-
 def weighted(relief: dict[str, float], weight: dict[str, float]) -> float:
     """Sum over sectors of weight * relief."""
     return sum(weight[s] * v for s, v in relief.items())

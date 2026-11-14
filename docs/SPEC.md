@@ -194,9 +194,9 @@ each **plus the must-fund total**.
 
 Output: a header line with the version, total candidate cost and must-fund total, then a rich
 table with columns `budget`, `must_fund`, `status`, `spend`, `weighted relief`, `# selected`,
-`resolved` and `still short`. `resolved` is `n/N`: the sectors whose relief is at least
-`shortfall - 1e-6`, out of all sectors. `still short` is the total shortfall left unrelieved,
-`sum(shortfall - relief)` over all sectors. One row per budget. A budget with no plan (e.g. `Infeasible`) shows its status and `-` in the
+`resolved` and `% resolved`. `resolved` is `n/N`: the sectors whose relief is at least
+`shortfall - 1e-6`, out of all sectors; `% resolved` is `100 * n / N` with one decimal. Shortfall
+magnitudes are not shown. One row per budget. A budget with no plan (e.g. `Infeasible`) shows its status and `-` in the
 plan columns. Output is deterministic (CBC single thread, no timing column).
 
 Tests: one row per budget, row values, Infeasible rows, header totals, default budgets,
