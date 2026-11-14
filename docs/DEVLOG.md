@@ -440,3 +440,7 @@
   - `SolverSettings.as_dict()` added so results and run records record settings identically.
   - The sweep table is truncated on an 80-column terminal when a status like `Infeasible`
     appears; tests use 200 columns and the README says about 100 are needed.
+- CI failed once on the M2A commit (`ruff check`: import order in `tests/test_unresolved.py`).
+  Root cause: a stale local ruff cache. Ruff decided `happy_toad.services` was third-party because
+  the new `services/` package did not exist when the cache entry was made; with `--no-cache` the
+  same error reproduced locally. Fixed the import order; local checks now use `--no-cache`.

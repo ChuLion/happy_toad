@@ -1,10 +1,10 @@
 """Unresolved-sectors report (SPEC, M2A decision 8)."""
 
 import pytest
-from happy_toad.services.unresolved import unresolved_sectors
 from helpers import make_set
 
 from happy_toad.constants import BASE_YEAR
+from happy_toad.services.unresolved import unresolved_sectors
 
 
 @pytest.fixture
