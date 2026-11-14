@@ -60,3 +60,4 @@ class SolveResult(BaseModel):
     content_hash: str
     solver_settings: dict[str, float | dict[str, float] | None]
     cause: Reason | None = None  # set when status is Infeasible
+    required_minimum_budget: float | None = None  # lower bound, only for a known cause

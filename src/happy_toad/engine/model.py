@@ -8,7 +8,7 @@ from collections.abc import Collection
 
 from happy_toad.constants import BASE_YEAR
 from happy_toad.data.schemas import InputSet
-from happy_toad.engine.diagnose import diagnose
+from happy_toad.engine.diagnose import diagnose, required_minimum_budget
 from happy_toad.engine.markets import MarketLimits, clamp_floors, fair_share_limits
 from happy_toad.engine.relief import sector_relief, sector_weights, weighted, weighted_relief
 from happy_toad.engine.result import DEFAULT_SETTINGS, SolveResult, SolverSettings
@@ -22,7 +22,9 @@ UNKNOWN_CAUSE = Reason(
 )
 
 
-def make_result(data, selected, status, base_year, meta, times, cause=None) -> SolveResult:
+def make_result(
+    data, selected, status, base_year, meta, times, cause=None, minimum=None
+) -> SolveResult:
     """Assemble a SolveResult. selected=None means no plan; relief and objective are recomputed."""
     plan = dict(objective=None, selected=None, relief=None, spend=None)
     if selected is not None:
@@ -39,6 +41,7 @@ def make_result(data, selected, status, base_year, meta, times, cause=None) -> S
         stage_times=times,
         base_year=base_year,
         cause=cause,
+        required_minimum_budget=minimum,
         **plan,
         **meta,
     )
@@ -87,13 +90,17 @@ def solve(
     )
     times: dict[str, float] = {}
 
-    def result(selected, status, cause=None):
-        return make_result(data, selected, status, base_year, meta, times, cause)
+    def result(selected, status, cause=None, minimum=None):
+        return make_result(data, selected, status, base_year, meta, times, cause, minimum)
 
     force_in, force_out = set(force_in), set(force_out)
     cause = diagnose(data, avail, force_in, force_out, limits)  # pre-solve: no solver call
     if cause is not None:
-        return result(None, "Infeasible", cause)
+        minimum = required_minimum_budget(data, force_in, limits)
+        said = Reason(
+            code=cause.code, message=f"{cause.message}; the budget must be at least {minimum:.2f}"
+        )
+        return result(None, "Infeasible", said, minimum)
 
     prob1, x1 = build_stage1(data, avail, base_year, limits, force_in, force_out)
     stats1 = prob1.solve(make_solver(settings, settings.time_limit))

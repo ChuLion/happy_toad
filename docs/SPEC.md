@@ -521,6 +521,15 @@ constant, not a request field in M2A; the generator window uses it.
 every solve. Infeasible rows keep status `Infeasible` and a line below the table names the cause
 code of each (impl.). With caps on, a lower `% resolved` is by design.
 
+### Required minimum budget
+When a solve is infeasible for a known cause (any code except `CAUSE_UNKNOWN`), `SolveResult` and
+the run record carry `required_minimum_budget`: a lower bound on the total budget, computed as
+must-fund + forced-in cost + the clamped market floors (when set). Forced-in spend inside a
+floored market counts toward that floor, so each market adds max(floor, forced spend) and nothing
+is counted twice. It is a lower bound, not a promise: a budget at or above it may still be
+infeasible. The cause message ends "the budget must be at least X", and the M3 agent's tool result
+states it the same way ("at least X"). No new gate codes. For `CAUSE_UNKNOWN` it is None.
+
 ### Rule for the M3 agent (F; SPEC text only, no code in M2A)
 When the agent turns a plain-English question into a request it **never invents a number**.
 1. A missing budget means asking the human, or stating the assumption in the request `label`.
@@ -545,3 +554,91 @@ shortfall minus relief above 1e-6, listed by weighted gap. Project lead's propos
 caps in requests and the sweep; B `FLOORS_EXCEED_BUDGET` and `CAP_BELOW_FLOOR` as causes;
 C `region_total_sectors`; D `target_pct_resolved` (reported, no search); E `HORIZON_YEARS`; F the
 M3 interpretation rule. The remaining ones marked "(impl.)" are mine and are in the DEVLOG.
+
+## M3 — Agent (decisions only; no tests or code until the owner approves this list)
+An agent layer that turns a plain-English question into calls of the M2A services and returns a
+report whose numbers are checked against stored runs. Items marked **[owner]** were in the owner's
+draft; items marked **[lead]** are project-lead proposals (defaults, to be approved or changed).
+The wording of the system prompt is written by the owner by hand; only its rules are listed here.
+
+### M3 decisions
+1. **Provider adapter [owner].** A thin interface: messages and tool definitions in, one response
+   out (text blocks, tool-use blocks, token counts). Tests use a fake client; the provider can be
+   swapped. The real client uses the `anthropic` SDK (owner approved adding this one dependency).
+   The key is read from `ANTHROPIC_API_KEY` and never stored, logged or written to a transcript.
+   **[lead]** The model ID is a constant in `config`, pinned to `claude-sonnet-5-5` (current
+   Sonnet-class ID), and recorded in every transcript. No temperature or other sampling options
+   beyond the SDK defaults.
+2. **Tools, five [owner]:** `list_input_versions`, `run_scenario`, `get_run`, `compare_runs`,
+   `submit_report`. New deterministic services first, with their own tests: a version lister
+   (names of `data/inputs/*.json`), a run reader (`runs/<run_id>.json`, a name that is not a run id
+   is not opened as a path), and a run comparer. **[lead]** Comparer output: both run ids, then
+   per field the two values and the difference for status, spend, weighted relief (`objective`),
+   number selected, number resolved and percent resolved; the candidate ids only in A, only in B;
+   it refuses (clear error) if either run has no plan. `run_scenario` takes the M2A request fields
+   and returns the run summary; for an infeasible solve with a known cause it includes the cause
+   and `required_minimum_budget`, which the agent must state as "at least X" (SPEC, "Required
+   minimum budget"). `get_run` returns the run summary, not the full record. **Tool descriptions
+   are part of this SPEC** (written with the tests, because the model chooses tools from them).
+3. **Loop [owner].** Step cap 10 model turns (**[lead]**: a turn is one model response). The loop
+   stops when `submit_report` is accepted. Reaching the cap is a flagged failure recorded in the
+   transcript, not a silent stop. Only the five listed tools run; no generated code executes; a
+   call to an unknown tool is returned to the model as an error and counts as a turn.
+4. **System prompt rules [owner].** Use only tool results. Say "under the modeled objective and
+   constraints". Ask for a budget when one is missing. Decline questions outside scope ("should we
+   fund this?"). Never say anything is approved or recommended. Plus interpretation rule F of M2A.
+   The owner writes the final wording by hand.
+5. **Report schema [owner].** Claims as data plus a summary. A claim has `metric`, `value`, `unit`,
+   `run_id`, `entity`. **[lead]** Allowed metrics: `weighted_relief`, `spend`, `n_selected`,
+   `n_resolved`, `pct_resolved`, `status`, `target_met`. Units: `need_units` (weighted relief),
+   `cost_units` (spend), `count`, `percent`, `none` (status, target_met). `entity` is `"plan"`
+   (the whole run) in M3; per-sector or per-candidate claims are not in scope. Unknown metrics or
+   units are a schema error. `required_minimum_budget` is not an allowed metric in M3 (**[lead]**,
+   flagged: the infeasible demo question then states it in the summary only, and the checker
+   cannot verify it; add `required_minimum_budget` as a metric if you want it checked).
+6. **Consistency checker [owner], tolerances [lead].** Each claim must match the stored run named
+   by `run_id` for its metric. Tolerance, justified by the rounding the CLI displays: `spend` and
+   `weighted_relief` absolute 0.005 (shown to 2 decimals); `pct_resolved` absolute 0.05 (shown to
+   1 decimal); `n_*` and `status` and `target_met` exact. Every number in the summary must equal a
+   validated claim's value within the same tolerance (**[lead]** numbers are found by a simple
+   pattern in the summary text; a number that is a run id or a year is ignored only if it appears
+   as a run id or as a version name). On a mismatch the checker's errors go back to the model
+   once; if the second report still fails, the report is shown flagged **UNVERIFIED** with the
+   failing claims listed. A report whose every claim and number passes is shown as checked.
+7. **Every attempt recorded [owner].** A tool input that fails schema validation becomes a rejected
+   run record with reason `SCHEMA_INVALID` (a new reason code; message names the field).
+   **[lead]** This changes an M2A implementation choice (malformed requests were raised before the
+   gate and not recorded); the M2A schema stays, the agent layer catches the error and writes the
+   rejected record through the same record writer. No new gate codes.
+8. **Transcripts [owner].** One JSON file per conversation in `transcripts/` (**[lead]** name;
+   gitignored): question, every model turn, tool calls and results, checker results, model ID,
+   token counts per turn and total, elapsed time, final status (checked, unverified, step cap,
+   error). M4 reuses them. The API key never appears.
+9. **Cost and speed [owner].** Record tokens, elapsed time and estimated cost per question.
+   **[lead]** Estimated cost = tokens x per-million-token rates held as constants in `config`.
+   The rates are not set here: I will not invent prices. The owner supplies them, or the cost
+   field stays `null` and the CLI prints "cost: not configured".
+10. **CLI [owner].** `happy-toad ask "<question>"` prints each tool call and its result as it
+    happens, then the report, then the check results (each claim pass/fail, the verdict). Needed
+    for the video. **[lead]** Exit code 0 for a checked report, 1 for unverified or step cap.
+11. **Demo script [owner], three questions:** (a) a budget comparison, (b) a forced solution,
+    (c) an infeasible request (force in three expensive candidates under a small budget).
+    **[lead]** Exact question texts and budgets are fixed in the SPEC once the owner approves,
+    against generated v1 seed 42. For (c) the expected outcome is `FORCED_COST_EXCEEDS_BUDGET`,
+    with "at least X" in the answer. Each demo is also a test using the fake client with a
+    scripted conversation; one live run per question is the acceptance check.
+12. **Layout and tag [lead].** Code in `src/happy_toad/agent/` (client adapter, tools, loop,
+    schema, checker, transcript); CLI in `cli.py`. Tag `v0.3` only when the three demo questions
+    run end to end with every claim checked.
+
+### Order of work after approval
+SPEC (tool descriptions, report schema, demo texts), then tests (confirm they fail for the right
+reason), then the three new services, then the agent code, then docs.
+
+### Answer to the owner's question
+`FLOOR_UNREACHABLE` can only fire when a `force_out` removes candidates from a market, so the
+candidates left in it cost less than its clamped floor (clamping alone to the market's total cost
+can never trigger it); the budget-700 case is different because every floor is individually
+reachable and no pre-solve check finds a problem, yet no set of whole candidates meets all floors
+within the budget (minimal whole-candidate spend 426.9 vs 388.6 available), which only the solver
+sees and reports as `CAUSE_UNKNOWN`.

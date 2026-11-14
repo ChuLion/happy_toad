@@ -444,3 +444,29 @@
   Root cause: a stale local ruff cache. Ruff decided `happy_toad.services` was third-party because
   the new `services/` package did not exist when the cache entry was made; with `--no-cache` the
   same error reproduced locally. Fixed the import order; local checks now use `--no-cache`.
+
+## 2026-11-14 — required_minimum_budget
+- Done: infeasible results with a known cause now carry `required_minimum_budget` (SPEC section
+  "Required minimum budget"), also in the run record; the cause message says "at least X". Tests
+  first (4 failed on the missing field), then code; 231 tests pass, ruff clean.
+- Owner request: add it to "M3 decision 2". No such list exists in the repo (M3 not started), so
+  the text sits in the SPEC next to the M3 rule, and the M3 tool-result wording is recorded there.
+- Decisions I made that you did not specify: forced-in spend inside a floored market counts toward
+  that floor (max per market) instead of being added on top, because the plain sum could exceed
+  the true minimum and "at least X" would then be false; for the forced-in demo case and any case
+  without floors the two formulas give the same number. Unknown cause gives None.
+
+## 2026-11-14 — M3 opened: decisions list only
+- Done: wrote the M3 decisions list in `docs/SPEC.md` (section "M3 — Agent") and here. No tests or
+  code started, waiting for the owner's approval of the list. CLAUDE.md still says M2A until then.
+- Owner-supplied items: provider adapter, five tools, loop with cap 10, prompt rules (owner writes
+  wording), report schema, consistency checker, SCHEMA_INVALID records, transcripts, cost/speed,
+  `ask` CLI, three demo questions, v0.3 condition, `anthropic` dependency approved.
+- Project-lead proposals flagged `[lead]` in the SPEC: pinned model `claude-sonnet-5-5`; comparer
+  output shape; a turn = one model response; allowed units and `entity = "plan"` only; tolerances
+  (0.005 for spend and relief, 0.05 for percent, exact for counts, status, target_met);
+  `required_minimum_budget` not a checkable metric (so the infeasible demo cannot verify it);
+  summary-number matching by a simple pattern; `transcripts/` folder name; cost rates left unset
+  (I will not invent prices); exit codes; layout `src/happy_toad/agent/`.
+- Conflict flagged: SCHEMA_INVALID records change the M2A choice that malformed requests are not
+  recorded; handled in the agent layer, M2A schema unchanged.

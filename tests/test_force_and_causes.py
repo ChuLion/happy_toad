@@ -109,3 +109,39 @@ def test_unknown_cause_when_only_the_solver_finds_it_infeasible(toy) -> None:
 
 def test_feasible_results_carry_no_cause(toy) -> None:
     assert solve(toy, budget=12).cause is None
+
+
+def test_required_minimum_budget_for_the_forced_in_demo_case(toy, no_solver) -> None:
+    result = solve(toy, budget=12, force_in=["X1", "X2", "Y1"])
+    assert result.cause.code == ReasonCode.FORCED_COST_EXCEEDS_BUDGET
+    assert result.required_minimum_budget == pytest.approx(17)
+    assert "at least 17.00" in result.cause.message
+
+
+def test_required_minimum_budget_adds_must_fund_and_clamped_floors(no_solver) -> None:
+    data = make_set(
+        [("sX1", 10, BASE_YEAR, "X"), ("sY1", 10, BASE_YEAR, "Y")],
+        [("X1", 6), ("Y1", 6)],
+        [("X1", "sX1", 10), ("Y1", "sY1", 10)],
+        must_fund=[2],
+    )
+    limits = MarketLimits(floors={"X": 50, "Y": 4})
+    result = solve(data, budget=10, limits=limits)
+    assert result.cause.code == ReasonCode.FLOORS_EXCEED_BUDGET
+    assert result.required_minimum_budget == pytest.approx(2 + 6 + 4)  # X floor clamped to 6
+
+
+def test_required_minimum_budget_counts_forced_spend_inside_a_floored_market_once(
+    toy, no_solver
+) -> None:
+    limits = MarketLimits(floors={"X": 8, "Y": 6})
+    result = solve(toy, budget=12, force_in=["X1"], limits=limits)
+    assert result.required_minimum_budget == pytest.approx(8 + 6)
+
+
+def test_no_required_minimum_budget_when_the_cause_is_unknown_or_there_is_a_plan(toy) -> None:
+    unknown = solve(toy, budget=12, limits=MarketLimits(floors={"X": 8}, caps={"X": 10}))
+    assert unknown.cause.code == ReasonCode.CAUSE_UNKNOWN
+    assert unknown.required_minimum_budget is None
+    assert "at least" not in unknown.cause.message
+    assert solve(toy, budget=12).required_minimum_budget is None

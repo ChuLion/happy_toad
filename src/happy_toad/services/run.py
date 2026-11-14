@@ -28,6 +28,7 @@ class RunResult(BaseModel):
 
     status: str
     cause: Reason | None
+    required_minimum_budget: float | None
     objective: float | None
     spend: float | None
     selected: list[str] | None
@@ -80,6 +81,7 @@ def summarize(data: InputSet, request: SolveRequest, result) -> RunResult:
     return RunResult(
         status=result.status,
         cause=result.cause,
+        required_minimum_budget=result.required_minimum_budget,
         objective=result.objective,
         spend=result.spend,
         selected=result.selected,

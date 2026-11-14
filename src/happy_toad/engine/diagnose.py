@@ -70,3 +70,22 @@ def diagnose(
                 f"cost ({reachable.get(m, 0.0):.2f})",
             )
     return None
+
+
+def required_minimum_budget(
+    data: InputSet, force_in: Collection[str], limits: MarketLimits | None
+) -> float:
+    """Lower bound on the total budget: must-fund + forced-in cost + clamped floors.
+
+    Forced-in spend inside a floored market counts toward that floor, so each market contributes
+    max(floor, forced spend) and is not counted twice. `limits` must already have clamped floors.
+    """
+    must_fund = sum(m.cost for m in data.must_fund)
+    forced = sum(c.cost for c in data.candidates if c.id in force_in)
+    if limits is None:
+        return must_fund + forced
+    in_market = _market_spend(data, force_in)
+    floors = limits.floors
+    floored = sum(max(f, in_market.get(m, 0.0)) for m, f in floors.items())
+    unfloored = sum(v for m, v in in_market.items() if m not in floors)
+    return must_fund + floored + unfloored + (forced - sum(in_market.values()))
