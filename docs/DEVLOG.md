@@ -545,3 +545,11 @@
   c checked.
 - Sanity: reported cost (OpenRouter `usage.cost`) is lower than tokens x listed price, because the
   hosts that served the calls charged less than the headline price.
+
+### 2026-11-14 — clarifying questions and declines end through submit_report
+- Checked: `Report.claims` has no minimum length and the checker only tests numbers in the summary,
+  so a claimless report with a number-free summary is accepted and ends the loop as `checked`.
+  No code change. Added tests: missing budget ends in 1 turn (no run created), version lookup then
+  question ends in 2 turns, and a number in a claimless summary is still refused.
+- Decision not specified by the owner: ruff E501 is ignored for `agent/prompt.py` only, because the
+  owner's hand-written rules are long prose lines.

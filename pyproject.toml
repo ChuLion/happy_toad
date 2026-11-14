@@ -34,3 +34,6 @@ select = ["E", "F", "I", "UP", "B"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/happy_toad/agent/prompt.py" = ["E501"]  # prose, one rule per line
