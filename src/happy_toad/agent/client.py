@@ -46,12 +46,13 @@ def parse_completion(response) -> Completion:
         ToolCall(c.id, c.function.name, c.function.arguments) for c in message.tool_calls or []
     ]
     usage = response.usage
+    tokens = (usage.prompt_tokens, usage.completion_tokens) if usage else (0, 0)
     return Completion(
         content=message.content,
         tool_calls=calls,
-        prompt_tokens=usage.prompt_tokens,
-        completion_tokens=usage.completion_tokens,
-        cost=_extra(usage, "cost"),
+        prompt_tokens=tokens[0],
+        completion_tokens=tokens[1],
+        cost=_extra(usage, "cost") if usage else None,
         provider=_extra(response, "provider"),
         model=response.model,
     )

@@ -93,3 +93,11 @@ def test_bakeoff_profiles_pin_exact_ids_and_switch_reasoning_off() -> None:
 
     OpenRouterClient(BAKEOFF["gemma_31b"], sdk=Fake).complete([], [])
     assert seen["extra_body"]["reasoning"] == {"enabled": False}
+
+
+def test_a_response_without_usage_counts_zero_tokens_and_no_cost() -> None:
+    """Found in the bake-off: one Gemini response had usage=None and crashed the parser."""
+    resp = response(provider="Google AI Studio")
+    resp.usage = None
+    done = parse_completion(resp)
+    assert (done.prompt_tokens, done.completion_tokens, done.cost) == (0, 0, None)

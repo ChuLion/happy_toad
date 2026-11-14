@@ -532,3 +532,16 @@
 - Observation, not changed: the model wrote "of 80 sectors" and the checker rejected the 80, since
   `total_sectors` is not a claim metric or a request value. This is the stated rule working, but it
   is a likely source of avoidable failures; the owner can decide to allow it.
+
+## 2026-11-14 — bake-off run (4 paid candidates x 3 demo questions)
+- Results file `bakeoff/20261114T161530.json` (gitignored; prices listed at run time inside).
+  Listed prices per token in/out: gemini-2.5-flash-lite 1e-7/4e-7; gemma-4-31b-it 2e-7/4e-7;
+  deepseek-v4-flash-0731 4.34e-8/3e-7; deepseek-v4-pro 9e-7/1.5e-6.
+- Gemma 4 31B checked a, b, c; Gemini 2.5 Flash Lite: a checked, b error (my parser crashed on a
+  response with `usage` null; fixed test-first), c step cap (asked the user for candidate costs and
+  never called submit_report); DeepSeek Flash 0731: a unverified (summary numbers 13 and 24 matched
+  nothing), b checked, c unverified (claimed `status` of a rejected run, which has no value);
+  DeepSeek Pro: a and b unverified (put the word "compare" in `run_id`; unmatched summary numbers),
+  c checked.
+- Sanity: reported cost (OpenRouter `usage.cost`) is lower than tokens x listed price, because the
+  hosts that served the calls charged less than the headline price.
