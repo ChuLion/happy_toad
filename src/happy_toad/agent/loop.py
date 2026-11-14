@@ -9,10 +9,10 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from happy_toad.agent.checker import check_report
-from happy_toad.agent.client import ChatClient, Completion, ToolCall
+from happy_toad.agent.client import ChatClient, Completion, ProviderError, ToolCall
 from happy_toad.agent.config import MAX_STEPS, Profile
 from happy_toad.agent.prompt import SYSTEM_PROMPT
-from happy_toad.agent.report import Report
+from happy_toad.agent.report import Report, coercions
 from happy_toad.agent.tools import TOOLS, ToolRunner
 from happy_toad.agent.transcript import Transcript, TurnRecord
 from happy_toad.services.run import new_run_id
@@ -59,6 +59,7 @@ class Conversation:
         except ValidationError as err:
             return {"accepted": False, "error": f"report does not fit the schema: {err}"}
         t = self.transcript
+        t.coercions += coercions(call.arguments, report)
         result = check_report(report, self.runs_dir, self.inputs_dir)
         t.checks.append(result)
         t.report = report
@@ -116,6 +117,7 @@ def ask(
     inputs_dir: Path = Path("data/inputs"),
     runs_dir: Path = Path("runs"),
     transcripts_dir: Path = Path("transcripts"),
+    tools: list[dict] = TOOLS,
     on_event: Callable[[str, dict], None] = lambda kind, payload: None,
 ) -> Transcript:
     """Answer one question. Every outcome, including failures, leaves a saved transcript."""
@@ -128,10 +130,13 @@ def ask(
     try:
         for _ in range(MAX_STEPS):
             turn_start = time.perf_counter()
-            done = client.complete(convo.messages, TOOLS)
+            done = client.complete(convo.messages, tools)
             convo.take_turn(done, time.perf_counter() - turn_start)
             if convo.finished:
                 break
+    except ProviderError as err:
+        t.status = "api_error"
+        t.api_error = {"status": err.status, "body": err.body, "step": len(t.turns) + 1}
     except Exception as err:  # the transcript must exist whatever the provider did
         t.status, t.error = "error", f"{type(err).__name__}: {err}"
     t.total_tokens = {

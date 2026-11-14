@@ -155,3 +155,53 @@ def test_resolved_of_total_passes_when_both_are_claims(run, tmp_path) -> None:
     claims = [claim(run, "n_resolved", 2, "count"), claim(run, "n_sectors", 3, "count")]
     assert check(run, tmp_path, "2 of 3 sectors resolved.", *claims).ok
     assert not check(run, tmp_path, "2 of 80 sectors resolved.", *claims).ok
+
+
+def money_claim(metric, value, unit):
+    return Claim(metric=metric, value=value, unit=unit, run_id="r", entity="plan")
+
+
+def test_plain_decimal_strings_are_coerced_for_numeric_metrics() -> None:
+    assert money_claim("spend", "485.59", "cost_units").value == 485.59
+    assert money_claim("weighted_relief", "-3", "need_units").value == -3.0
+    assert money_claim("pct_resolved", "26.25", "percent").value == 26.25
+    count = money_claim("n_resolved", "21", "count")
+    assert count.value == 21 and type(count.value) is int
+
+
+@pytest.mark.parametrize("bad", ["$485.59", "1,284.34", "21 sectors", "", " 5", "1e3", "5."])
+def test_anything_but_a_plain_decimal_string_is_rejected_for_a_money_metric(bad) -> None:
+    with pytest.raises(ValidationError):
+        money_claim("spend", bad, "cost_units")
+
+
+@pytest.mark.parametrize("bad", ["21.5", "21 sectors", "1,284", "-3"])
+def test_counts_must_be_whole_numbers(bad) -> None:
+    with pytest.raises(ValidationError):
+        money_claim("n_selected", bad, "count")
+
+
+def test_bools_are_never_coerced_and_text_metrics_keep_their_strings() -> None:
+    assert money_claim("spend", True, "cost_units").value is True
+    assert money_claim("status", "Optimal", "none").value == "Optimal"
+    assert money_claim("target_met", "true", "none").value == "true"
+
+
+def test_a_mismatch_message_shows_the_types(run, tmp_path) -> None:
+    result = check(run, tmp_path, "No numbers.", claim(run, "status", "Infeasible", "none"))
+    assert result.claims[0].message == "claimed 'Infeasible' (str), stored 'Optimal'"
+
+
+def test_when_no_claim_validates_the_numbers_are_unchecked_and_reported_once(run, tmp_path) -> None:
+    wrong = claim(run, "spend", 99.0, "cost_units")
+    result = check(run, tmp_path, "Spend is 99.00 and relief is 20.00.", wrong)
+    assert not result.ok
+    assert all(n.message.startswith("not checked") for n in result.numbers)
+    lines = result.errors()
+    assert len(lines) == 2 and "no claim validated" in lines[1]
+
+
+def test_numbers_are_still_unmatched_when_a_claim_validated(run, tmp_path) -> None:
+    result = check(run, tmp_path, "Spend is 11.00 and 77.", claim(run, "spend", 11.0, "cost_units"))
+    assert [n.ok for n in result.numbers] == [True, False]
+    assert "does not match" in result.numbers[1].message

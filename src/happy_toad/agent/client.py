@@ -6,6 +6,8 @@ import urllib.request
 from dataclasses import dataclass, field, replace
 from typing import Protocol
 
+from openai import APIStatusError
+
 from happy_toad.agent.config import BASE_URL, KEY_ENV, Profile
 
 
@@ -28,6 +30,14 @@ class Completion:
     provider: str | None = None
     quantization: str | None = None
     model: str = ""
+
+
+class ProviderError(Exception):
+    """The provider answered with an error status; the whole body is kept for the transcript."""
+
+    def __init__(self, status: int, body: str) -> None:
+        super().__init__(f"HTTP {status}: {body}")
+        self.status, self.body = status, body
 
 
 class ChatClient(Protocol):
@@ -110,9 +120,12 @@ class OpenRouterClient:
         extra = {"provider": self.routing(), "usage": {"include": True}}
         if self.profile.reasoning_off:
             extra["reasoning"] = {"enabled": False}
-        response = self.sdk.chat.completions.create(
-            model=self.profile.model, messages=messages, tools=tools, extra_body=extra
-        )
+        try:
+            response = self.sdk.chat.completions.create(
+                model=self.profile.model, messages=messages, tools=tools, extra_body=extra
+            )
+        except APIStatusError as err:
+            raise ProviderError(err.status_code, err.response.text) from err
         done = parse_completion(response)
         known = self.quantizations.get(done.provider, "unknown")
         return replace(done, quantization=known)

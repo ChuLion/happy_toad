@@ -322,3 +322,63 @@ def test_every_turn_records_provider_and_quantization(dirs) -> None:
     saved = json.loads(next(dirs["transcripts_dir"].glob("*.json")).read_text())
     assert (t.turns[0].provider, t.turns[0].quantization) == ("Crusoe", "bf16")
     assert saved["turns"][0]["quantization"] == "bf16"
+
+
+def test_coercions_are_logged_in_the_transcript(dirs) -> None:
+    first = FakeClient([turn(call("run_scenario", input_version="test", budget=12, label="q"))])
+    rid = None
+
+    class Strings:
+        def complete(self, messages, tools):
+            nonlocal rid
+            if len(messages) == 2:
+                return first.complete(messages, tools)
+            rid = json.loads(messages[-1]["content"])["run_id"]
+            claims = [
+                dict(metric="spend", value="11", unit="cost_units", run_id=rid, entity="plan"),
+                dict(metric="n_selected", value=2, unit="count", run_id=rid, entity="plan"),
+            ]
+            return turn(call("submit_report", summary="Spend is 11.", claims=claims))
+
+    t = ask("q", Strings(), DEMO, **dirs)
+    assert t.status == "checked"
+    assert t.coercions == [{"metric": "spend", "run_id": rid, "from": "11", "to": 11.0}]
+    saved = json.loads(next(dirs["transcripts_dir"].glob("*.json")).read_text())
+    assert saved["coercions"][0]["from"] == "11"
+
+
+def test_a_provider_error_is_an_api_error_transcript_with_its_body(dirs) -> None:
+    from happy_toad.agent.client import ProviderError
+
+    class Rejects:
+        def complete(self, messages, tools):
+            raise ProviderError(400, '{"error": {"message": "bad tool call"}}')
+
+    t = ask("q", Rejects(), DEMO, **dirs)
+    assert t.status == "api_error" and t.error is None
+    assert t.api_error == {
+        "status": 400,
+        "body": '{"error": {"message": "bad tool call"}}',
+        "step": 1,
+    }
+    assert next(dirs["transcripts_dir"].glob("*.json")).exists()
+
+
+def test_a_python_error_is_still_an_error_not_an_api_error(dirs) -> None:
+    class Broken:
+        def complete(self, messages, tools):
+            raise KeyError("x")
+
+    assert ask("q", Broken(), DEMO, **dirs).status == "error"
+
+
+def test_the_tools_offered_can_be_overridden(dirs) -> None:
+    seen = []
+
+    class Spy:
+        def complete(self, messages, tools):
+            seen.append(tools)
+            return turn(call("submit_report", summary="Which budget?", claims=[]))
+
+    ask("q", Spy(), DEMO, tools=TOOLS[:1], **dirs)
+    assert seen == [TOOLS[:1]]

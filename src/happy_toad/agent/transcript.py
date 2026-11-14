@@ -31,8 +31,10 @@ class Transcript(BaseModel):
     turns: list[TurnRecord] = []
     checks: list[CheckResult] = []
     report: Report | None = None
-    status: str = "error"  # checked, unverified, step_cap or error
+    status: str = "error"  # checked, unverified, step_cap, api_error or error
     error: str | None = None
+    api_error: dict | None = None  # {status, body, step} when the provider refused a request
+    coercions: list[dict] = []  # claim values the schema turned from strings into numbers
     total_tokens: dict[str, int] = {"prompt": 0, "completion": 0}
     cost: float | None = None
     elapsed_seconds: float = 0.0

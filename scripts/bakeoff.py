@@ -14,7 +14,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from happy_toad.agent.bakeoff import run_bakeoff, summary, table
+from happy_toad.agent.bakeoff import provenance, run_bakeoff, summary, table
 from happy_toad.agent.client import OpenRouterClient, fetch_quantizations
 from happy_toad.agent.config import BAKEOFF
 from happy_toad.data.generator import make_v1
@@ -39,11 +39,14 @@ def main(names: list[str], repeats: int) -> None:
     out.mkdir(exist_ok=True)
     target = out / f"{datetime.now(UTC).strftime('%Y%m%dT%H%M%S')}.json"
     rows = []
+    info = provenance()
+    print("provenance", json.dumps(info), flush=True)
 
     def save(row) -> None:
         rows.append(row)
         print(table([row]).splitlines()[-1], flush=True)
-        body = {"repeats": repeats, "prices": prices, "quantization_listing": listing}
+        body = {"provenance": info, "repeats": repeats, "prices": prices}
+        body["quantization_listing"] = listing
         target.write_text(json.dumps({**body, "rows": [vars(r) for r in rows]}, indent=2))
 
     with TemporaryDirectory() as tmp:

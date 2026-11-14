@@ -117,3 +117,67 @@ def test_summary_is_one_line_per_model_and_question(dirs) -> None:
         and "Crusoe" in text
         and "bf16" in text
     )
+
+
+def test_an_api_error_is_a_row_and_does_not_stop_the_batch(dirs) -> None:
+    from happy_toad.agent.client import ProviderError
+
+    class Rejects:
+        def complete(self, messages, tools):
+            raise ProviderError(503, "overloaded")
+
+    rows = run_bakeoff(
+        {"one": PROFILES["one"]},
+        lambda p: Rejects(),
+        {"q1": "q"},
+        repeats=3,
+        stop_on_error=True,
+        **dirs,
+    )
+    assert [r.status for r in rows] == ["api_error"] * 3 and rows[0].api_status == 503
+
+
+def test_the_same_400_at_the_same_step_stops_the_batch(dirs) -> None:
+    from happy_toad.agent.client import ProviderError
+
+    class Rejects:
+        def complete(self, messages, tools):
+            raise ProviderError(400, "bad")
+
+    rows = run_bakeoff(
+        {"one": PROFILES["one"]},
+        lambda p: Rejects(),
+        {"q1": "q"},
+        repeats=5,
+        stop_on_error=True,
+        **dirs,
+    )
+    assert len(rows) == 2
+
+
+def test_summary_counts_api_errors_and_coercions_apart_from_checker_failures(dirs) -> None:
+    from happy_toad.agent.bakeoff import summary
+    from happy_toad.agent.client import ProviderError
+
+    class Rejects:
+        def complete(self, messages, tools):
+            raise ProviderError(503, "overloaded")
+
+    rows = run_bakeoff(
+        {"one": PROFILES["one"]}, lambda p: Rejects(), {"q1": "q"}, repeats=2, **dirs
+    )
+    rows[0].coercions = 4
+    text = summary(rows)
+    assert "api_errors 2" in text and "coercions 4" in text and "failures: none" in text
+
+
+def test_provenance_records_commit_prompt_hash_and_frozen_files() -> None:
+    import hashlib
+
+    from happy_toad.agent.bakeoff import provenance
+    from happy_toad.agent.prompt import SYSTEM_PROMPT
+
+    info = provenance()
+    assert info["prompt_sha256"] == hashlib.sha256(SYSTEM_PROMPT.encode()).hexdigest()
+    assert len(info["git_sha"]) == 40 and isinstance(info["git_dirty"], bool)
+    assert set(info["frozen_files"]) == {"checker.py", "report.py", "tools.py", "prompt.py"}

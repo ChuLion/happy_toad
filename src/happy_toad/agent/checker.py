@@ -32,6 +32,7 @@ RUN_ID_TEXT = re.compile(r"\d{8}T\d{6}-[0-9a-f]{8}")
 LIST_MARKER = re.compile(r"(?m)^\s*\d+[.)](?=\s)")
 NUMBER = re.compile(r"(?<![\w.])[-+]?\d+(?:,\d{3})*(?:\.\d+)?%?(?!\w)")
 YEAR = re.compile(r"\d{4}")
+NOT_CHECKED = "not checked because no claim validated"
 
 
 class ClaimCheck(BaseModel):
@@ -62,9 +63,14 @@ class CheckResult(BaseModel):
             for c in self.claims
             if not c.ok
         ]
+        unchecked = [n for n in self.numbers if n.message == NOT_CHECKED]
         bad_numbers = [
-            f"number {n.text} in the summary: {n.message}" for n in self.numbers if not n.ok
+            f"number {n.text} in the summary: {n.message}"
+            for n in self.numbers
+            if not n.ok and n.message != NOT_CHECKED
         ]
+        if unchecked:
+            bad_numbers.append(f"{len(unchecked)} summary numbers {NOT_CHECKED}")
         return bad_claims + bad_numbers
 
 
@@ -130,7 +136,8 @@ def check_claim(claim: Claim, runs_dir: Path, inputs_dir: Path) -> ClaimCheck:
     if stored is None:
         return ClaimCheck(claim=claim, ok=False, message="the run has no value for this metric")
     if not values_match(claim.metric, claim.value, stored):
-        return ClaimCheck(claim=claim, ok=False, message=f"claimed {claim.value}, stored {stored}")
+        message = f"claimed {claim.value!r} ({type(claim.value).__name__}), stored {stored!r}"
+        return ClaimCheck(claim=claim, ok=False, message=message)
     return ClaimCheck(claim=claim, ok=True, message="matches")
 
 
@@ -155,8 +162,12 @@ def check_report(
     claims = [check_claim(c, runs_dir, inputs_dir) for c in report.claims]
     valid = Report(summary=report.summary, claims=[c.claim for c in claims if c.ok])
     allowed = allowed_numbers(valid, runs_dir)
+    nothing_validated = bool(claims) and not valid.claims
     numbers = []
     for text, value in find_numbers(report.summary):
+        if nothing_validated:
+            numbers.append(NumberCheck(text=text, ok=False, message=NOT_CHECKED))
+            continue
         match = any(abs(value - v) <= tol + FLOAT_SLACK for v, tol in allowed)
         message = "matches" if match else "does not match any validated claim or request value"
         numbers.append(NumberCheck(text=text, ok=match, message=message))

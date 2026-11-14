@@ -137,3 +137,29 @@ def test_the_serving_providers_quantization_is_on_every_completion() -> None:
     assert client.complete([], []).quantization == "bf16"
     Fake.host = "Elsewhere"
     assert client.complete([], []).quantization == "unknown"
+
+
+def test_a_provider_status_error_keeps_the_status_and_the_whole_body() -> None:
+    import httpx2 as httpx
+    import openai
+
+    from happy_toad.agent.client import ProviderError
+
+    body = {
+        "error": {"message": "Provider returned error", "metadata": {"provider_name": "Crusoe"}}
+    }
+    http = httpx.Response(400, json=body, request=httpx.Request("POST", "https://x"))
+
+    class Fake:
+        class chat:
+            class completions:
+                @staticmethod
+                def create(**kwargs):
+                    raise openai.BadRequestError(
+                        "Provider returned error", response=http, body=body
+                    )
+
+    with pytest.raises(ProviderError) as caught:
+        OpenRouterClient(SMOKE, sdk=Fake).complete([], [])
+    assert caught.value.status == 400
+    assert "Crusoe" in caught.value.body and "Provider returned error" in caught.value.body

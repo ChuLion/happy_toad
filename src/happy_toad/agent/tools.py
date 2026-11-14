@@ -18,6 +18,10 @@ from happy_toad.services.run import RunRecord, new_run_id, run_request, write_re
 from happy_toad.services.runs import CompareError, compare_runs, list_versions, read_run
 
 TOP_UNRESOLVED = 5
+CLARIFY_SENTENCE = (
+    "To ask a clarifying question or decline, call submit_report with claims as an empty list "
+    "and a summary that contains no numbers."
+)
 
 
 def _tool(name: str, description: str, parameters: dict) -> dict:
@@ -64,9 +68,7 @@ TOOLS = [
         "submit_report",
         "Submit the final answer. Every number in `summary` must also be a claim "
         "`{metric, value, unit, run_id, entity}` taken from a run you executed or read, or be a "
-        "request value such as the budget. Values at displayed precision. To ask a clarifying "
-        "question or decline, call submit_report with claims as an empty list and a summary that "
-        "contains no numbers.",
+        "request value such as the budget. Values at displayed precision. " + CLARIFY_SENTENCE,
         Report.model_json_schema(),
     ),
 ]
