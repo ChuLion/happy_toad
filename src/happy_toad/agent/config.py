@@ -1,6 +1,6 @@
 """Profiles, pinned model IDs and loop limits (SPEC, M3 provider)."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 BASE_URL = "https://openrouter.ai/api/v1"
 KEY_ENV = "OPENROUTER_API_KEY"
@@ -20,8 +20,7 @@ class Profile:
 
 
 SMOKE = Profile("smoke", "inclusionai/ling-3.2-flash:free")
-DEMO = Profile("demo", "anthropic/claude-sonnet-5.5", ("anthropic",), allow_fallbacks=False)
-PROFILES = {p.name: p for p in (SMOKE, DEMO)}
+PROFILES = {SMOKE.name: SMOKE}
 
 # Bake-off candidates (docs/SPEC.md, M3 model selection). Exact IDs from OpenRouter's endpoint.
 # Reasoning is off. Only Gemma is pinned, to the two bf16 hosts; for the others OpenRouter picks
@@ -75,3 +74,7 @@ ROUND = {
     )
 }
 PROFILES |= ROUND
+
+# The demo model, approved by the owner after the post-fix round (docs/DEVLOG.md).
+DEMO = replace(ROUND["deepseek_flash_0731"], name="demo")
+PROFILES[DEMO.name] = DEMO

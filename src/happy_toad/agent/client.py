@@ -34,7 +34,7 @@ class Completion:
     model: str = ""
 
 
-ACCOUNT_ID = re.compile(r"user_[A-Za-z0-9]+")
+ACCOUNT_ID = re.compile(r"\buser_[A-Za-z0-9]{16,}\b")  # not the key "user_id"
 
 
 class ProviderError(Exception):

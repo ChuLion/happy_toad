@@ -476,3 +476,10 @@ def test_reasoning_tokens_are_recorded_per_turn_and_in_total(dirs) -> None:
                       prompt_tokens=10, completion_tokens=50, reasoning_tokens=40)  # fmt: skip
     t = ask("q", FakeClient([done]), DEMO, **dirs)
     assert t.turns[0].reasoning_tokens == 40 and t.total_tokens["reasoning"] == 40
+
+
+def test_printed_transcripts_redact_the_account_id(dirs) -> None:
+    from happy_toad.agent.transcript import redact
+
+    text = '{"user_id":"user_3FEB9A6yngm4bVylctIJkgAmiTJ", "run": "20261114T184501-78612358"}'
+    assert redact(text) == '{"user_id":"[redacted]", "run": "20261114T184501-78612358"}'

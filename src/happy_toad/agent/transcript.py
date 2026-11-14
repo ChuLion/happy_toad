@@ -5,7 +5,13 @@ from pathlib import Path
 from pydantic import BaseModel
 
 from happy_toad.agent.checker import CheckResult
+from happy_toad.agent.client import ACCOUNT_ID
 from happy_toad.agent.report import Report
+
+
+def redact(text: str) -> str:
+    """Text safe to print or export: OpenRouter account ids replaced."""
+    return ACCOUNT_ID.sub("[redacted]", text)
 
 
 class TurnRecord(BaseModel):

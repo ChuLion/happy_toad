@@ -689,3 +689,18 @@
   fails a and b); BaseTen turns show "fp32|fp8" because OpenRouter names both endpoints BaseTen
   and the response does not say which, while the pin names the baseten/fp8 tag; the reasoning-token
   count for Sonnet is 0 as reported by the provider, not verified.
+
+## 2026-11-14 — full code review (CODE_REVIEW.md)
+- Ran a full review with the code-review and code-simplifier plugins (report only, no code
+  changed). Baseline: 342 tests pass, 98% coverage, ruff clean. No high-severity bugs; 4 medium
+  findings: claims accepted for runs outside the conversation, a corrupt input file leaves no run
+  record, the minimum-budget advice with multiplier floors, and a missing timeout on the endpoint
+  listing. Simplifications and a prioritized fix list are in CODE_REVIEW.md.
+- Not specified by the owner: CODE_REVIEW.md sits at the repo root; severities are the reviewer's.
+
+## 2026-11-14 — demo profile set to DeepSeek V4 Flash 0731
+- Owner approved: the `demo` profile is the round's DeepSeek profile (baseten/fp8 first, baidu/fp8
+  backup, no fallbacks, reasoning off), replacing the Sonnet placeholder; test pins it.
+- `transcript.redact` and `scripts/show_transcript.py` print transcripts with OpenRouter account ids
+  redacted. Its test exposed that the id pattern also matched the JSON key "user_id"; the pattern
+  now needs 16+ characters after "user_" (root cause shown by the failing test, then fixed).

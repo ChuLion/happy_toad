@@ -60,7 +60,7 @@ def test_request_pins_the_model_and_routing_and_asks_for_usage() -> None:
         "allow_fallbacks": False,
         "require_parameters": True,
     }
-    assert "reasoning" not in seen["extra_body"]
+    assert seen["extra_body"]["reasoning"] == {"enabled": False}
     assert seen["extra_body"]["usage"] == {"include": True}
     seen.clear()
     OpenRouterClient(SMOKE, sdk=Fake).complete([], [])
@@ -213,3 +213,14 @@ def test_an_effort_profile_sends_the_effort_not_enabled_false() -> None:
     OpenRouterClient(ROUND["glm_flash"], sdk=Fake).complete([], [])
     assert seen["extra_body"]["reasoning"] == {"effort": "low"}
     assert seen["extra_body"]["provider"]["order"] == ["z-ai/fp8", "novita/fp8"]
+
+
+def test_the_demo_profile_is_the_approved_deepseek_pin() -> None:
+    from dataclasses import replace
+
+    from happy_toad.agent.config import ROUND
+
+    assert DEMO == replace(ROUND["deepseek_flash_0731"], name="demo")
+    assert DEMO.model == "deepseek/deepseek-v4-flash-0731"
+    assert DEMO.provider_order == ("baseten/fp8", "baidu/fp8") and not DEMO.allow_fallbacks
+    assert DEMO.reasoning_off and DEMO.reasoning_effort is None
