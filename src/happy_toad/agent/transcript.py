@@ -21,6 +21,7 @@ class TurnRecord(BaseModel):
     quantization: str | None = None
     model: str
     seconds: float
+    history_sanitized: bool = False  # unparseable tool arguments were replaced in the history
 
 
 class Transcript(BaseModel):

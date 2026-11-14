@@ -18,16 +18,30 @@ from happy_toad.agent.transcript import Transcript, TurnRecord
 from happy_toad.services.run import new_run_id
 
 NUDGE = "Reply by calling submit_report with your answer."
+RAW_ECHO_LIMIT = 500  # characters of unparseable arguments kept in the history sent back
 
 
-def _assistant_message(done: Completion) -> dict:
+def _echo_arguments(raw: str) -> tuple[str, bool]:
+    """Arguments safe to send back: valid JSON as written, else an object holding the raw text."""
+    try:
+        json.loads(raw)
+    except json.JSONDecodeError:
+        return json.dumps({"invalid_arguments_raw": raw[:RAW_ECHO_LIMIT]}), True
+    return raw, False
+
+
+def _assistant_message(done: Completion) -> tuple[dict, bool]:
+    """The assistant message for the history, and whether any arguments had to be replaced."""
     message: dict = {"role": "assistant", "content": done.content}
+    sanitized = False
     if done.tool_calls:
-        message["tool_calls"] = [
-            {"id": c.id, "type": "function", "function": {"name": c.name, "arguments": c.arguments}}
-            for c in done.tool_calls
-        ]
-    return message
+        message["tool_calls"] = []
+        for c in done.tool_calls:
+            arguments, replaced = _echo_arguments(c.arguments)
+            sanitized |= replaced
+            function = {"name": c.name, "arguments": arguments}
+            message["tool_calls"].append({"id": c.id, "type": "function", "function": function})
+    return message, sanitized
 
 
 def _sum_cost(turns: list[TurnRecord]) -> float | None:
@@ -80,7 +94,8 @@ class Conversation:
     def take_turn(self, done: Completion, seconds: float) -> None:
         t = self.transcript
         calls = []
-        self.messages.append(_assistant_message(done))
+        message, sanitized = _assistant_message(done)
+        self.messages.append(message)
         for call in done.tool_calls:
             result = self.run_call(call)
             calls.append({"name": call.name, "arguments": call.arguments, "result": result})
@@ -101,6 +116,7 @@ class Conversation:
                 quantization=done.quantization,
                 model=done.model,
                 seconds=seconds,
+                history_sanitized=sanitized,
             )
         )
 

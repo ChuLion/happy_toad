@@ -40,6 +40,7 @@ class Row:
     coercions: int = 0  # claim values turned from strings into numbers
     api_status: int | None = None  # set when the provider refused a request (status api_error)
     api_step: int | None = None
+    malformed_calls: int = 0  # tool calls whose arguments were not valid JSON
 
     def listed_cost(self) -> float | None:
         """Tokens times the per-token prices listed at run time."""
@@ -58,6 +59,18 @@ def _schema_errors(transcript) -> int:
             text = json.dumps(c["result"], default=str)
             count += "SCHEMA_INVALID" in text or "does not fit the schema" in text
     return count
+
+
+def _malformed(transcript) -> int:
+    def parses(text: str) -> bool:
+        try:
+            json.loads(text)
+        except json.JSONDecodeError:
+            return False
+        return True
+
+    calls = [c for turn in transcript.turns for c in turn.tool_calls]
+    return sum(not parses(c["arguments"]) for c in calls)
 
 
 def _refusals(transcript) -> int:
@@ -91,6 +104,7 @@ def _row(profile: Profile, key: str, repeat: int, transcript, price) -> Row:
         refusals=_refusals(t),
         quantizations=sorted({x.quantization or "unknown" for x in t.turns}),
         coercions=len(t.coercions),
+        malformed_calls=_malformed(t),
         api_status=t.api_error["status"] if t.api_error else None,
         api_step=t.api_error["step"] if t.api_error else None,
     )
@@ -199,10 +213,23 @@ def summary(rows: list[Row]) -> str:
             f"failures: {_failure_reasons(group)} | "
             f"api_errors {len(api)} {[(r.api_status, r.api_step) for r in api]} | "
             f"coercions {sum(r.coercions for r in group)} | "
+            f"malformed {sum(r.malformed_calls for r in group)} | "
             f"providers {sorted({p for r in group for p in r.providers})} | "
             f"quantization {sorted({q for r in group for q in r.quantizations})}"
         )
-    return "\n".join(lines)
+    return "\n".join(lines + _totals(rows))
+
+
+def _totals(rows: list[Row]) -> list[str]:
+    models: dict[str, list[Row]] = {}
+    for r in rows:
+        models.setdefault(r.model, []).append(r)
+    return [
+        f"TOTAL {model} | runs {len(g)} | checked {sum(r.status == 'checked' for r in g)} | "
+        f"api_errors {sum(r.status == 'api_error' for r in g)} | "
+        f"coercions {sum(r.coercions for r in g)} | malformed {sum(r.malformed_calls for r in g)}"
+        for model, g in models.items()
+    ]
 
 
 def provenance() -> dict:

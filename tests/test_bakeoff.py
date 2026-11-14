@@ -181,3 +181,32 @@ def test_provenance_records_commit_prompt_hash_and_frozen_files() -> None:
     assert info["prompt_sha256"] == hashlib.sha256(SYSTEM_PROMPT.encode()).hexdigest()
     assert len(info["git_sha"]) == 40 and isinstance(info["git_dirty"], bool)
     assert set(info["frozen_files"]) == {"checker.py", "report.py", "tools.py", "prompt.py"}
+
+
+def test_malformed_calls_are_counted_per_row_and_in_the_summary(dirs) -> None:
+    from agent_helpers import FakeClient as FC
+
+    from happy_toad.agent.bakeoff import summary
+    from happy_toad.agent.client import ToolCall
+
+    def make_client(profile):
+        glued = ToolCall("c1", "run_scenario", '{"budget": 1}{"budget": 2}')
+        return FC([turn(glued), turn(call("submit_report", summary="No numbers.", claims=[]))])
+
+    rows = run_bakeoff({"one": PROFILES["one"]}, make_client, {"q1": "q"}, repeats=2, **dirs)
+    assert [r.malformed_calls for r in rows] == [1, 1]
+    assert "malformed 2" in summary(rows)
+
+
+def test_summary_ends_with_totals_per_model(dirs) -> None:
+    from happy_toad.agent.bakeoff import summary
+
+    rows = run_bakeoff(PROFILES, make_ok, QUESTIONS, repeats=2, **dirs)
+    rows[0].coercions, rows[1].malformed_calls = 3, 2
+    lines = summary(rows).splitlines()
+    assert lines[-2].startswith(
+        "TOTAL fake/one | runs 4 | checked 4 | api_errors 0 | coercions 3 | malformed 2"
+    )
+    assert lines[-1].startswith(
+        "TOTAL fake/two | runs 4 | checked 4 | api_errors 0 | coercions 0 | malformed 0"
+    )

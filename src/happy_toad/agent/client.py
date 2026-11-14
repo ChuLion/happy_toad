@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import urllib.request
 from dataclasses import dataclass, field, replace
 from typing import Protocol
@@ -32,10 +33,14 @@ class Completion:
     model: str = ""
 
 
+ACCOUNT_ID = re.compile(r"user_[A-Za-z0-9]+")
+
+
 class ProviderError(Exception):
-    """The provider answered with an error status; the whole body is kept for the transcript."""
+    """The provider answered with an error status; its body is kept, minus the account id."""
 
     def __init__(self, status: int, body: str) -> None:
+        body = ACCOUNT_ID.sub("[redacted]", body)
         super().__init__(f"HTTP {status}: {body}")
         self.status, self.body = status, body
 

@@ -382,3 +382,63 @@ def test_the_tools_offered_can_be_overridden(dirs) -> None:
 
     ask("q", Spy(), DEMO, tools=TOOLS[:1], **dirs)
     assert seen == [TOOLS[:1]]
+
+
+GLUED = '{"budget": 800, "input_version": "test"}{"budget": 1500, "input_version": "test"}'
+
+
+def assistant_tool_calls(client):
+    """The tool_calls of the assistant message the model was sent back on its second request."""
+    return [m for m in client.seen[1] if m["role"] == "assistant"][0]["tool_calls"]
+
+
+def test_malformed_arguments_are_echoed_as_valid_json_and_kept_raw_in_the_transcript(dirs) -> None:
+    from happy_toad.agent.client import ToolCall
+
+    glued = ToolCall(id="c1", name="run_scenario", arguments=GLUED)
+    submit = turn(call("submit_report", summary="Which budget?", claims=[]))
+    client = FakeClient([turn(glued), submit])
+    t = ask("q", client, DEMO, **dirs)
+    echoed = assistant_tool_calls(client)[0]["function"]["arguments"]
+    assert json.loads(echoed) == {"invalid_arguments_raw": GLUED}
+    assert t.turns[0].tool_calls[0]["arguments"] == GLUED and t.turns[0].history_sanitized
+    assert not t.turns[1].history_sanitized
+    assert tool_result(client, 1)["outcome"] == "rejected"  # the model is still told why
+
+
+def test_the_echoed_raw_text_is_truncated_to_the_stated_length(dirs) -> None:
+    from happy_toad.agent.client import ToolCall
+    from happy_toad.agent.loop import RAW_ECHO_LIMIT
+
+    raw = "{" + "x" * (RAW_ECHO_LIMIT * 2)
+    client = FakeClient(
+        [
+            turn(ToolCall("c1", "run_scenario", raw)),
+            turn(call("submit_report", summary="?", claims=[])),
+        ]
+    )
+    t = ask("q", client, DEMO, **dirs)
+    echoed = json.loads(assistant_tool_calls(client)[0]["function"]["arguments"])
+    assert echoed["invalid_arguments_raw"] == raw[:RAW_ECHO_LIMIT] and RAW_ECHO_LIMIT == 500
+    assert t.turns[0].tool_calls[0]["arguments"] == raw
+
+
+def test_valid_arguments_are_echoed_exactly_and_the_turn_is_not_sanitized(dirs) -> None:
+    client = FakeClient(
+        [turn(call("list_input_versions")), turn(call("submit_report", summary="?", claims=[]))]
+    )
+    t = ask("q", client, DEMO, **dirs)
+    assert assistant_tool_calls(client)[0]["function"]["arguments"] == "{}"
+    assert not any(x.history_sanitized for x in t.turns)
+
+
+def test_an_account_id_in_a_provider_error_body_is_redacted(dirs) -> None:
+    from happy_toad.agent.client import ProviderError
+
+    class Rejects:
+        def complete(self, messages, tools):
+            raise ProviderError(400, '{"error": {}, "user_id":"user_3FEB9A6yngm4bVylctIJkgAmiTJ"}')
+
+    t = ask("q", Rejects(), DEMO, **dirs)
+    assert "user_3FEB" not in t.api_error["body"] and "[redacted]" in t.api_error["body"]
+    assert "user_3FEB" not in next(dirs["transcripts_dir"].glob("*.json")).read_text()
