@@ -704,3 +704,19 @@
 - `transcript.redact` and `scripts/show_transcript.py` print transcripts with OpenRouter account ids
   redacted. Its test exposed that the id pattern also matched the JSON key "user_id"; the pattern
   now needs 16+ characters after "user_" (root cause shown by the failing test, then fixed).
+
+## 2026-11-14 — live demo checked; tag v0.3; README comparison
+- Pushed 334c220, c79c70b and 06c4d5e; CI green on 06c4d5e. Frozen-file and prompt hashes equal the
+  round's record. data/inputs/v1.json equals generated v1 seed 42.
+- Live `happy-toad ask --profile demo`, every turn served by BaseTen: (a) 4 turns, 1 refusal (numbers
+  2 and 15 unclaimed), final 19/19 claims valid, 20/20 numbers matched; (b) 5 turns, 1 refusal (the
+  sector total 80 unclaimed), 19/19 claims, 16/16 numbers; (c) 3 turns, 0 refusals, 4/4 claims
+  (status rejected, required_minimum_budget 697.01, forced_cost 385.57, must_fund_cost 311.44), 5/5
+  numbers. Transcripts 20261114T204339-935bd491, 20261114T204347-f4ac9ae2, 20261114T204355-d3dbc583.
+- Checked by hand, outside the checker: (b)'s candidate lists match compare_runs exactly; (c) says
+  "rejected as infeasible" although the gate rejected the request before solving (no result), a
+  wording slip the checker cannot see. Recorded as a README limitation.
+- Every claim checked, so v0.3 is tagged (annotated) on 06c4d5e and pushed.
+- README: demo model, the 75-conversation comparison with the rule and measured figures only, the
+  Baseten fp32|fp8 caveat, and limitations (five runs per cell, one round, direction words and
+  wording unchecked, defaults count not a quality signal).

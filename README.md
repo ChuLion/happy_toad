@@ -125,13 +125,43 @@ is shown as UNVERIFIED. It reaches the model through OpenRouter's OpenAI-compati
   uses a free model only to check the loop; `--profile demo` (default) uses the pinned paid model.
 - Each conversation is saved as JSON in `transcripts/` (gitignored) with tool calls, check results,
   tokens, cost when OpenRouter reports it, and the provider that served each response.
-- Models compared (5 runs per demo question, synthetic data): Gemma 4 31B, Gemini 2.5 Flash Lite,
-  DeepSeek V4 Flash 0731, GLM 5.3 Flash and a Claude Sonnet 5.5 reference. DeepSeek V4 Flash 0731 is
-  served at fp8 as listed by the hosts; the checkpoint ships mixed fp8/fp4 per its model card.
-- Limitations: the checker verifies numbers against stored runs, not whether the model's words
-  are a fair reading of them. It does not check direction words in prose ("more", "less"), so a
-  correct number with the wrong direction would pass. Claims are about whole plans only;
-  differences are allowed only as `compare_runs` reports them, never computed by the agent.
+- Demo model: DeepSeek V4 Flash 0731 via OpenRouter, pinned to the host Baseten (fp8) with Baidu
+  (fp8) as the only backup, reasoning off. In a real deployment, which models and providers are
+  approved is the customer's decision. The three demo questions each ended with every claim
+  checked in the live run tagged v0.3.
+
+#### Model comparison (one round, synthetic data)
+75 conversations: 5 models x 3 demo questions x 5 runs, all on one frozen state (commit 4a6572b:
+same system prompt, tools, checker and loop for every run). Rule, set before the round: the
+cheapest model checked in at least 4 of 5 runs on every question; costs within 2x count as a tie,
+broken by fewer refusals, then clearer host precision; GLM must also average under about 15 s per
+question; the Sonnet reference decides only if none of the other four passes. Cost is tokens times
+the per-token prices OpenRouter listed at run time, for all 15 runs of a model.
+
+| Model (host, precision as listed) | Checked a / b / c | Refusals | Cost, 15 runs | Mean s per question |
+|---|---|---|---|---|
+| Gemma 4 31B (Crusoe or Novita, bf16) | 2 / 3 / 5 | 12 | $0.0564 | 16.1 |
+| Gemini 2.5 Flash Lite (Google AI Studio, not listed) | 4 / 2 / 4 | 16 | $0.0225 | 8.0 |
+| DeepSeek V4 Flash 0731 (Baseten or Baidu, fp8) | 5 / 5 / 5 | 5 | $0.0146 | 7.1 |
+| GLM 5.3 Flash (Z.AI, fp8), reasoning effort low: not equal terms | 5 / 5 / 5 | 11 | $0.0079 | 20.8 |
+| Claude Sonnet 5.5 reference (Anthropic, not listed), reasoning effort low: not equal terms | 5 / 5 / 5 | 3 | $0.5758 | 9.5 |
+
+Under the rule, Gemma and Gemini miss the 4-of-5 bar on at least one question, GLM passes the
+counts but misses the latency bar, and DeepSeek passes; GLM and Sonnet cannot switch reasoning
+off, so they ran at the lowest effort and are not on equal terms with the others. Details and the
+refusal reasons per model are in docs/DEVLOG.md.
+- DeepSeek V4 Flash 0731 is served at fp8 as listed by the hosts; the checkpoint ships mixed
+  fp8/fp4 per its model card.
+- Reporting caveat: OpenRouter lists two Baseten endpoints for this model under the same name
+  (fp8 and fp32), and a response names only the provider, so transcripts show Baseten turns as
+  "fp32|fp8". The pin names the fp8 endpoint.
+- Limitations: five runs per cell is a small sample, not a statistical test, and the round was run
+  once. The checker verifies numbers against stored runs, not whether the model's words are a fair
+  reading of them; it does not check direction words in prose ("more", "less"), so a correct number
+  with the wrong direction would pass, and it does not check wording such as "rejected" versus
+  "infeasible". The defaults count (units and entities the schema filled in) records schema
+  behaviour and is not a quality signal. Claims are about whole plans only; differences are
+  allowed only as `compare_runs` reports them, never computed by the agent.
 
 ### Layout
 `src/happy_toad/{data,engine,services,agent}`, `cli.py`, `report.py`, `tests/`, `scripts/`, `docs/{SPEC,DECISIONS,DEVLOG}.md`.
