@@ -275,3 +275,29 @@ def test_a_client_failure_is_recorded_as_an_error_transcript(dirs) -> None:
     t = ask("q", Broken(), SMOKE, **dirs)
     assert t.status == "error" and "network down" in t.error
     assert next(dirs["transcripts_dir"].glob("*.json")).exists()
+
+
+def test_missing_budget_ends_in_one_turn_with_a_claimless_report(dirs) -> None:
+    summary = "I need a total budget before I can run a scenario. What budget should I use?"
+    client = FakeClient([turn(call("submit_report", summary=summary, claims=[]))])
+    t = ask("Which candidates would you fund for version test?", client, DEMO, **dirs)
+    assert t.status == "checked"
+    assert len(t.turns) == 1
+    assert t.report.claims == [] and t.report.summary == summary
+    assert run_ids(dirs) == []
+
+
+def test_clarifying_question_with_a_version_lookup_ends_in_two_turns(dirs) -> None:
+    summary = "Version test exists, but I still need a budget. What budget should I use?"
+    client = FakeClient(
+        [turn(call("list_input_versions")), turn(call("submit_report", summary=summary, claims=[]))]
+    )
+    t = ask("What would you fund?", client, DEMO, **dirs)
+    assert (t.status, len(t.turns)) == ("checked", 2)
+    assert run_ids(dirs) == []
+
+
+def test_a_number_in_a_claimless_summary_is_still_refused(dirs) -> None:
+    client = FakeClient([turn(call("submit_report", summary="Is 500 enough?", claims=[]))] * 2)
+    t = ask("What would you fund?", client, DEMO, **dirs)
+    assert t.status == "unverified"
