@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from happy_toad.agent.client import OpenRouterClient, parse_completion
-from happy_toad.agent.config import DEMO, SMOKE
+from happy_toad.agent.config import BAKEOFF, DEMO, SMOKE
 
 
 def response(**extra):
@@ -58,14 +58,38 @@ def test_request_pins_the_model_and_routing_and_asks_for_usage() -> None:
     assert seen["extra_body"]["provider"] == {
         "order": list(DEMO.provider_order),
         "allow_fallbacks": False,
+        "require_parameters": True,
     }
+    assert "reasoning" not in seen["extra_body"]
     assert seen["extra_body"]["usage"] == {"include": True}
     seen.clear()
     OpenRouterClient(SMOKE, sdk=Fake).complete([], [])
-    assert seen["extra_body"]["provider"] == {"allow_fallbacks": True}
+    assert seen["extra_body"]["provider"] == {"allow_fallbacks": True, "require_parameters": True}
 
 
 def test_missing_key_is_a_clear_error_that_never_prints_a_key(monkeypatch) -> None:
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     with pytest.raises(RuntimeError, match="OPENROUTER_API_KEY"):
         OpenRouterClient(SMOKE)
+
+
+def test_bakeoff_profiles_pin_exact_ids_and_switch_reasoning_off() -> None:
+    assert [p.model for p in BAKEOFF.values()] == [
+        "google/gemini-2.5-flash-lite",
+        "google/gemma-4-31b-it",
+        "deepseek/deepseek-v4-flash-0731",
+        "deepseek/deepseek-v4-pro",
+    ]
+    assert all(p.reasoning_off for p in BAKEOFF.values())
+    seen = {}
+
+    class Fake:
+        class chat:
+            class completions:
+                @staticmethod
+                def create(**kwargs):
+                    seen.update(kwargs)
+                    return response()
+
+    OpenRouterClient(BAKEOFF["gemma_31b"], sdk=Fake).complete([], [])
+    assert seen["extra_body"]["reasoning"] == {"enabled": False}

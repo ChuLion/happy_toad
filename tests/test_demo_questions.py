@@ -10,19 +10,11 @@ import pytest
 from agent_helpers import call, turn
 
 from happy_toad.agent.config import DEMO
+from happy_toad.agent.demo import QUESTIONS
 from happy_toad.agent.loop import ask
 from happy_toad.data.generator import make_v1
 from happy_toad.data.loader import save_input_set
 from happy_toad.services.runs import read_run
-
-QUESTIONS = {
-    "a": "Using input version v1, compare what the optimizer chooses at a total budget of 800 "
-    "with a total budget of 1500: spend, weighted relief, and how many sectors are resolved.",
-    "b": "On v1 at a total budget of 1000, what happens if we force in candidates C033 and C024, "
-    "compared with no forcing?",
-    "c": "On v1 at a total budget of 600, force in the three most expensive candidates: "
-    "C033, C034 and C024.",
-}
 
 
 @pytest.fixture(scope="module")

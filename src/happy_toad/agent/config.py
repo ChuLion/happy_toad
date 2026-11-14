@@ -15,8 +15,22 @@ class Profile:
     model: str
     provider_order: tuple[str, ...] = ()
     allow_fallbacks: bool = True
+    reasoning_off: bool = False
 
 
 SMOKE = Profile("smoke", "google/gemma-4-31b-it:free")
 DEMO = Profile("demo", "anthropic/claude-sonnet-5.5", ("anthropic",), allow_fallbacks=False)
 PROFILES = {p.name: p for p in (SMOKE, DEMO)}
+
+# Bake-off candidates (docs/SPEC.md, M3 model selection). Exact IDs from OpenRouter's endpoint.
+# Reasoning is off. No provider pin: OpenRouter picks the host and the transcript records it.
+BAKEOFF = {
+    p.name: p
+    for p in (
+        Profile("gemini_flash_lite", "google/gemini-2.5-flash-lite", reasoning_off=True),
+        Profile("gemma_31b", "google/gemma-4-31b-it", reasoning_off=True),
+        Profile("deepseek_flash_0731", "deepseek/deepseek-v4-flash-0731", reasoning_off=True),
+        Profile("deepseek_pro_0423", "deepseek/deepseek-v4-pro", reasoning_off=True),  # fallback
+    )
+}
+PROFILES |= BAKEOFF

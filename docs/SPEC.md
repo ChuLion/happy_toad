@@ -775,3 +775,27 @@ must-fund projects costing 311.44). Expected values were computed with the solve
   candidate listing tool, which is not in the five.)
 Each is also a test with a scripted fake-client conversation; the live run per question is the
 acceptance check for `v0.3` and needs `OPENROUTER_API_KEY`.
+
+### M3 — model selection (bake-off)
+Replaces the proposed `anthropic/claude-sonnet-5.5` demo model, which the owner did not approve.
+The demo profile is chosen by a bake-off: the three demo questions against each candidate, reasoning
+off, no provider pin (OpenRouter picks the host; every transcript records it). Every request sends
+`provider.require_parameters = true` so only hosts that support tool calling are used (some hosts
+of the same model do not; seen in the endpoint listing on 2026-11-14), and `usage.include`.
+
+| Profile | Exact ID (from the endpoint) | Listing, 2026-11-14 |
+|---|---|---|
+| `gemini_flash_lite` | `google/gemini-2.5-flash-lite` | tools yes; hosted only by Google AI Studio (three tiers) |
+| `gemma_31b` | `google/gemma-4-31b-it` (paid; not the `:free` ID) | tools yes on 15 of 18 hosts; fp4 to bf16 |
+| `deepseek_flash_0731` | `deepseek/deepseek-v4-flash-0731` (dated; not `~...-latest`, not `:batch`) | tools yes; 26 hosts, fp4 to fp32 |
+| `deepseek_pro_0423` | `deepseek/deepseek-v4-pro` (listed name "V4 Pro 0423") | fallback only; run only if another fails a question |
+
+Every candidate lists a reasoning parameter; the client sends `reasoning: {"enabled": false}`.
+Prices are recorded per run, as listed at that time (some are promotional, and a host's price can
+differ from the model's headline price), in `bakeoff/<timestamp>.json`. Per model and question the
+report gives: tool choices in order, schema errors (SCHEMA_INVALID run records and refused
+reports), checker result and failures, turns, tokens, cost, elapsed time and serving providers
+(`scripts/bakeoff.py`; the tests use the fake client). Recommendation rule: the cheapest model that
+passes all three questions (status checked), on tokens times the listed price; the owner approves
+before the demo profile is pinned. The `demo` profile in `config.py` is still the earlier
+placeholder and is not approved.

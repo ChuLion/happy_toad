@@ -502,3 +502,17 @@
   gained an optional `required_minimum_budget` (older records still load).
 - Sandbox note: during this work `uv` could not write its cache or read the venv interpreter
   inside the sandbox, so test runs used the unsandboxed shell.
+
+## 2026-11-14 — bake-off prepared, not run
+- Done: candidate profiles (exact IDs from the endpoint), reasoning off, `require_parameters`,
+  `agent/demo.py` (questions moved out of the test), `agent/bakeoff.py` and `scripts/bakeoff.py`
+  (rows with tools, schema errors, checker failures, turns, tokens, cost, time, providers and the
+  prices listed at run time), SPEC section "M3 — model selection". Tests first (they failed on the
+  missing modules), then code: 277 pass.
+- Not done: **the bake-off has not run**, because there is no `OPENROUTER_API_KEY` in this
+  environment. No recommendation yet, and the demo profile is not pinned.
+- Decisions I made that you did not specify: `require_parameters: true` on every request; paid
+  `google/gemma-4-31b-it` rather than the `:free` one (free hosts vary and are rate-limited);
+  `deepseek/deepseek-v4-pro` as the "0423" ID (its listed name; a separate `-0813` ID exists);
+  no provider pin for any candidate; one fresh transcript per model and question; runs go to the
+  normal `runs/` folder, transcripts to `transcripts/`, results to `bakeoff/` (gitignored).

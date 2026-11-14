@@ -72,16 +72,20 @@ class OpenRouterClient:
         self.sdk = sdk
 
     def routing(self) -> dict:
-        provider: dict = {"allow_fallbacks": self.profile.allow_fallbacks}
+        # require_parameters: only route to hosts that support every parameter we send (tools)
+        provider: dict = {
+            "allow_fallbacks": self.profile.allow_fallbacks,
+            "require_parameters": True,
+        }
         if self.profile.provider_order:
             provider["order"] = list(self.profile.provider_order)
         return provider
 
     def complete(self, messages: list[dict], tools: list[dict]) -> Completion:
+        extra = {"provider": self.routing(), "usage": {"include": True}}
+        if self.profile.reasoning_off:
+            extra["reasoning"] = {"enabled": False}
         response = self.sdk.chat.completions.create(
-            model=self.profile.model,
-            messages=messages,
-            tools=tools,
-            extra_body={"provider": self.routing(), "usage": {"include": True}},
+            model=self.profile.model, messages=messages, tools=tools, extra_body=extra
         )
         return parse_completion(response)
