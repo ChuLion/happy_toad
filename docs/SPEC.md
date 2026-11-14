@@ -722,6 +722,11 @@ number, including a difference the agent computed itself, fails. So the agent
 states values, not differences (stated in the prompt). Tests cover identifiers, years, percents,
 commas and the unmatched number.
 
+**Limitation (checker).** The checker verifies numbers, not the words around them. Direction words
+in prose ("more", "less", "higher", "lower") are not checked: a `diff_*` claim may appear unsigned
+in the summary, so a correct number stated with the wrong direction ("spends 243.70 more" for a
+difference of -243.70) would pass.
+
 **Checker flow.** `submit_report` input that does not fit the schema is returned to the model as an
 error (a turn used, no correction used). A schema-valid report is checked: if all pass, the report
 is accepted as **checked** and the loop ends. Otherwise the failures go back to the model once; the

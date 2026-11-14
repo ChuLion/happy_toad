@@ -651,3 +651,15 @@
   fp8 (e4m3) with `expert_dtype: fp4`; most parameters are stored packed as I8, consistent with fp4
   experts. Not plain fp8, so the DeepSeek pin waits for the owner. baseten/fp8 and baidu/fp8 both
   list tools and tool_choice.
+
+## 2026-11-14 — DeepSeek pinned; limitations recorded
+- Owner approved the DeepSeek pin (baseten/fp8 first, baidu/fp8 backup, no fallbacks) and the README
+  wording: "served at fp8 as listed by the hosts; the checkpoint ships mixed fp8/fp4 per its model
+  card." Frozen-file and prompt hashes re-verified against the four-model record
+  (bakeoff/20261114T201817.json, commit 4a6572b) before its 15 runs started on the same state.
+- Limitation (SPEC, README): the checker verifies numbers but not direction words in prose
+  ("more/less"); a correct number with the wrong direction would pass, since a diff claim may
+  appear unsigned in the summary.
+- Not specified by the owner: the README limitation line that said the agent states no differences
+  was corrected, since diff claims read from compare_runs are now allowed; DeepSeek ran as a separate
+  process alongside the four-model run (same commit, clean tree, same hashes).

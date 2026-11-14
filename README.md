@@ -125,9 +125,13 @@ is shown as UNVERIFIED. It reaches the model through OpenRouter's OpenAI-compati
   uses a free model only to check the loop; `--profile demo` (default) uses the pinned paid model.
 - Each conversation is saved as JSON in `transcripts/` (gitignored) with tool calls, check results,
   tokens, cost when OpenRouter reports it, and the provider that served each response.
+- Models compared (5 runs per demo question, synthetic data): Gemma 4 31B, Gemini 2.5 Flash Lite,
+  DeepSeek V4 Flash 0731, GLM 5.3 Flash and a Claude Sonnet 5.5 reference. DeepSeek V4 Flash 0731 is
+  served at fp8 as listed by the hosts; the checkpoint ships mixed fp8/fp4 per its model card.
 - Limitations: the checker verifies numbers against stored runs, not whether the model's words
-  are a fair reading of them; claims are about whole plans only; the agent states values and not
-  differences it computed itself.
+  are a fair reading of them. It does not check direction words in prose ("more", "less"), so a
+  correct number with the wrong direction would pass. Claims are about whole plans only;
+  differences are allowed only as `compare_runs` reports them, never computed by the agent.
 
 ### Layout
 `src/happy_toad/{data,engine,services,agent}`, `cli.py`, `report.py`, `tests/`, `scripts/`, `docs/{SPEC,DECISIONS,DEVLOG}.md`.
