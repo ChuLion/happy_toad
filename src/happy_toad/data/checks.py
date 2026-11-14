@@ -4,10 +4,9 @@ import math
 from collections import Counter
 from collections.abc import Iterator
 
+from happy_toad.constants import BASE_YEAR
 from happy_toad.data.hashing import compute_hash
 from happy_toad.data.schemas import InputSet
-
-DEFAULT_BASE_YEAR = 2026
 
 
 class InputError(ValueError):
@@ -71,7 +70,7 @@ def _hash_problems(data: InputSet) -> Iterator[str]:
         yield f"content_hash mismatch: stored {data.content_hash!r}, recomputed {actual!r}"
 
 
-def check_input_set(data: InputSet, base_year: int = DEFAULT_BASE_YEAR) -> None:
+def check_input_set(data: InputSet, base_year: int = BASE_YEAR) -> None:
     """Raise InputError listing every failed check; return None if the set is valid."""
     problems = [
         *_id_problems(data),

@@ -47,7 +47,9 @@ SHA-256 hex digest of that string, so identical content gives an identical hash 
 4. All offload amounts `>= 0`.
 5. Sector `shortfall >= 0`.
 6. `trigger_year >= base_year` is **rejected** otherwise (earlier triggers are an error, not
-   clamped). `base_year` defaults to 2026.
+   clamped). `base_year` defaults to `BASE_YEAR` = 2027, a single constant in
+   `src/happy_toad/constants.py` imported by the checks, the model, the generator and the scripts
+   (no year literals elsewhere in code).
 7. The stored `content_hash` equals the hash recomputed from the loaded content, so an input
    file edited by hand (or corrupted) is rejected.
 
@@ -191,8 +193,10 @@ If `--budgets` is omitted, the default is 5%, 10%, ..., 100% of total candidate 
 each **plus the must-fund total**.
 
 Output: a header line with the version, total candidate cost and must-fund total, then a rich
-table with columns `budget`, `must_fund`, `status`, `spend`, `weighted relief`, `# selected`.
-One row per budget. A budget with no plan (e.g. `Infeasible`) shows its status and `-` in the
+table with columns `budget`, `must_fund`, `status`, `spend`, `weighted relief`, `# selected`,
+`resolved` and `still short`. `resolved` is `n/N`: the sectors whose relief is at least
+`shortfall - 1e-6`, out of all sectors. `still short` is the total shortfall left unrelieved,
+`sum(shortfall - relief)` over all sectors. One row per budget. A budget with no plan (e.g. `Infeasible`) shows its status and `-` in the
 plan columns. Output is deterministic (CBC single thread, no timing column).
 
 Tests: one row per budget, row values, Infeasible rows, header totals, default budgets,
@@ -207,14 +211,15 @@ Seeded with `numpy.random.default_rng`; same seed -> byte-identical files. All p
 | Item | Default |
 |---|---|
 | Size | 80 sectors (`S001`..), 5 must-fund (`M1`..); candidates (`C001`..) are **derived**, about 50 (49-54 over 300 seeds) |
-| Trigger year | 2026-2035, `2026 + floor(10 * Beta(a, b))` with a per-market profile (`trigger_profiles`): `market_g`, `market_h` urgent Beta(1, 4); `market_a` relaxed Beta(2.5, 1.5); `market_b..f` mixed Beta(1, 2.5) |
+| Trigger year | planning window `BASE_YEAR`..`BASE_YEAR + 4` (2027-2031, `n_years` = 5), `BASE_YEAR + min(floor(5 * Beta(a, b)), 4)` with a per-market profile (`trigger_profiles`): `market_g`, `market_h` urgent Beta(1, 6); `market_a` relaxed Beta(2.5, 1.5); `market_b..f` mixed Beta(1.5, 3) |
 | Shortfall | uniform 10-100 (every sector is need-only: shortfall > 0, no surplus sectors) |
 | Markets | 8 (`market_a..h`) with need rates 7/8/10/11/13/14/16/18% (`market_need_rates`); sector counts are proportional to the rates, largest-remainder rounding, exact (`market_counts`): 6/7/8/9/11/11/13/15 of 80 |
 | Types | `type_a/b/c`; spend shares 85/10/5% (`type_spend_shares`); cost ratios 1.0/0.33/0.1 (`type_cost_ratios`) |
 | Reach | `type_a` relieves 2-4 sectors, `type_b` and `type_c` exactly 1 (`type_reach`) |
 | Home market | each multi-sector candidate has a home market; each of its rows is a home-market sector with probability 85% (`home_market_share`), else another market |
 | Coverage | 80% of sectors have exactly one candidate that can relieve them; 20% (`multi_solution_share`, 16 of 80) have 2-3 (`multi_cover_range`) |
-| Offload per row | 60-120% of that sector's shortfall (`offload_share_range`, uniform) |
+| Resolvable sectors | 95% of sectors (all but `unresolvable_share` = 5%, 4 of 80): at least one candidate row with offload share in 1.0-1.3 (`resolving_share_range`, uniform), so that candidate alone fully relieves the sector; their other rows (multi-candidate sectors) are 60-120% of the shortfall (`offload_share_range`) |
+| Unresolvable sectors | 5% of sectors, chosen at random: total offload of all their rows is 50-95% of the shortfall (`unresolvable_total_range`), split equally over the rows, so they can never be fully relieved |
 | Candidate cost | `unit_cost` (100) x type cost ratio x uniform(0.7, 1.3) |
 | Must-fund | total = 10% (`must_fund_share`) of total candidate cost, split by random weights |
 
@@ -231,19 +236,21 @@ single-row candidates take the leftover slots. So "exactly one
 candidate for 80% of sectors" holds by construction, and the type spend shares hold up to rounding
 and the random cost factor (measured 84.4-86.5 / 8.7-10.8 / 4.8-4.9% on seeds 1, 2, 3, 42; 83.2-87.5 / 7.6-11.3 / 4.2-5.8% over 300 seeds).
 
-**Supply.** Total supply (sum of all offload amounts) over total need (sum of shortfalls) is about
-1.0-1.3 (measured 1.10-1.17 on seeds 1, 2, 3, 42; 1.03-1.28 over 300 seeds). The brief's offload range (0.1, 0.4) gave only 0.31-0.36 with this
-coverage, so the range was widened to (0.6, 1.2) (owner's choice, DEVLOG). A single candidate can
-relieve a sector fully (share up to 1.2, relief is capped at the shortfall), but the budget still
-binds until about 94% of candidate cost (seed 42), since each candidate adds relief to its sectors until
-all of them are saturated.
+**Supply and resolvability.** With every candidate funded, exactly 76 of 80 sectors are fully
+relieved (the 95% resolvable ones; measured on 300 seeds), and the 4 unresolvable ones stay below
+95% of their shortfall. The total supply over total need is logged, not gated (measured 1.37-1.40
+on seeds 1, 2, 3, 42; 1.27-1.52 over 300 seeds). History: with every row at 60-120% of the
+shortfall only 37 of 80 sectors could be fully relieved on seed 42 (DEVLOG). A fully funded
+resolving row can exceed the shortfall (relief is capped at the shortfall), but the budget still
+binds until about 88% of candidate cost (seed 42), since each candidate adds relief to its
+sectors until all of them are saturated.
 
 **v2** is derived from v1 (`make_v2`) with these deliberate changes, each recorded in
 `changes_v1_to_v2.json` (one entry per change, with `kind`, ids, `old`, `new`):
 - `sector_added` x3: new sectors (market drawn by need rate), each relieved by one existing
   candidate through a single new offload row (so that candidate may exceed its type's reach by
   one row); the entry holds the full sector and its offload row.
-- `trigger_moved` x6: distinct sectors, new year in 2026-2035 (never below `base_year`), always
+- `trigger_moved` x6: distinct sectors, new year in `BASE_YEAR`..`BASE_YEAR + 4` (never below `base_year`), always
   different from the old year.
 - `cost_changed` x10: distinct candidates, cost scaled by 0.5-0.9 or 1.1-1.5.
 - `offload_changed` x8: distinct existing offload rows, amount scaled the same way.
@@ -253,8 +260,11 @@ Nothing else changes (must-fund projects, labels, other fields are identical).
 differs from v1 in exactly the listed ways (an independent diff of v1 vs v2 is compared to the
 change list); measured properties are checked on seeds 1, 2, 3, 42 within tolerances: type spend
 shares (+-4 points), cost ratios (+-20%), market counts (exact), reach by type, share of
-multi-candidate sectors (20% +-2 points), supply ratio (1.0-1.3), offload share range, mean trigger
-year ordered urgent < mixed < relaxed, same-market share of multi-sector candidate rows (85% +-10
+multi-candidate sectors (20% +-2 points), resolvable fraction (95% +-4 points; unresolvable
+sectors stay below 95% of the shortfall; every resolvable sector has a row with share 1.0-1.3),
+supply ratio (logged only), offload share ranges, mean trigger
+year ordered urgent < mixed < relaxed, earliest trigger year = `BASE_YEAR` with weight exactly
+1.0 through the model's weight function (end to end), same-market share of multi-sector candidate rows (85% +-10
 points, modal market per candidate; 26 of 300 seeds fall outside, all four test seeds inside).
 
 ### Out of scope for M1

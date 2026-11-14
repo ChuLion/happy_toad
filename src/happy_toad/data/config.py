@@ -2,6 +2,8 @@
 
 from dataclasses import dataclass
 
+from happy_toad.constants import BASE_YEAR
+
 
 @dataclass(frozen=True)
 class GeneratorConfig:
@@ -10,18 +12,21 @@ class GeneratorConfig:
     The number of candidates is not a knob: it is derived from the coverage draw (see generator).
     """
 
-    base_year: int = 2026
-    last_year: int = 2035
+    base_year: int = BASE_YEAR
+    n_years: int = 5
     n_sectors: int = 80
     n_must_fund: int = 5
     must_fund_share: float = 0.10
     shortfall_range: tuple[float, float] = (10.0, 100.0)
     offload_share_range: tuple[float, float] = (0.6, 1.2)
+    resolving_share_range: tuple[float, float] = (1.0, 1.3)
+    unresolvable_share: float = 0.05
+    unresolvable_total_range: tuple[float, float] = (0.5, 0.95)
     markets: tuple[str, ...] = tuple(f"market_{c}" for c in "abcdefgh")
     market_need_rates: tuple[float, ...] = (0.07, 0.08, 0.10, 0.11, 0.13, 0.14, 0.16, 0.18)
     trigger_profiles: tuple[tuple[float, float], ...] = (
         (2.5, 1.5),  # market_a: relaxed
-        *[(1.0, 2.5)] * 5,  # market_b..f: mixed
+        *[(1.5, 3.0)] * 5,  # market_b..f: mixed
         *[(1.0, 6.0)] * 2,  # market_g, market_h: urgent
     )
     home_market_share: float = 0.85
@@ -37,6 +42,11 @@ class GeneratorConfig:
     moved_triggers: int = 6
     cost_changes: int = 10
     offload_changes: int = 8
+
+    @property
+    def last_year(self) -> int:
+        """Last trigger year of the planning window."""
+        return self.base_year + self.n_years - 1
 
 
 DEFAULT_CONFIG = GeneratorConfig()

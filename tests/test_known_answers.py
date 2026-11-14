@@ -7,6 +7,7 @@ import pytest
 from helpers import make_set
 from pulp.constants import LpSolveStatus
 
+from happy_toad.constants import BASE_YEAR
 from happy_toad.engine.model import solve
 
 
@@ -92,7 +93,7 @@ def test_7_tie_break_never_beats_real_relief() -> None:
 
 
 def test_earlier_trigger_gets_higher_weight() -> None:
-    sectors = [("NOW", 10, 2026), ("LATER", 10, 2027)]  # weights 1 and 1/2
+    sectors = [("NOW", 10, BASE_YEAR), ("LATER", 10, BASE_YEAR + 1)]  # weights 1 and 1/2
     offloads = [("C1", "NOW", 5), ("C2", "LATER", 5)]
     result = solve(make_set(sectors, [("C1", 5), ("C2", 5)], offloads), budget=5)
     assert result.selected == ["C1"]
@@ -101,8 +102,8 @@ def test_earlier_trigger_gets_higher_weight() -> None:
 
 def test_result_records_inputs_and_solver_settings() -> None:
     data = make_set([("S1", 10)], [("C1", 5)], [("C1", "S1", 3)], must_fund=[2])
-    result = solve(data, budget=12, base_year=2026)
-    assert (result.budget, result.must_fund_total, result.base_year) == (12, 2, 2026)
+    result = solve(data, budget=12, base_year=BASE_YEAR)
+    assert (result.budget, result.must_fund_total, result.base_year) == (12, 2, BASE_YEAR)
     assert (result.version_id, result.content_hash) == (data.version_id, data.content_hash)
     settings = result.solver_settings
     assert (settings["threads"], settings["timeLimit"]) == (1, 30)

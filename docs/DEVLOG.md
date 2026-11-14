@@ -254,3 +254,73 @@
   - New v2 sectors use the same market-dependent trigger profile; moved triggers in v2 stay uniform
     over 2026-2035 as before (unchanged).
   - Fuzzed seeds 0-299 for crashes in the dealing step: none.
+
+## Calibration change: resolvable sectors, base year 2027, sweep columns (2026-11-13)
+- Spec first (SPEC), then tests (confirmed failing), then code. 164 tests pass. Last data change.
+- Problem: with every row at 60-120% of the shortfall only 37 of 80 sectors could be fully relieved
+  on seed 42 even with every candidate funded. Now 76 of 80 (95%) on every seed (300 checked).
+- (a) `unresolvable_share = 0.05`: 4 of 80 sectors, chosen at random, get a total offload of 50-95%
+  of the shortfall (`unresolvable_total_range`), split equally over their rows. (b) Every other
+  sector has at least one row with share in 1.0-1.3 (`resolving_share_range`); extra rows of
+  multi-candidate sectors stay in (0.6, 1.2). (d) Kept: 80/20 coverage, spend 85/10/5, 8 markets,
+  same-market preference.
+- (c) `BASE_YEAR = 2027` is one constant in `src/happy_toad/constants.py`, imported everywhere; the
+  only year literal left in code is that line. The generator window is `n_years = 5` (2027-2031).
+  Files where the base year changed: `src/happy_toad/constants.py` (new), `data/config.py`,
+  `data/checks.py` (was `DEFAULT_BASE_YEAR = 2026`, now removed), `data/loader.py`,
+  `data/generator.py` (window from `n_years`), `engine/model.py` (its own `BASE_YEAR = 2026`
+  removed; imports the constant), `scripts/compare_greedy.py`, `tests/helpers.py`,
+  `tests/test_checks.py`, `tests/test_evolve.py`, `tests/test_known_answers.py`,
+  `tests/test_tiebreak_at_scale.py`, `tests/test_generator.py`, `tests/test_base_year.py` (new),
+  `docs/SPEC.md`. New end-to-end test: on v1 seeds 1, 2, 3, 42 the earliest trigger year equals
+  `BASE_YEAR` and those sectors weigh exactly 1.0 through `sector_weights` using the solve
+  result's `base_year`.
+- Trigger profiles re-tuned for 5 bins: urgent Beta(1, 6) and relaxed Beta(2.5, 1.5) kept, mixed
+  Beta(1, 2.5) -> Beta(1.5, 3). With mixed Beta(1, 2.5) the urgent-vs-mixed gap shrank to 0.27 year
+  on seed 1; with Beta(1, 4) seed 1 fails (-0.05). Mean trigger year on seeds 1, 2, 3, 42 (urgent /
+  mixed / relaxed): 2027.29 / 2028.33 / 2029.50; 2027.32 / 2028.04 / 2029.50; 2027.18 / 2027.98 /
+  2030.17; 2027.36 / 2028.35 / 2029.67. Margins mixed - urgent: 1.04, 0.72, 0.80, 0.99 years;
+  relaxed - mixed: 1.17, 1.46, 2.19, 1.32. 0 failures of the ordering on 300 seeds.
+- (e) The supply-ratio gate is replaced by property tests on seeds 1, 2, 3, 42: resolvable fraction
+  95% +-4 points; unresolvable sectors have supply <= 95% of shortfall (none marginal); every
+  resolvable sector has a row with share in 1.0-1.3. Supply ratio is only recorded
+  (`record_property`): 1.372, 1.382, 1.398, 1.385 on the four seeds (1.27-1.52 over 300 seeds).
+- (f) Sweep table has `resolved` (`n/N`, relief >= shortfall - 1e-6) and `still short` (total
+  unrelieved shortfall). The table now needs 80 terminal columns: `collapse_padding` and
+  `pad_edge=False`, header min widths; tests run with COLUMNS=200.
+- (g) Numbers, v1 seed 42, old (8-market generator, base 2026) -> new: total candidate cost
+  3004.30 -> 3114.38; must-fund 300.43 -> 311.44; candidates 51; max weighted relief 1810.039 ->
+  2579.9 (weights are larger with a 5-year window); plateau spend 2822.92 -> 2749.51, reached from
+  the 90% budget on (41 of 51 candidates, about 88% of candidate cost); plateau test re-pinned,
+  now BUDGETS[17:]. Resolved sectors at plateau: 76 of 80; still short 34.39.
+- Resolved sectors first reach 50% (40 of 80) at 34% of candidate cost on seed 42 (41/80;
+  budget 1370.2 including must-fund; 1% steps). In the 5% sweep: 36/80 at 25%, 42/80 at 30%.
+  Resolved counts at 20/30/40/50/60/80/100%: 28 / 36 / 47 / 54 / 62 / 72 / 76. The optimizer
+  maximizes weighted relief, not the count of resolved sectors.
+- Greedy gap % at 20 / 50 / 80% (old -> new): seed 42: 0.21 / 1.32 / 0.96 -> 1.51 / 1.51 / 0.73;
+  seed 1: 0.49 / 1.25 / 0.13 -> 0.06 / 0.00 / 0.18; seed 2: 0.61 / 2.01 / 0.28 -> 4.01 / 1.40 /
+  0.63. Solve times 0.06-0.20 s.
+- FLAGGED: (1) the resolvable-fraction property is exact by construction (76/80 = 95% always), so
+  its +-4 points tolerance cannot fail by sampling; it guards the construction, not the
+  randomness. (2) urgent < mixed margin is 0.72-1.04 years on the four seeds (still 0 failures
+  on 300 seeds) and is the closest check; I did not loosen anything. (3) `market_a` has 6 sectors,
+  its mean year is noisy but 1.2-2.2 years above mixed. (4) The same-market share tolerance
+  (85% +-10) from the last block is unchanged and still seed-dependent on other seeds (not
+  re-measured here). (5) the sweep test settings widen the terminal (COLUMNS=200); the table
+  itself fits 80 columns.
+- Decisions I made that you didn't specify:
+  - `unresolvable_total_range = (0.5, 0.95)`: total offload of an unresolvable sector as a share of
+    its shortfall, split equally over its rows (so no unresolvable sector is a near miss). Count
+    is `round(0.05 * 80)` = 4, picked at random regardless of coverage or market.
+  - In resolvable sectors the resolving row is one random row; other rows stay (0.6, 1.2).
+  - New v2 sectors get one row in (1.0, 1.3) (resolvable); v2's `offload_changed` (scaled 0.5-0.9
+    or 1.1-1.5) can break resolvability in v2, which is not checked.
+  - Mixed profile Beta(1.5, 3) (above); urgent/relaxed unchanged from the last block.
+  - `n_years = 5` and `last_year` as a derived property; `base_year` in the config defaults to
+    `BASE_YEAR`.
+  - `still short` is the total unrelieved shortfall (sum of shortfall - relief), not a count of
+    sectors; `resolved` is `n/N`. Both `-` when there is no plan.
+  - `RESOLVED_TOLERANCE = 1e-6` lives in `engine/relief.py`; `sweep_table` now takes the input set.
+  - The ">= 50% resolved" share uses a 1% grid and the first share where resolved >= 40 of 80.
+  - Plateau test and the other scale tests re-use budget indexes (17, 19 and so on) chosen after
+    seeing the new sweep.

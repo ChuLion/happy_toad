@@ -26,8 +26,7 @@ def market_counts(cfg: GeneratorConfig) -> list[int]:
 def draw_trigger_year(rng: np.random.Generator, cfg: GeneratorConfig, market: str) -> int:
     """Trigger year in [base_year, last_year] from the market's Beta profile."""
     a, b = cfg.trigger_profiles[cfg.markets.index(market)]
-    span = cfg.last_year - cfg.base_year + 1
-    return cfg.base_year + min(int(span * rng.beta(a, b)), span - 1)
+    return cfg.base_year + min(int(cfg.n_years * rng.beta(a, b)), cfg.n_years - 1)
 
 
 def draw_market(rng: np.random.Generator, cfg: GeneratorConfig) -> str:
@@ -53,16 +52,31 @@ def make_sectors(rng: np.random.Generator, cfg: GeneratorConfig) -> list[Sector]
     return [draw_sector(rng, cfg, f"S{i + 1:03d}", str(m)) for i, m in enumerate(markets)]
 
 
-def draw_offload(
+def offload_row(candidate_id: str, sector: Sector, share: float) -> Offload:
+    """An offload of `share` of the sector's shortfall."""
+    return Offload(
+        candidate_id=candidate_id, sector_id=sector.id, amount=round(share * sector.shortfall, 2)
+    )
+
+
+def draw_resolving_offload(
     rng: np.random.Generator, cfg: GeneratorConfig, candidate_id: str, sector: Sector
 ) -> Offload:
-    """An offload of offload_share_range of the sector's shortfall."""
-    share = rng.uniform(*cfg.offload_share_range)
-    return Offload(
-        candidate_id=candidate_id,
-        sector_id=sector.id,
-        amount=round(float(share * sector.shortfall), 2),
-    )
+    """An offload that alone fully relieves the sector (share in resolving_share_range)."""
+    return offload_row(candidate_id, sector, float(rng.uniform(*cfg.resolving_share_range)))
+
+
+def row_shares(rng: np.random.Generator, cfg: GeneratorConfig, n_rows: int, resolvable: bool):
+    """Offload shares for one sector's rows.
+
+    Resolvable: one random row in resolving_share_range, the rest in offload_share_range.
+    Unresolvable: a total in unresolvable_total_range (below 1) split equally over the rows.
+    """
+    if not resolvable:
+        return [float(rng.uniform(*cfg.unresolvable_total_range)) / n_rows] * n_rows
+    shares = [float(rng.uniform(*cfg.offload_share_range)) for _ in range(n_rows)]
+    shares[int(rng.integers(n_rows))] = float(rng.uniform(*cfg.resolving_share_range))
+    return shares
 
 
 def coverage_slots(rng: np.random.Generator, cfg: GeneratorConfig) -> list[int]:
@@ -134,11 +148,18 @@ def make_plan(rng: np.random.Generator, cfg: GeneratorConfig, sectors: list[Sect
 def make_offloads(
     rng: np.random.Generator, cfg: GeneratorConfig, sectors: list[Sector], plan: Plan
 ) -> list[Offload]:
-    return [
-        draw_offload(rng, cfg, f"C{k + 1:03d}", sectors[i])
-        for k, (_, group) in enumerate(plan)
-        for i in group
-    ]
+    """One row per (candidate, sector) in the plan; shares set per sector (see row_shares)."""
+    rows: list[list[str]] = [[] for _ in sectors]
+    for k, (_, group) in enumerate(plan):
+        for i in group:
+            rows[i].append(f"C{k + 1:03d}")
+    n_unresolvable = round(cfg.unresolvable_share * len(sectors))
+    unresolvable = {int(i) for i in rng.choice(len(sectors), size=n_unresolvable, replace=False)}
+    offloads: list[Offload] = []
+    for i, (sector, cids) in enumerate(zip(sectors, rows, strict=True)):
+        shares = row_shares(rng, cfg, len(cids), resolvable=i not in unresolvable)
+        offloads += [offload_row(c, sector, share) for c, share in zip(cids, shares, strict=True)]
+    return offloads
 
 
 def make_candidates(rng: np.random.Generator, cfg: GeneratorConfig, plan: Plan) -> list[Candidate]:

@@ -10,9 +10,10 @@ import sys
 from rich.console import Console
 from rich.table import Table
 
+from happy_toad.constants import BASE_YEAR
 from happy_toad.data.generator import make_v1
 from happy_toad.data.schemas import InputSet
-from happy_toad.engine.model import BASE_YEAR, solve
+from happy_toad.engine.model import solve
 from happy_toad.engine.relief import weighted_relief
 
 

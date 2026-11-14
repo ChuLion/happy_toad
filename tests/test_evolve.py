@@ -4,6 +4,7 @@ from collections import Counter
 
 import pytest
 
+from happy_toad.constants import BASE_YEAR
 from happy_toad.data.checks import check_input_set
 from happy_toad.data.config import DEFAULT_CONFIG as CFG
 from happy_toad.data.evolve import make_v2
@@ -36,14 +37,14 @@ def test_change_counts(pair) -> None:
 
 def test_v2_passes_load_checks_and_has_new_version_id(pair) -> None:
     _, v2, _ = pair
-    check_input_set(v2, CFG.base_year)
+    check_input_set(v2, BASE_YEAR)
     assert v2.version_id == "v2"
 
 
 def test_moved_triggers_never_before_base_year_and_really_move(pair) -> None:
     _, _, changes = pair
     for c in by_kind(changes, "trigger_moved"):
-        assert c["new"] >= CFG.base_year
+        assert c["new"] >= BASE_YEAR
         assert c["new"] != c["old"]
 
 

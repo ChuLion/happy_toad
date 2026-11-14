@@ -4,12 +4,11 @@ import json
 
 import pytest
 
+from happy_toad.constants import BASE_YEAR
 from happy_toad.data.checks import InputError, check_input_set
 from happy_toad.data.hashing import build_input_set
 from happy_toad.data.loader import load_input_set, save_input_set
 from happy_toad.data.schemas import Candidate, MustFundProject, Offload, Sector
-
-BASE_YEAR = 2026
 
 
 def good(**overrides):
@@ -78,7 +77,8 @@ def test_shortfall_must_not_be_negative() -> None:
 
 def test_trigger_before_base_year() -> None:
     rejects(
-        good(sectors=[Sector(id="S1", market="n", shortfall=1.0, trigger_year=2025)]), "trigger"
+        good(sectors=[Sector(id="S1", market="n", shortfall=1.0, trigger_year=BASE_YEAR - 1)]),
+        "trigger",
     )
 
 

@@ -55,4 +55,4 @@ def sweep(
     console.print(
         f"{data.version_id}: total candidate cost {total_cost:.2f} | must-fund {must_fund:.2f}"
     )
-    console.print(sweep_table(run_sweep(data, budget_list)))
+    console.print(sweep_table(run_sweep(data, budget_list), data))

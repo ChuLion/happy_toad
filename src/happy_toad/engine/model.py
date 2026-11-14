@@ -4,13 +4,12 @@ Stage 1 maximizes weighted relief (R*). Stage 2 minimizes spend subject to weigh
 R* - relief_slack, where relief_slack = delta / 10. The time limit covers both stages together.
 """
 
+from happy_toad.constants import BASE_YEAR
 from happy_toad.data.schemas import InputSet
 from happy_toad.engine.relief import sector_relief, sector_weights, weighted, weighted_relief
 from happy_toad.engine.result import DEFAULT_SETTINGS, SolveResult, SolverSettings
 from happy_toad.engine.stages import build_stage1, build_stage2, chosen_ids, make_solver
 from happy_toad.engine.status import map_status
-
-BASE_YEAR = 2026
 
 
 def make_result(data, selected, status, base_year, meta, times) -> SolveResult:
