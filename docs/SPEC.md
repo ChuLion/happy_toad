@@ -555,11 +555,13 @@ caps in requests and the sweep; B `FLOORS_EXCEED_BUDGET` and `CAP_BELOW_FLOOR` a
 C `region_total_sectors`; D `target_pct_resolved` (reported, no search); E `HORIZON_YEARS`; F the
 M3 interpretation rule. The remaining ones marked "(impl.)" are mine and are in the DEVLOG.
 
-## M3 — Agent (decisions only; no tests or code until the owner approves this list)
+## M3 — Agent
 An agent layer that turns a plain-English question into calls of the M2A services and returns a
 report whose numbers are checked against stored runs. Items marked **[owner]** were in the owner's
 draft; items marked **[lead]** are project-lead proposals (defaults, to be approved or changed).
-The wording of the system prompt is written by the owner by hand; only its rules are listed here.
+The list was approved with the changes below (provider, cost, `required_minimum_budget` metric,
+number definition, demo questions, system prompt); where a changed item contradicts the draft text,
+the section "M3 — approved changes and specification" at the end wins.
 
 ### M3 decisions
 1. **Provider adapter [owner].** A thin interface: messages and tool definitions in, one response
@@ -642,3 +644,134 @@ can never trigger it); the budget-700 case is different because every floor is i
 reachable and no pre-solve check finds a problem, yet no set of whole candidates meets all floors
 within the budget (minimal whole-candidate spend 426.9 vs 388.6 available), which only the solver
 sees and reports as `CAUSE_UNKNOWN`.
+
+### M3 — approved changes and specification
+**Provider (replaces decision 1).** The owner has no Anthropic API key. The client is the `openai`
+SDK (approved dependency) pointed at OpenRouter's OpenAI-compatible API,
+`https://openrouter.ai/api/v1`. The key is read from `OPENROUTER_API_KEY` and never stored, logged
+or written to a transcript. Two profiles in `agent/config.py`:
+
+| Profile | Use | Model ID (**[lead]**, from OpenRouter's listing filtered to tool support; owner approves) | Routing |
+|---|---|---|---|
+| `smoke` | free model, only to check the loop | `google/gemma-4-31b-it:free` | fallbacks allowed; served provider recorded |
+| `demo` | the demo, the video and M4 | `anthropic/claude-sonnet-5.5` | provider order `["anthropic"]`, `allow_fallbacks: false` |
+
+Listing check (2026-11-14, `GET /api/v1/models?supported_parameters=tools`): both IDs list `tools`
+and `tool_choice` among supported parameters. Other free tool-capable IDs seen, in case the smoke
+model is unavailable: `inclusionai/ling-3.2-flash:free`, `baidu/ernie-5.5-flash-preview:free`,
+`nvidia/nemotron-3.5-super-vl:free`. Cheaper paid alternative for demo: `anthropic/claude-haiku-5.5`.
+The exact ID is pinned in config, sent unchanged, and recorded per turn together with the model
+and the **provider that served the response** (the `provider` field of the OpenRouter response;
+`null` if absent). Free models have no provider pin, so a fallback shows up in the transcript. Tests
+use the fake client only; the live client is exercised by hand (smoke profile first).
+
+**Cost (replaces decision 9).** Tokens come from the response `usage`. Cost is the `usage.cost`
+that OpenRouter returns when present (the request asks for usage accounting); otherwise the cost
+is `null` and the CLI prints "cost: not configured". No price constants, no estimates. A question's
+cost is the sum of its turns, and `null` if any turn lacks one.
+
+**Report schema (extends decision 5).** Allowed metrics and units:
+
+| metric | unit | stored value it is checked against | tolerance |
+|---|---|---|---|
+| `weighted_relief` | `need_units` | `result.objective` | 0.005 |
+| `spend` | `cost_units` | `result.spend` (candidates only, must-fund excluded) | 0.005 |
+| `required_minimum_budget` | `cost_units` | the run record's top-level `required_minimum_budget`, valid only if the run has one | 0.005 |
+| `n_selected` | `count` | `len(result.selected)` | exact |
+| `n_resolved` | `count` | `result.resolved` | exact |
+| `pct_resolved` | `percent` | `result.pct_resolved` | 0.05 |
+| `status` | `none` | `result.status` | exact |
+| `target_met` | `none` | `result.target_met` | exact |
+
+A claim is `{metric, value, unit, run_id, entity}`; `entity` is `"plan"`. A claim fails if the run
+file is missing, the run was rejected or failed (no result), or the stored value is `None`.
+Report = `{summary, claims}`. Values are reported at displayed precision: 2 decimals for
+`need_units` and `cost_units`, 1 decimal for percent, integers for counts.
+
+**What counts as a "number" in the summary (checker).** The summary is scanned left to right.
+1. Never numbers: run ids (`YYYYMMDDTHHMMSS-xxxxxxxx`) are removed first. A numeric token must
+   not touch a letter, digit or underscore before it, nor a letter or underscore after it, so
+   identifiers (candidate `C033`, sector `S001`, must-fund `M1`, version `v1`, market `market_e`)
+   contain no numbers. A hyphen is a separator (`2027-2031` is two years).
+2. Years: a plain integer from 1900 to 2199 (no sign, comma, decimal point or percent sign) is a
+   year and is ignored. Known consequence: a spend of exactly 2030 written without decimals would
+   also be ignored; the prompt requires 2 decimals for money, so `2030.00` is a number.
+3. List markers at the start of a line (`1.`, `2)`) are ignored.
+4. A number is then: an optional sign, digits with optional thousands commas, optional decimals,
+   optional `%`.
+Each number must equal, within tolerance, either (a) the value of a validated claim of a numeric
+metric (percent compares with 0.05, money with 0.005, counts exactly) or (b) **[lead]** a numeric
+request parameter (`budget`, `market_floor_mult`, `market_cap_mult`, `target_pct_resolved`,
+`region_total_sectors`) of a run that one of the claims cites, since a summary naturally says "at a
+budget of 600". Any other number, including a difference the agent computed, fails. So the agent
+states values, not differences (stated in the prompt). Tests cover identifiers, years, percents,
+commas and the unmatched number.
+
+**Checker flow.** `submit_report` input that does not fit the schema is returned to the model as an
+error (a turn used, no correction used). A schema-valid report is checked: if all pass, the report
+is accepted as **checked** and the loop ends. Otherwise the failures go back to the model once; the
+second schema-valid report ends the loop whatever the result, and a failing one is shown and
+recorded as **unverified**.
+
+**SCHEMA_INVALID.** A `run_scenario` input that fails the `SolveRequest` schema is written by the
+agent layer as a rejected run record in the usual format: `outcome` rejected, `request` the raw
+input, `request_hash` the SHA-256 of its canonical JSON, one reason `SCHEMA_INVALID` whose message
+names the fields, no result. The record id is returned to the model like any run id.
+
+**Tool descriptions (what the model sees).**
+- `list_input_versions()` — "List the names of the available input versions (synthetic data sets).
+  Call this when the user does not name a version or you are unsure what exists."
+- `run_scenario(input_version, budget, force_in, force_out, market_floor_mult, market_cap_mult,
+  region_total_sectors, target_pct_resolved, label)` — "Run the optimizer once for one scenario and
+  record it. `budget` is the TOTAL budget including must-fund projects. `force_in` and `force_out`
+  are candidate ids (for example C033). Returns the run id and a summary: status, weighted relief
+  (`objective`), spend (candidates only), selected candidates, sectors resolved, percent resolved,
+  unresolved sectors, and, when infeasible, the cause and `required_minimum_budget` (the budget
+  must be at least that). Never guess a budget; ask the user."
+- `get_run(run_id)` — "Return the stored summary of an earlier run by its run id."
+- `compare_runs(run_id_a, run_id_b)` — "Compare two completed runs that both have a plan: status,
+  spend, weighted relief, number selected, number resolved, percent resolved, and which candidates
+  are only in one run. Use it for a comparison instead of computing differences yourself."
+- `submit_report(summary, claims)` — "Submit the final answer. Every number in `summary` must also
+  be a claim `{metric, value, unit, run_id, entity}` taken from a run you executed or read, or be a
+  request value such as the budget. Values at displayed precision."
+
+**System prompt (draft for the owner to rewrite by hand; this text is `agent/prompt.py`).**
+```
+You are an assistant over a small synthetic capital-allocation optimizer. All data is synthetic.
+Use only the tools and only their results; do not use outside knowledge for any number.
+Never invent a number. If the question has no budget, ask the user for one and do not call
+run_scenario. Turn vague phrases into an explicit value and show it. If something cannot be mapped
+to a request field, ask a clarifying question.
+Say "under the modeled objective and constraints" when you state what the optimizer chose.
+Never say anything is approved, recommended or should be funded. Decline questions outside scope
+(for example "should we fund this?") and say what you can do instead.
+Report values at displayed precision: 2 decimals for relief and spend, 1 decimal for percent,
+whole numbers for counts. Spend excludes must-fund projects; budget includes them.
+State values from runs; do not compute differences yourself, use compare_runs.
+For an infeasible run, state the cause and "the budget must be at least X" using
+required_minimum_budget exactly.
+Finish by calling submit_report with a summary and one claim per number you state.
+```
+
+**Demo questions (proposed; owner approves).** Against generated v1 seed 42 (51 candidates, 5
+must-fund projects costing 311.44). Expected values were computed with the solver on 2026-11-14.
+- (a) "Using input version v1, compare what the optimizer chooses at a total budget of 800 with a
+  total budget of 1500: spend, weighted relief, and how many sectors are resolved." Expected:
+  800 gives spend 485.59, weighted relief 1284.34, 14 candidates; 1500 gives spend 1186.32,
+  weighted relief 1979.11, 27 candidates (resolved counts come from the run).
+- (b) "On v1 at a total budget of 1000, what happens if we force in candidates C033 and C024,
+  compared with no forcing?" Expected: unforced spend 688.10, relief 1573.57, 20 candidates; forced
+  spend 687.88, relief 1329.87 (both forced candidates are skipped by the unforced optimum).
+- (c) "On v1 at a total budget of 600, force in the three most expensive candidates: C033, C034 and
+  C024." Expected: rejected (not solved), `FORCED_COST_EXCEEDS_BUDGET`, forced cost 385.57 against 288.56
+  left after must-fund, "the budget must be at least 697.01". The M2A gate rejects this request
+  before the solver (outcome `rejected`, code `FORCED_COST_EXCEEDS_BUDGET`, no result), so the run
+  record now carries `required_minimum_budget` at its top level, set for a solver-infeasible run
+  with a known cause and for a gate rejection with that code (**[lead]**, no new gate codes; it
+  replaces "checked against the run record's result" because a rejected run has no result).
+  (The question names the ids so the
+  expectation does not depend on the agent sorting costs; a variant without ids would need a
+  candidate listing tool, which is not in the five.)
+Each is also a test with a scripted fake-client conversation; the live run per question is the
+acceptance check for `v0.3` and needs `OPENROUTER_API_KEY`.

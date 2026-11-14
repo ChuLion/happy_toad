@@ -114,5 +114,20 @@ for M2B); the "cause unknown" label also covers infeasibility that comes from ho
 add up inside a market (for example floors that no combination of whole candidates can meet within
 the budget); `region_total_sectors` only changes the reported percentage.
 
+### M3 — the agent (`happy-toad ask`)
+A thin agent layer over the M2A services: it turns a plain-English question into tool calls
+(`list_input_versions`, `run_scenario`, `get_run`, `compare_runs`, `submit_report`), then submits a
+report of claims (metric, value, unit, run id) that a checker compares with the stored runs and
+with every number in the summary. Mismatches go back to the model once; a report that still fails
+is shown as UNVERIFIED. It reaches the model through OpenRouter's OpenAI-compatible API.
+- Set `OPENROUTER_API_KEY` in your environment (never stored, logged or put in a transcript).
+- `uv run happy-toad ask "Using input version v1, compare budget 800 with budget 1500" --profile smoke`
+  uses a free model only to check the loop; `--profile demo` (default) uses the pinned paid model.
+- Each conversation is saved as JSON in `transcripts/` (gitignored) with tool calls, check results,
+  tokens, cost when OpenRouter reports it, and the provider that served each response.
+- Limitations: the checker verifies numbers against stored runs, not whether the model's words
+  are a fair reading of them; claims are about whole plans only; the agent states values and not
+  differences it computed itself.
+
 ### Layout
-`src/happy_toad/{data,engine,services}`, `cli.py`, `report.py`, `tests/`, `scripts/`, `docs/{SPEC,DECISIONS,DEVLOG}.md`.
+`src/happy_toad/{data,engine,services,agent}`, `cli.py`, `report.py`, `tests/`, `scripts/`, `docs/{SPEC,DECISIONS,DEVLOG}.md`.

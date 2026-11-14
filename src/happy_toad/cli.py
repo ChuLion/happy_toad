@@ -1,11 +1,14 @@
 """Command-line interface for happy_toad."""
 
+import json
 from pathlib import Path
 from typing import Annotated
 
 import typer
 from rich.console import Console
 
+from happy_toad.agent.config import PROFILES
+from happy_toad.agent.loop import ask as run_ask
 from happy_toad.data.checks import InputError
 from happy_toad.data.files import write_inputs
 from happy_toad.data.loader import load_input_set
@@ -72,3 +75,66 @@ def sweep(
     console.print(sweep_table(results, data))
     for line in cause_lines(results):
         console.print(f"Infeasible {line}")
+
+
+def make_client(profile):
+    """The live OpenRouter client; tests replace this with a fake."""
+    from happy_toad.agent.client import OpenRouterClient
+
+    return OpenRouterClient(profile)
+
+
+def _show_event(kind: str, payload: dict) -> None:
+    result = json.dumps(payload["result"], default=str)
+    shown = result if len(result) <= 300 else result[:300] + " ..."
+    typer.echo(f"-> {payload['name']}({payload['arguments']})\n   {shown}")
+
+
+def _show_outcome(t) -> None:
+    typer.echo(f"\nStatus: {t.status}" + (f" ({t.error})" if t.error else ""))
+    if t.report is not None:
+        typer.echo(f"\nReport:\n{t.report.summary}")
+    for check in t.checks[-1:]:
+        for c in check.claims:
+            typer.echo(
+                f"  {'ok  ' if c.ok else 'FAIL'} {c.claim.metric} = {c.claim.value}: {c.message}"
+            )
+        for n in check.numbers:
+            typer.echo(f"  {'ok  ' if n.ok else 'FAIL'} number {n.text}: {n.message}")
+    if t.status == "unverified":
+        typer.echo("UNVERIFIED: the numbers above did not all match the stored runs.")
+    cost = "cost: not configured" if t.cost is None else f"cost: ${t.cost:.4f}"
+    providers = sorted({x.provider or "unknown" for x in t.turns})
+    tokens = t.total_tokens
+    typer.echo(
+        f"\n{len(t.turns)} turns, tokens {tokens['prompt']} in / {tokens['completion']} out, "
+        f"{cost}, {t.elapsed_seconds:.1f}s, model {t.model}, provider {', '.join(providers)}"
+    )
+
+
+@app.command()
+def ask(
+    question: Annotated[str, typer.Argument(help="A plain-English question about the scenarios.")],
+    profile: Annotated[str, typer.Option(help="smoke (free model) or demo.")] = "demo",
+    inputs_dir: Annotated[Path, typer.Option()] = Path("data/inputs"),
+    runs_dir: Annotated[Path, typer.Option()] = Path("runs"),
+    transcripts_dir: Annotated[Path, typer.Option()] = Path("transcripts"),
+) -> None:
+    """Ask the agent a question; shows its tool calls, the checked report and the check results."""
+    chosen = PROFILES[profile]
+    try:
+        client = make_client(chosen)
+    except RuntimeError as err:
+        typer.echo(str(err))
+        raise typer.Exit(2) from err
+    t = run_ask(
+        question,
+        client,
+        chosen,
+        inputs_dir=inputs_dir,
+        runs_dir=runs_dir,
+        transcripts_dir=transcripts_dir,
+        on_event=_show_event,
+    )
+    _show_outcome(t)
+    raise typer.Exit(0 if t.status == "checked" else 1)

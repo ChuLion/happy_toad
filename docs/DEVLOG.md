@@ -470,3 +470,35 @@
   (I will not invent prices); exit codes; layout `src/happy_toad/agent/`.
 - Conflict flagged: SCHEMA_INVALID records change the M2A choice that malformed requests are not
   recorded; handled in the agent layer, M2A schema unchanged.
+
+## 2026-11-14 — M3 built (not tagged yet)
+- Done: committed `required_minimum_budget`; CLAUDE.md now says M3; SPEC "M3 — approved changes
+  and specification" (profiles, cost, number definition, tool descriptions, draft system prompt,
+  demo questions); tests first (5 files failed on missing modules, 3 more on a missing CLI
+  command), then `services/runs.py` (lister, reader, comparer), `src/happy_toad/agent/`
+  (config, client, report, checker, tools, loop, transcript, prompt) and `happy-toad ask`.
+  Added the `openai` dependency (approved). 273 tests pass, ruff clean, coverage 98%.
+- Owner changes applied: OpenRouter instead of Anthropic SDK; two profiles; cost only from the
+  response; `required_minimum_budget` as a checkable metric; number definition in the SPEC and
+  tested; demo questions proposed with real ids and budgets.
+- Not done: **no live run yet and no `v0.3` tag.** There is no `OPENROUTER_API_KEY` in this
+  environment, and the model IDs are waiting for approval. The tag needs the three demo questions
+  to run live with every claim checked.
+- Found while testing: the M2A gate rejects "force in more than the budget" before the solver, so
+  that rejected run has no result to hold `required_minimum_budget`. My first test assumed a solver
+  result. The number is now also a top-level field of the run record (set for solver-infeasible
+  runs with a known cause and for gate rejections with `FORCED_COST_EXCEEDS_BUDGET`); the checker
+  reads it there. Demo (c) is therefore a rejected run, not status Infeasible.
+- Decisions I made that you did not specify: proposed model IDs `google/gemma-4-31b-it:free`
+  (smoke) and `anthropic/claude-sonnet-5.5` pinned to provider `anthropic` with no fallbacks
+  (demo), chosen from OpenRouter's tool-support listing; `usage: {include: true}` asked of every
+  request; summary numbers may also equal a numeric request value (budget, multipliers, target,
+  region) of a cited run; years are 1900-2199 plain integers, so a four-digit amount needs
+  decimals; hyphen counts as a separator; a plain-text reply is nudged to call `submit_report`
+  and costs a turn; a schema-invalid `submit_report` does not use the one correction; invalid JSON
+  in `run_scenario` arguments is also a SCHEMA_INVALID record; model sees run summaries with the
+  top 5 unresolved sectors and not solver internals; transcript ids use the run-id format;
+  `ask --profile` defaults to demo; a missing key exits 2 with a plain message; `RunRecord`
+  gained an optional `required_minimum_budget` (older records still load).
+- Sandbox note: during this work `uv` could not write its cache or read the venv interpreter
+  inside the sandbox, so test runs used the unsandboxed shell.

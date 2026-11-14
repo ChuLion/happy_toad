@@ -12,10 +12,11 @@ from pydantic import BaseModel
 from happy_toad.data.checks import InputError
 from happy_toad.data.loader import load_input_set
 from happy_toad.data.schemas import InputSet
+from happy_toad.engine.diagnose import required_minimum_budget
 from happy_toad.engine.model import solve
 from happy_toad.engine.relief import resolved_count
 from happy_toad.engine.result import DEFAULT_SETTINGS, SolverSettings
-from happy_toad.reasons import Reason
+from happy_toad.reasons import Reason, ReasonCode
 from happy_toad.services.gate import check_request
 from happy_toad.services.request import SolveRequest, request_hash
 from happy_toad.services.unresolved import SectorGap, unresolved_sectors
@@ -54,12 +55,24 @@ class RunRecord(BaseModel):
     request_hash: str
     input_version: str
     content_hash: str | None
+    required_minimum_budget: float | None = None
     settings: dict
     reasons: list[Reason]
     error: str | None
     result: RunResult | None
     timing: dict[str, float]
     warnings: list[str]
+
+
+def new_run_id(created: datetime) -> str:
+    """UTC timestamp plus 8 hex characters."""
+    return f"{created:%Y%m%dT%H%M%S}-{uuid.uuid4().hex[:8]}"
+
+
+def write_record(record: RunRecord, runs_dir: Path) -> None:
+    """Write one record as indented JSON to runs/<run_id>.json."""
+    runs_dir.mkdir(parents=True, exist_ok=True)
+    (runs_dir / f"{record.run_id}.json").write_text(record.model_dump_json(indent=2))
 
 
 def load_version(version: str, inputs_dir: Path) -> InputSet | None:
@@ -108,7 +121,7 @@ def run_request(
     started = time.perf_counter()
     created = datetime.now(UTC)
     fields = dict(
-        run_id=f"{created:%Y%m%dT%H%M%S}-{uuid.uuid4().hex[:8]}",
+        run_id=new_run_id(created),
         created_at=created.isoformat(),
         request=request.model_dump(),
         request_hash=request_hash(request),
@@ -126,8 +139,7 @@ def run_request(
         fields.update(changes)
         fields["timing"] = {**fields["timing"], "total": time.perf_counter() - started}
         record = RunRecord(outcome=outcome, **fields)
-        runs_dir.mkdir(parents=True, exist_ok=True)
-        (runs_dir / f"{record.run_id}.json").write_text(record.model_dump_json(indent=2))
+        write_record(record, runs_dir)
         return record
 
     try:
@@ -139,7 +151,9 @@ def run_request(
     reasons = check_request(request, data)
     fields["timing"] = {"gate": time.perf_counter() - started}
     if reasons:
-        return finish("rejected", reasons=reasons)
+        forced = ReasonCode.FORCED_COST_EXCEEDS_BUDGET in {r.code for r in reasons}
+        minimum = required_minimum_budget(data, request.force_in, None) if forced else None
+        return finish("rejected", reasons=reasons, required_minimum_budget=minimum)
 
     try:
         result = solve(
@@ -162,4 +176,10 @@ def run_request(
             f"the {len(data.sectors)} modelled sectors"
         )
     timing = {**fields["timing"], "solve": result.solve_time}
-    return finish("completed", result=summary, timing=timing, warnings=warnings)
+    return finish(
+        "completed",
+        result=summary,
+        required_minimum_budget=result.required_minimum_budget,
+        timing=timing,
+        warnings=warnings,
+    )
