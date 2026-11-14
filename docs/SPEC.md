@@ -4,13 +4,15 @@
 
 ### Goal
 Given synthetic input data and a total budget, choose which candidate solutions to fund so that
-weighted shortfall relief is maximized. Deliver: schemas, generator, load-time checks, a PuLP
+weighted shortfall relief is maximized, subject to optional per-market spend floors and caps.
+Deliver: schemas, generator, load-time checks, a PuLP
 model, known-answer tests, and a CLI budget sweep. No AI agent work in M1.
 
 ### Terms
 - **Sector**: an area with a `shortfall` (amount of need) that becomes binding in its
-  `trigger_year`. Has a `market` label (informational in M1).
-- **Candidate**: a fundable solution with a `cost` and a `type` label (informational in M1).
+  `trigger_year`. Has a `market` label, used by the optional market floors and caps
+  (see "Market floors and caps").
+- **Candidate**: a fundable solution with a `cost` and a `type` label (informational only; the model never uses it).
 - **Offload**: how much of a sector's shortfall a candidate relieves if funded. Many-to-many.
 - **Must-fund project**: a project with a `cost` that is always paid. It is paid out of the
   budget before any candidate is considered.
@@ -90,12 +92,12 @@ Constraints:
    difference we care about).
 
 **The claim:** the plan has *optimal relief within `δ/10`, then minimum spend among plans that
-deliver it*. A candidate is never funded for nothing: if removing a funded candidate kept relief
+deliver it and satisfy the floors and caps*. A candidate is never funded for nothing: if removing a funded candidate kept relief
 within the slack, a cheaper feasible plan would exist and stage 2 would have found it.
 
 Notes:
 - **Stage 2 is always feasible**: the stage-1 plan satisfies the new row (its relief is `R*`
-  >= `R* - relief_slack`). The code asserts this; an `Infeasible` stage 2 would be a bug.
+  >= `R* - relief_slack`) and the market floors and caps, which both stages share. The code asserts this; an `Infeasible` stage 2 would be a bug.
 - **Why not one solve with a cost penalty (`ε`)?** That was the first design and it failed at
   scale; see DECISIONS.md D2.
 - **Solver settings.** Both stages use `gapAbs = gapRel = 0` and `threads = 1`.
@@ -128,7 +130,8 @@ Notes:
 | `must_fund_total` | sum of must-fund costs |
 | `base_year` | as used |
 | `version_id`, `content_hash` | of the input set solved |
-| `solver_settings` | `threads`, `timeLimit`, `gapRel`, `gapAbs`, `delta`, `relief_slack` as used |
+| `solver_settings` | `threads`, `timeLimit`, `gapRel`, `gapAbs`, `delta`, `relief_slack`, `market_floor_mult`, `market_cap_mult`, `fair_share_blend` (None when
+that side is off) and the applied `market_floors` / `market_caps` (spend per market; None when off) as used |
 
 Pinned solver settings: `threads=1`, `timeLimit=30` seconds (total), `gapRel=0`, `gapAbs=0`.
 All are recorded in `solver_settings` so a run can be reproduced.
@@ -158,6 +161,119 @@ All are recorded in `solver_settings` so a run can be reproduced.
 PuLP 4.2 no longer bundles the CBC binary. It comes from the `cbcbox` package via
 `pulp[cbc]` (DECISIONS D3). The solver is `pulp.COIN_CMD` pointing at that binary.
 
+### Market floors and caps
+Optional limits on how much candidate spend may go to each market. Off unless asked for, so every
+result without them is unchanged (the 165 tests from before this section pass untouched).
+
+**Parameters** (arguments of `solve()`, recorded in `solver_settings`):
+
+| Parameter | Suggested value | Meaning |
+|---|---|---|
+| `market_floor_mult` | 0.5 | floor = `floor_mult * fair_share * avail`; `None` turns floors off |
+| `market_cap_mult` | 1.5 | cap = `cap_mult * fair_share * avail`; `None` turns caps off |
+| `fair_share_blend` | 0.5 | weight of the shortfall share in the fair share |
+
+The signature defaults are `market_floor_mult=None`, `market_cap_mult=None`,
+`fair_share_blend=0.5` (the blend does nothing while both sides are off); the suggested values
+above are passed explicitly. A lower-level argument `limits` (a `MarketLimits` with `floors` and
+`caps`, spend per market, from `engine/markets.py`) replaces the computed limits; it is how the
+known-answer tests 9-11 state absolute amounts. Given limits go through the same clamp and
+pre-solve check.
+
+**Fair share and limits.** With `n` markets (the labels present on sectors):
+
+    fair_share[m] = blend * (shortfall of m / total shortfall) + (1 - blend) * (1 / n)
+    floor[m]      = floor_mult * fair_share[m] * avail
+    cap[m]        = cap_mult   * fair_share[m] * avail,     avail = budget - must_fund_total
+
+`avail` is the budget left after must-fund, so the limits scale with the budget in a sweep. The
+fair shares sum to 1, so the floors sum to `floor_mult * avail` and the caps to `cap_mult * avail`
+(total shortfall is assumed to be positive).
+
+**A candidate's market** is the market of its largest offload row (ties: the lowest sector id). A
+candidate with no offload rows belongs to no market and is not limited. About 10-15 of the ~51
+candidates in generated data span more than one market (10, 12, 15, 11 on seeds 1, 2, 3, 42), so
+a cross-market candidate's **full cost counts against one market**. This is a deliberate
+simplification (DECISIONS D4, README limitations).
+
+**Constraints.** With `spend[m] = sum over candidates c of market m of cost[c] * x[c]`:
+
+    floor'[m] <= spend[m] <= cap[m]          floor'[m] = min(floor[m], total candidate cost of m)
+
+A floor is clamped to its market's total candidate cost (a floor above what the market can absorb
+would otherwise be infeasible for a reason the user cannot act on). Sides that are off add no
+constraint. The constraints are added **once, in `_core`** (`engine/stages.py`), so both stages
+use them.
+
+**Pre-solve check** (no solver call, `Infeasible`, `selected=None`, empty `stage_times`), after the
+must-fund check: the clamped floors sum to more than `avail`, or some cap is below its clamped
+floor. Reason codes `FLOORS_EXCEED_BUDGET` and `CAP_BELOW_FLOOR` are an M2A item; M1 returns the
+bare status.
+
+**Effect on results.** Caps can stop even a 100% budget from funding everything, so a lower
+`% resolved` in the sweep when caps are on is by design. (The `sweep` command does not expose the
+parameters in M1; they are arguments of `solve()`.)
+
+**Fair-share table** (generated v1, seed 42; floor mult 0.5, cap mult 1.5, blend 0.5; at the 30%
+budget `avail` = 30% of total candidate cost = 934.31 cost units; floors sum to 50% and caps to
+150% of `avail`):
+
+| market | total shortfall | share | fair share | floor % avail | cap % avail | floor (units) | cap (units) |
+|---|---|---|---|---|---|---|---|
+| market_a | 332.00 | 7.9% | 10.2% | 5.1% | 15.3% | 47.76 | 143.29 |
+| market_b | 269.07 | 6.4% | 9.5% | 4.7% | 14.2% | 44.24 | 132.73 |
+| market_c | 465.91 | 11.2% | 11.8% | 5.9% | 17.7% | 55.25 | 165.75 |
+| market_d | 468.89 | 11.2% | 11.9% | 5.9% | 17.8% | 55.42 | 166.25 |
+| market_e | 499.19 | 12.0% | 12.2% | 6.1% | 18.3% | 57.11 | 171.34 |
+| market_f | 565.06 | 13.5% | 13.0% | 6.5% | 19.5% | 60.80 | 182.39 |
+| market_g | 754.61 | 18.1% | 15.3% | 7.6% | 22.9% | 71.39 | 214.18 |
+| market_h | 822.30 | 19.7% | 16.1% | 8.0% | 24.1% | 75.18 | 225.54 |
+
+Script (`scripts/fair_share_table.py`, plain formulas on the generated data, independent of the
+solver code):
+
+```python
+"""Fair share, floor and cap per market for generated v1 (SPEC "Market floors and caps").
+
+Run: uv run python scripts/fair_share_table.py [seed]
+Prints a markdown table at the 30% budget (avail = 30% of total candidate cost).
+"""
+
+import sys
+from collections import defaultdict
+
+from happy_toad.data.generator import make_v1
+
+BLEND, FLOOR_MULT, CAP_MULT, SHARE = 0.5, 0.5, 1.5, 0.30
+
+
+def main(seed: int) -> None:
+    data = make_v1(seed)
+    shortfall: dict[str, float] = defaultdict(float)
+    for s in data.sectors:
+        shortfall[s.market] += s.shortfall
+    markets = sorted(shortfall)
+    total = sum(shortfall.values())
+    avail = SHARE * sum(c.cost for c in data.candidates)
+    print(f"seed {seed}: avail at {SHARE:.0%} budget = {avail:.2f} cost units")
+    print(
+        "| market | total shortfall | share | fair share | floor % avail | cap % avail "
+        "| floor (units) | cap (units) |"
+    )
+    print("|---|---|---|---|---|---|---|---|")
+    for m in markets:
+        share = shortfall[m] / total
+        fair = BLEND * share + (1 - BLEND) / len(markets)
+        print(
+            f"| {m} | {shortfall[m]:.2f} | {share:.1%} | {fair:.1%} | {FLOOR_MULT * fair:.1%} "
+            f"| {CAP_MULT * fair:.1%} | {FLOOR_MULT * fair * avail:.2f} | {CAP_MULT * fair * avail:.2f} |"
+        )
+
+
+if __name__ == "__main__":
+    main(int(sys.argv[1]) if len(sys.argv) > 1 else 42)
+```
+
 ### Known-answer tests (written before the model)
 1. **Zero budget** (no must-fund): nothing selected, objective 0.
 2. **Ample budget**: `budget = sum of all candidate costs + must_fund_total` (never `inf`);
@@ -176,12 +292,27 @@ PuLP 4.2 no longer bundles the CBC binary. It comes from the `cbcbox` package vi
    (`avail`) with weighted relief just above `δ` (e.g. `1.5e-4`) must be selected. Guards
    against stage 2 trading real relief for savings: `R* - relief_slack` must still require it.
 
+Market floors and caps (the section above). Toy world: budget 12, base year 2027, no must-fund,
+so `avail = 12`. Sectors `sX1` (market X, shortfall 10, trigger 2027, weight 1), `sX2` (X, 10,
+2027, weight 1), `sY1` (Y, 10, 2031, weight 1/5). Candidates `X1` (market X, cost 6, relieves
+`sX1` by 10), `X2` (X, cost 5, relieves `sX2` by 10), `Y1` (Y, cost 6, relieves `sY1` by 10).
+Limits are given as absolute spend per market through `limits`.
+8. **Baseline, floor and cap off**: plan `X1 + X2`, spend 11, weighted relief 20.
+9. **Cap on X = 8**: plan `X2 + Y1`, X spend 5, spend 11, relief 12. Also assert relief < 20, so
+   we know the cap actually bound.
+10. **Floor on Y = 6**: `Y1` is funded; plan `X2 + Y1`, spend 11, relief 12. Assert on totals and
+    market spend, not on `X1` versus `X2`.
+11. **Infeasible and clamp**: (a) floors X = 8 and Y = 6 (sum 14 > 12) and (b) cap on X = 4 with
+    floor on X = 6 both return `Infeasible` with `selected=None`. (c) Clamp: a floor on Y = 10
+    clamps to 6 (Y's total candidate cost), stays feasible, and `Y1` is funded.
+
 Scale regression tests (generated v1, seed 42; `tests/test_tiebreak_at_scale.py`). These exist
 because the small tests above passed while the first design was broken at scale:
 - Every funded candidate adds more than `δ` of relief (removing it lowers relief by more than
   `δ`), at five budgets.
 - Plateau spend is identical at every budget once the budget stops binding (minimum spend at
   maximum relief cannot depend on extra budget). This invariant also holds across platforms.
+  It holds only with the market floors and caps off, so these tests run with both `None`.
 - Reported relief is within `relief_slack` of an independently solved stage-1 optimum.
 
 ### Budget sweep and CLI

@@ -8,14 +8,17 @@ from happy_toad.data.schemas import Candidate, InputSet, MustFundProject, Offloa
 def make_set(sectors, candidates, offloads, must_fund=()) -> InputSet:
     """Build an InputSet from plain tuples.
 
-    sectors: (id, shortfall) or (id, shortfall, trigger_year); candidates: (id, cost);
+    sectors: (id, shortfall[, trigger_year[, market]]); candidates: (id, cost);
     offloads: (candidate_id, sector_id, amount); must_fund: list of costs.
     """
     return build_input_set(
         "test",
         [
             Sector(
-                id=s[0], market="m", shortfall=s[1], trigger_year=s[2] if len(s) > 2 else BASE_YEAR
+                id=s[0],
+                market=s[3] if len(s) > 3 else "m",
+                shortfall=s[1],
+                trigger_year=s[2] if len(s) > 2 else BASE_YEAR,
             )
             for s in sectors
         ],

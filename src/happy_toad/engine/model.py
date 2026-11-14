@@ -6,6 +6,7 @@ R* - relief_slack, where relief_slack = delta / 10. The time limit covers both s
 
 from happy_toad.constants import BASE_YEAR
 from happy_toad.data.schemas import InputSet
+from happy_toad.engine.markets import MarketLimits, clamp_floors, fair_share_limits, is_infeasible
 from happy_toad.engine.relief import sector_relief, sector_weights, weighted, weighted_relief
 from happy_toad.engine.result import DEFAULT_SETTINGS, SolveResult, SolverSettings
 from happy_toad.engine.stages import build_stage1, build_stage2, chosen_ids, make_solver
@@ -38,10 +39,25 @@ def solve(
     budget: float,
     base_year: int = BASE_YEAR,
     settings: SolverSettings = DEFAULT_SETTINGS,
+    *,
+    market_floor_mult: float | None = None,
+    market_cap_mult: float | None = None,
+    fair_share_blend: float = 0.5,
+    limits: MarketLimits | None = None,
 ) -> SolveResult:
-    """Solve for a total budget (including must-fund) and return the plan and metadata."""
+    """Solve for a total budget (including must-fund) and return the plan and metadata.
+
+    Market floors and caps are off unless a multiplier is given (None turns that side off) or
+    explicit `limits` (spend per market) are passed, which replace the computed ones.
+    """
     must_fund_total = sum(m.cost for m in data.must_fund)
     avail = budget - must_fund_total
+    if limits is None and (market_floor_mult is not None or market_cap_mult is not None):
+        limits = fair_share_limits(
+            data, avail, market_floor_mult, market_cap_mult, fair_share_blend
+        )
+    if limits is not None:
+        limits = clamp_floors(data, limits)
     meta = dict(
         budget=budget,
         must_fund_total=must_fund_total,
@@ -54,6 +70,11 @@ def solve(
             "gapAbs": settings.gap_abs,
             "delta": settings.delta,
             "relief_slack": settings.relief_slack,
+            "market_floor_mult": market_floor_mult,
+            "market_cap_mult": market_cap_mult,
+            "fair_share_blend": fair_share_blend,
+            "market_floors": (limits.floors or None) if limits else None,
+            "market_caps": (limits.caps or None) if limits else None,
         },
     )
     times: dict[str, float] = {}
@@ -63,8 +84,10 @@ def solve(
 
     if avail < 0:  # pre-solve check: must-fund alone exceeds the budget
         return result(None, "Infeasible")
+    if limits is not None and is_infeasible(limits, avail):  # floors > avail or cap < floor
+        return result(None, "Infeasible")
 
-    prob1, x1 = build_stage1(data, avail, base_year)
+    prob1, x1 = build_stage1(data, avail, base_year, limits)
     stats1 = prob1.solve(make_solver(settings, settings.time_limit))
     times["stage1"] = stats1.time
     status = map_status(stats1.status)
@@ -78,7 +101,7 @@ def solve(
         return result(plan1, "TimeLimit")
 
     r_star = weighted_relief(data, set(plan1), base_year)
-    prob2, x2 = build_stage2(data, avail, base_year, r_star - settings.relief_slack)
+    prob2, x2 = build_stage2(data, avail, base_year, r_star - settings.relief_slack, limits)
     stats2 = prob2.solve(make_solver(settings, remaining))
     times["stage2"] = stats2.time
     status2 = map_status(stats2.status)

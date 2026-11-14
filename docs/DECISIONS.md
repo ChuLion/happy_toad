@@ -56,3 +56,17 @@ PuLP 4.2 no longer ships a CBC binary: `listSolvers(onlyAvailable=True)` was emp
 Same setup locally and in CI, no system install. Alternatives considered: system CBC via
 brew/apt (setup outside uv, CBC version can differ per machine) and switching to HiGHS (departs
 from the CBC spec). Owner approved the new dependency.
+
+## D4 — A candidate's market is the market of its largest offload row
+Market floors and caps limit candidate spend per market, so every candidate needs one market.
+Chosen: the market of its largest offload row, ties to the lowest sector id. About 10-15 of the
+~51 generated candidates (10, 12, 15, 11 on seeds 1, 2, 3, 42) have rows in more than one market,
+so a cross-market candidate's **full cost counts against one market**. That overstates one market's
+spend and understates the others; it is a deliberate simplification, listed in the README
+limitations. Alternatives considered: splitting the cost in proportion to the offload rows (makes
+the per-market constraints continuous in cost shares but harder to explain and to test with
+known answers) and a home market stored on the candidate (a schema change, not needed in M1).
+A candidate with no offload rows belongs to no market and is not limited.
+
+**Guards:** known-answer tests 8-11 (SPEC) and unit tests for the market assignment, fair share,
+clamp and pre-solve checks in `tests/test_market_limits.py`.

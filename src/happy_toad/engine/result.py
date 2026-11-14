@@ -45,4 +45,4 @@ class SolveResult(BaseModel):
     base_year: int
     version_id: str
     content_hash: str
-    solver_settings: dict[str, float]
+    solver_settings: dict[str, float | dict[str, float] | None]

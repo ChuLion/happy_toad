@@ -340,3 +340,42 @@
   reaches 50% at 34%" (41/80; 33% gives 39), the plateau from the 90% budget (spend 2749.51, 41
   candidates, 76 resolved, 88.3% of candidate cost) are correct. One more slip fixed: the budget
   at 34% is 1370.3 (0.34 x 3114.38 + 311.44 = 1370.33), not 1370.2.
+
+## M1 finish: market floors and caps, README, tag v0.1 (2026-11-14)
+- Order followed: SPEC ("Market floors and caps" section, edits to Terms, Goal, solver_settings,
+  the two-stage claim, scale-regression note, fair-share table with its script), then tests 8-11
+  plus unit tests (confirmed failing: the module and arguments did not exist; the 165 existing
+  tests passed), then code, then docs. 177 tests pass; the 165 earlier tests pass unchanged.
+- Code: `engine/markets.py` (new: `MarketLimits`, candidate market, fair shares, limits, clamp,
+  pre-solve check), `_core` in `engine/stages.py` adds the floor/cap constraints once for both
+  stages, `solve()` takes `market_floor_mult`, `market_cap_mult`, `fair_share_blend`, `limits`.
+  `tests/helpers.make_set` accepts an optional market in the sector tuple. Root cause of a first
+  wave of 49 failures: `SolveResult.solver_settings` was typed `dict[str, float]`; it now allows
+  None and per-market dicts.
+- Fair-share table for seed 42 at the 30% budget (avail 934.31): in SPEC, from
+  `scripts/fair_share_table.py`.
+- README written (M1 section, units, weight assumption, limitations); DECISIONS D4 added.
+- Decisions I made that you didn't specify:
+  - Interface: `solve()` also takes `limits: MarketLimits` (absolute spend per market) which
+    replaces the computed limits; tests 9-11 need absolute amounts, which one multiplier cannot
+    give for two markets. The suggested values 0.5 / 1.5 are not signature defaults (floor and cap
+    default to None, blend 0.5), because you wanted everything off when not passed.
+  - `solver_settings` also records the applied `market_floors` / `market_caps` (after clamping;
+    None when off), so a budget-dependent run can be reproduced; `SolveResult.solver_settings` type
+    widened.
+  - A candidate with no offload rows has no market and is not limited; a market with no
+    candidates gets no constraint; markets are the labels present on sectors; total shortfall is
+    assumed positive.
+  - Cap below floor is compared with the clamped floor; both checks use a 1e-9 tolerance.
+  - The floor/cap constraint names use the market label (`floor_market_a`).
+  - The sweep command does not expose the parameters (not requested); the SPEC note about a lower
+    `% resolved` applies when caps are passed to `solve()`.
+  - SPEC says "about 10-15 of ~51" cross-market candidates (measured 10, 12, 15, 11 on seeds 1, 2,
+    3, 42), not your "10-13": seed 3 has 15. DECISIONS D4 and the README use the same range.
+  - Units in the README are abstract "need units" and "cost units"; the SPEC table says "cost
+    units", not dollars, because the project keeps the data generic and synthetic.
+  - README scale limitation: written with a real-region sector count as you asked; removed on
+    2026-11-14 (see the M2A entry).
+  - README claims kept to: PuLP with CBC, synthetic data, checked and measured, "a small
+    synthetic reference build ... not a product"; no novelty claim.
+  - The fair-share script lives in `scripts/fair_share_table.py` and is embedded in the SPEC.
