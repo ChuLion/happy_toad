@@ -560,3 +560,30 @@
   and a summary with no numbers. Added with a test that pins it; SPEC tool list updated.
 - Not specified by the owner: the SPEC's draft prompt block was replaced by a pointer to
   `agent/prompt.py`, so there is one copy.
+
+### 2026-11-14 — first 5-repeat attempt (aborted), fixes, A/B on the clarify sentence (not a ranking)
+- First batch (Gemma pinned to Crusoe/Novita, question a, repeats 1-3, commit 4de0aa6) stopped at
+  the first error row. Repeats 1 and 2 were `unverified`: Gemma wrote claim values as JSON strings
+  ('485.59', '21'); the checker compared a str with a number, so every claim failed and every summary
+  number was reported unmatched. Root cause confirmed in the transcripts.
+- Owner approved the fix (commit 89f0c4d): plain-decimal strings are coerced for numeric metrics
+  (counts: whole numbers only; "$485.59", "1,284.34", "21 sectors", "21.5" for a count are rejected;
+  bools never coerced; status/target_met keep strings); every coercion is logged in the transcript;
+  mismatch messages show the claimed type (`claimed '485.59' (str), stored 485.59`); when no claim
+  validated, summary numbers are "not checked because no claim validated", reported once; a provider
+  error status is outcome `api_error` with its full body and does not abort the batch; a repeated 400
+  at the same step stops the batch; each bake-off file records the git SHA, a dirty flag, the prompt
+  hash and hashes of checker/report/tools/prompt; `*.log` is gitignored.
+- Not specified by the owner: `api_error` counts as not checked in "checked k/5" and is listed apart;
+  only openai status errors are `api_error` (connection errors stay `error`); the repeated-400 key
+  is (profile, question, step); bool is not coerced and stays a mismatch; negative decimal strings
+  are allowed for money metrics, not for counts.
+- A/B (Gemma 4 31B, question a, 3 runs each, new code): with the clarify sentence: checked, api_error,
+  checked; without it: checked x3. String-valued numeric claims across all submit_report attempts:
+  with 6, 0 (the api_error run had none), 0; without 12, 12, 14. Strings appear in both sets, more
+  often without the sentence, so the sentence does not cause them. Three runs per cell is not a test.
+- The 400 (second occurrence, same step 2 of question a): the body shows Crusoe returned 429 (upstream
+  rate limit) and OpenRouter fell through to Novita, which returned 400 invalid_request_error. In both
+  400 runs (first batch and A/B) the model's turn-1 `run_scenario` arguments were two JSON objects
+  concatenated (invalid JSON, "Extra data"), which our loop echoes back verbatim in the assistant
+  message. Suspected message-format bug in our loop; stopped per the owner's rule, not fixed yet.
