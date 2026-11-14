@@ -70,3 +70,16 @@ A candidate with no offload rows belongs to no market and is not limited.
 
 **Guards:** known-answer tests 8-11 (SPEC) and unit tests for the market assignment, fair share,
 clamp and pre-solve checks in `tests/test_market_limits.py`.
+
+## D5 — The request gate returns all reasons, not just the first
+A request can be wrong in several ways at once (a negative budget and an unknown candidate id, say).
+Stopping at the first problem would make the caller fix and resubmit one error at a time, and the
+M3 agent would need several round trips to find out what to ask the human. Chosen: `check_request`
+runs every check it can and returns every reason, in a fixed order (version, budget, candidate
+ids, force conflict, forced cost), each with a code and a message. Checks that need the data are
+skipped only when the version is missing. Cost: a few redundant reasons (a budget of -1 also
+"cannot cover" any forced-in cost), which are harmless because each has its own code.
+Alternative considered: fail fast with one reason (simpler, but hides problems). Rejected requests
+never reach the solver and are still written as run records.
+
+**Guards:** `tests/test_request_and_gate.py` (each code alone, all together, missing version).

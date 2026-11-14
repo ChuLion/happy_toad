@@ -4,16 +4,25 @@ Stage 1 maximizes weighted relief (R*). Stage 2 minimizes spend subject to weigh
 R* - relief_slack, where relief_slack = delta / 10. The time limit covers both stages together.
 """
 
+from collections.abc import Collection
+
 from happy_toad.constants import BASE_YEAR
 from happy_toad.data.schemas import InputSet
-from happy_toad.engine.markets import MarketLimits, clamp_floors, fair_share_limits, is_infeasible
+from happy_toad.engine.diagnose import diagnose
+from happy_toad.engine.markets import MarketLimits, clamp_floors, fair_share_limits
 from happy_toad.engine.relief import sector_relief, sector_weights, weighted, weighted_relief
 from happy_toad.engine.result import DEFAULT_SETTINGS, SolveResult, SolverSettings
 from happy_toad.engine.stages import build_stage1, build_stage2, chosen_ids, make_solver
 from happy_toad.engine.status import map_status
+from happy_toad.reasons import Reason, ReasonCode
+
+UNKNOWN_CAUSE = Reason(
+    code=ReasonCode.CAUSE_UNKNOWN,
+    message="the solver reports the model infeasible; cause unknown",
+)
 
 
-def make_result(data, selected, status, base_year, meta, times) -> SolveResult:
+def make_result(data, selected, status, base_year, meta, times, cause=None) -> SolveResult:
     """Assemble a SolveResult. selected=None means no plan; relief and objective are recomputed."""
     plan = dict(objective=None, selected=None, relief=None, spend=None)
     if selected is not None:
@@ -29,6 +38,7 @@ def make_result(data, selected, status, base_year, meta, times) -> SolveResult:
         solve_time=sum(times.values()),
         stage_times=times,
         base_year=base_year,
+        cause=cause,
         **plan,
         **meta,
     )
@@ -44,11 +54,14 @@ def solve(
     market_cap_mult: float | None = None,
     fair_share_blend: float = 0.5,
     limits: MarketLimits | None = None,
+    force_in: Collection[str] = (),
+    force_out: Collection[str] = (),
 ) -> SolveResult:
     """Solve for a total budget (including must-fund) and return the plan and metadata.
 
     Market floors and caps are off unless a multiplier is given (None turns that side off) or
-    explicit `limits` (spend per market) are passed, which replace the computed ones.
+    explicit `limits` (spend per market) are passed, which replace the computed ones. Candidates
+    in `force_in` are fixed to funded and those in `force_out` to not funded, in both stages.
     """
     must_fund_total = sum(m.cost for m in data.must_fund)
     avail = budget - must_fund_total
@@ -64,12 +77,7 @@ def solve(
         version_id=data.version_id,
         content_hash=data.content_hash,
         solver_settings={
-            "threads": settings.threads,
-            "timeLimit": settings.time_limit,
-            "gapRel": settings.gap_rel,
-            "gapAbs": settings.gap_abs,
-            "delta": settings.delta,
-            "relief_slack": settings.relief_slack,
+            **settings.as_dict(),
             "market_floor_mult": market_floor_mult,
             "market_cap_mult": market_cap_mult,
             "fair_share_blend": fair_share_blend,
@@ -79,20 +87,20 @@ def solve(
     )
     times: dict[str, float] = {}
 
-    def result(selected, status):
-        return make_result(data, selected, status, base_year, meta, times)
+    def result(selected, status, cause=None):
+        return make_result(data, selected, status, base_year, meta, times, cause)
 
-    if avail < 0:  # pre-solve check: must-fund alone exceeds the budget
-        return result(None, "Infeasible")
-    if limits is not None and is_infeasible(limits, avail):  # floors > avail or cap < floor
-        return result(None, "Infeasible")
+    force_in, force_out = set(force_in), set(force_out)
+    cause = diagnose(data, avail, force_in, force_out, limits)  # pre-solve: no solver call
+    if cause is not None:
+        return result(None, "Infeasible", cause)
 
-    prob1, x1 = build_stage1(data, avail, base_year, limits)
+    prob1, x1 = build_stage1(data, avail, base_year, limits, force_in, force_out)
     stats1 = prob1.solve(make_solver(settings, settings.time_limit))
     times["stage1"] = stats1.time
     status = map_status(stats1.status)
     if not stats1.has_solution:
-        return result(None, status)
+        return result(None, status, UNKNOWN_CAUSE if status == "Infeasible" else None)
     plan1 = chosen_ids(data, x1)
     if status != "Optimal":  # stage-1 timeout (or error): report its best plan
         return result(plan1, status)
@@ -101,7 +109,9 @@ def solve(
         return result(plan1, "TimeLimit")
 
     r_star = weighted_relief(data, set(plan1), base_year)
-    prob2, x2 = build_stage2(data, avail, base_year, r_star - settings.relief_slack, limits)
+    prob2, x2 = build_stage2(
+        data, avail, base_year, r_star - settings.relief_slack, limits, force_in, force_out
+    )
     stats2 = prob2.solve(make_solver(settings, remaining))
     times["stage2"] = stats2.time
     status2 = map_status(stats2.status)

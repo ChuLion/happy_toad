@@ -18,6 +18,11 @@ COLUMNS = (
 )
 
 
+def cause_lines(results: list[SolveResult]) -> list[str]:
+    """One line per infeasible budget: the budget and its cause code."""
+    return [f"{r.budget:.2f}: {r.cause.code}" for r in results if r.cause is not None]
+
+
 def sweep_table(results: list[SolveResult], data: InputSet) -> Table:
     """One row per budget; plan columns show "-" when there is no plan.
 

@@ -4,6 +4,8 @@ from dataclasses import dataclass
 
 from pydantic import BaseModel, ConfigDict
 
+from happy_toad.reasons import Reason
+
 
 @dataclass(frozen=True)
 class SolverSettings:
@@ -18,6 +20,17 @@ class SolverSettings:
     gap_rel: float = 0.0
     gap_abs: float = 0.0
     delta: float = 1e-4
+
+    def as_dict(self) -> dict[str, float]:
+        """The settings as recorded in results and run records."""
+        return {
+            "threads": self.threads,
+            "timeLimit": self.time_limit,
+            "gapRel": self.gap_rel,
+            "gapAbs": self.gap_abs,
+            "delta": self.delta,
+            "relief_slack": self.relief_slack,
+        }
 
     @property
     def relief_slack(self) -> float:
@@ -46,3 +59,4 @@ class SolveResult(BaseModel):
     version_id: str
     content_hash: str
     solver_settings: dict[str, float | dict[str, float] | None]
+    cause: Reason | None = None  # set when status is Infeasible

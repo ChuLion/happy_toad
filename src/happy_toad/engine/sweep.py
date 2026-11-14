@@ -17,6 +17,6 @@ def default_budgets(total_candidate_cost: float, must_fund_total: float) -> list
     ]
 
 
-def run_sweep(data: InputSet, budgets: list[float]) -> list[SolveResult]:
-    """One solve per budget, in the order given."""
-    return [solve(data, budget) for budget in budgets]
+def run_sweep(data: InputSet, budgets: list[float], **solve_options) -> list[SolveResult]:
+    """One solve per budget, in the order given. Options (market multipliers) go to every solve."""
+    return [solve(data, budget, **solve_options) for budget in budgets]

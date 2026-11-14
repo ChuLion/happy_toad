@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from happy_toad.constants import BASE_YEAR
+from happy_toad.constants import BASE_YEAR, HORIZON_YEARS
 
 
 @dataclass(frozen=True)
@@ -13,7 +13,7 @@ class GeneratorConfig:
     """
 
     base_year: int = BASE_YEAR
-    n_years: int = 5
+    n_years: int = HORIZON_YEARS
     n_sectors: int = 80
     n_must_fund: int = 5
     must_fund_share: float = 0.10

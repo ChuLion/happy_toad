@@ -6,6 +6,7 @@ floors and caps (added once, in _core).
 """
 
 from collections import defaultdict
+from collections.abc import Collection
 
 import pulp
 
@@ -30,8 +31,16 @@ def _market_limits(prob, data: InputSet, x: dict, limits: MarketLimits) -> None:
             prob.add(pulp.lpSum(terms[m]) <= amount, f"cap_{m}")
 
 
-def _core(data: InputSet, avail: float, sense: int, limits: MarketLimits | None = None):
-    """Variables x[c] (funded) and r[s] (relief), the three constraint families, market limits."""
+def _core(
+    data: InputSet,
+    avail: float,
+    sense: int,
+    limits: MarketLimits | None = None,
+    force_in: Collection[str] = (),
+    force_out: Collection[str] = (),
+):
+    """Variables x[c] (funded) and r[s] (relief), the three constraint families, market limits,
+    and fixed x for forced-in (1) and forced-out (0) candidates."""
     prob = pulp.LpProblem("happy_toad", sense)
     x = prob.add_variable_dicts("x", [c.id for c in data.candidates], cat="Binary")
     r = prob.add_variable_dicts("r", [s.id for s in data.sectors], lowBound=0)
@@ -44,12 +53,23 @@ def _core(data: InputSet, avail: float, sense: int, limits: MarketLimits | None 
     prob.add(pulp.lpSum(c.cost * x[c.id] for c in data.candidates) <= avail, "budget")
     if limits is not None:
         _market_limits(prob, data, x, limits)
+    for cid in force_in:
+        prob.add(x[cid] == 1, f"force_in_{cid}")
+    for cid in force_out:
+        prob.add(x[cid] == 0, f"force_out_{cid}")
     return prob, x, r
 
 
-def build_stage1(data: InputSet, avail: float, base_year: int, limits: MarketLimits | None = None):
+def build_stage1(
+    data: InputSet,
+    avail: float,
+    base_year: int,
+    limits: MarketLimits | None = None,
+    force_in: Collection[str] = (),
+    force_out: Collection[str] = (),
+):
     """Maximize weighted relief. Returns (problem, x by candidate id)."""
-    prob, x, r = _core(data, avail, pulp.LpMaximize, limits)
+    prob, x, r = _core(data, avail, pulp.LpMaximize, limits, force_in, force_out)
     weight = sector_weights(data, base_year)
     prob.objective = pulp.lpSum(weight[s.id] * r[s.id] for s in data.sectors)
     return prob, x
@@ -61,9 +81,11 @@ def build_stage2(
     base_year: int,
     min_relief: float,
     limits: MarketLimits | None = None,
+    force_in: Collection[str] = (),
+    force_out: Collection[str] = (),
 ):
     """Minimize spend subject to weighted relief >= min_relief. Returns (problem, x)."""
-    prob, x, r = _core(data, avail, pulp.LpMinimize, limits)
+    prob, x, r = _core(data, avail, pulp.LpMinimize, limits, force_in, force_out)
     weight = sector_weights(data, base_year)
     prob.objective = pulp.lpSum(c.cost * x[c.id] for c in data.candidates)
     prob.add(pulp.lpSum(weight[s.id] * r[s.id] for s in data.sectors) >= min_relief, "relief_floor")

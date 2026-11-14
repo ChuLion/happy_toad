@@ -410,3 +410,138 @@ All tests pass in CI, the CLI prints the sweep table, this file holds the formul
 README gets an M1 section: how to generate data, run the sweep, run tests; unit meaning for
 shortfall/offload/cost; and an explicit note that `weight = 1/(trigger_year - base_year + 1)` is
 a modelling assumption, not a calibrated value. Then tag `v0.1`.
+
+## M2A — Decision services
+The deterministic services the M3 agent will call: a validation gate for requests, the solve, a
+run record for every attempt, an infeasibility explanation and an unresolved-sectors report.
+No agent, no LLM calls. Code lives in `src/happy_toad/services/` (plus small additions to the
+engine). Decisions 1-8 were approved by the owner; A-F are proposals from the project lead and
+are listed as decisions here and in the DEVLOG; items marked "(impl.)" were settled while
+writing this section.
+
+### Request
+`SolveRequest` (pydantic, frozen, unknown fields rejected):
+
+| Field | Meaning |
+|---|---|
+| `input_version` | version id of the input set, i.e. the file `data/inputs/<input_version>.json` (decision 1) |
+| `budget` | **total** budget including must-fund (decision 1) |
+| `force_in` | candidate ids that must be funded (decision 4); default none |
+| `force_out` | candidate ids that must not be funded (decision 4); default none |
+| `label` | free text for humans; never used by the solver; not part of the request hash |
+| `market_floor_mult`, `market_cap_mult` | optional; `None` (default) turns that side off; same meaning as in "Market floors and caps" (decision A). Fair-share blend stays 0.5; absolute limits are not request fields |
+| `region_total_sectors` | optional integer >= 1, reporting only (decision C) |
+| `target_pct_resolved` | optional number 0-100 (decision D) |
+
+Field-level rules (types, `mult >= 0`, `region_total_sectors >= 1`, `0 <= target <= 100`, no
+unknown fields) are enforced by the schema and raise before the gate (impl.). The id lists are
+normalized to sorted unique ids. The **request hash** is the SHA-256 of the canonical JSON (sorted
+keys) of every field except `label`; two requests with the same hash ask the same question.
+
+### Validation gate (decisions 2, 3)
+`check_request(request, data)` returns **all** problems, not only the first (DECISIONS D5). `data`
+is `None` when the version was not found. Reason codes:
+
+| Code | When |
+|---|---|
+| `VERSION_NOT_FOUND` | no input file for `input_version` (a version that is not a plain name such as `v1` is also "not found") |
+| `BUDGET_NOT_POSITIVE` | `budget` is not greater than 0 (NaN counts) |
+| `BUDGET_ABOVE_CAP` | `budget > 1.5 * (total candidate cost + must-fund total)`: catches typos and unit mistakes but not "fund everything" |
+| `UNKNOWN_CANDIDATE` | an id in `force_in` or `force_out` is not a candidate of that version |
+| `FORCE_CONFLICT` | an id is in both lists |
+| `FORCED_COST_EXCEEDS_BUDGET` | must-fund total plus the cost of `force_in` is more than `budget` |
+
+Checks that need the data are skipped when the version is missing. A rejected request never
+reaches the solver.
+
+### Force-in and force-out (decision 4)
+`solve(..., force_in=, force_out=)` fixes `x[c] = 1` or `x[c] = 0` with constraints added once in
+`_core`, so both stages use them. Forced candidates still count in spend, relief and every limit.
+
+### Infeasibility explanation (decisions 5, B)
+`solve()` runs cheap checks before calling the solver and returns `Infeasible`, `selected=None`
+and a `cause` (`Reason`: code and message), with no solver call, for the first of these that
+holds (impl.: the order is the one listed):
+
+| Code | Condition |
+|---|---|
+| `FORCED_COST_EXCEEDS_BUDGET` | must-fund plus forced-in cost is above the budget (covers must-fund above budget) |
+| `FLOORS_EXCEED_BUDGET` | the clamped market floors sum to more than `avail` (B) |
+| `CAP_BELOW_FLOOR` | some market cap is below its clamped floor (B) |
+| `FORCED_IN_EXCEEDS_CAP` | forced-in spend in a market is above its cap (impl.) |
+| `FLOOR_UNREACHABLE` | a market's floor is above the cost of its candidates that are not forced out (impl.) |
+
+If the solver itself reports `Infeasible`, the cause is `CAUSE_UNKNOWN` ("cause unknown"): the
+service says what it does not know and never presents a guess as a plan. `SolveResult` has a
+`cause` field (`None` unless the status is `Infeasible`). The tolerance on the checks is 1e-9.
+
+### Run record (decisions 6, 7)
+`run_request(request, inputs_dir, runs_dir)` handles one attempt end to end: hash, find and load
+the input, gate, solve, summarize, write `runs/<run_id>.json` (`runs/` is gitignored), and return
+the record. **Every attempt is recorded**, including rejected ones and failures. `run_id` is a UTC
+timestamp plus 8 random hex characters (unique per attempt); the same request run twice gets two
+run ids and one request hash, so stored requests can be re-run and compared.
+
+| Record field | Meaning |
+|---|---|
+| `run_id`, `created_at` | identity and UTC time |
+| `outcome` | `rejected` (gate), `completed` (solver ran or pre-solve check; see `result.status`), `error` (the input failed its load-time checks, or something unexpected raised) |
+| `request`, `request_hash` | the request as given, and its hash |
+| `input_version`, `content_hash` | of the input set (`content_hash` is `None` if it was not found) |
+| `settings` | solver settings as used (the defaults for a rejected attempt) |
+| `reasons` | gate reasons (rejected); empty otherwise |
+| `error` | the error message when `outcome` is `error`, else `None` |
+| `result` | `None` unless `outcome` is `completed`; see below |
+| `timing` | seconds: `gate`, `solve`, `total` |
+| `warnings` | e.g. `region_total_sectors` smaller than the number of modelled sectors (impl.) |
+
+`result`: `status`, `cause` (infeasible only), `objective`, `spend`, `selected`, `resolved` and
+`total_sectors`, `pct_resolved` (`100 * resolved / total sectors`), `pct_of_region` (`100 *
+resolved / region_total_sectors`; `None` without it), `target_pct_resolved`, `target_met`
+(`True`/`False` when a target was given, `False` when there is no plan, `None` without a target),
+`unresolved` (the report below), `solve_time`, `stage_times`, `solver_settings`. There is no search
+for the smallest budget that meets a target in M2A (that is M2B).
+
+### Unresolved-sectors report (decision 8)
+A sector is **still short** if `shortfall - relief > 1e-6`. The report lists them by size of the
+weighted gap `weight * (shortfall - relief)`, largest first (ties: sector id), each with `sector_id`,
+`market`, `shortfall`, `relief`, `gap`, `weight`, `weighted_gap`. It is `None` when there is no
+plan. (Shortfall magnitudes stay out of the sweep table; this report is a service output.)
+
+### region_total_sectors (C)
+An optional integer used only for reporting "% of region". It is not part of the input data or
+its hash and does not change the solve.
+
+### Planning horizon (E)
+`HORIZON_YEARS = 5` in `constants.py`, matching `BASE_YEAR` to `BASE_YEAR + 4` (2027-2031). It is a
+constant, not a request field in M2A; the generator window uses it.
+
+### Sweep (A)
+`happy-toad sweep <input> [--market-floor-mult X] [--market-cap-mult Y]` passes the multipliers to
+every solve. Infeasible rows keep status `Infeasible` and a line below the table names the cause
+code of each (impl.). With caps on, a lower `% resolved` is by design.
+
+### Rule for the M3 agent (F; SPEC text only, no code in M2A)
+When the agent turns a plain-English question into a request it **never invents a number**.
+1. A missing budget means asking the human, or stating the assumption in the request `label`.
+2. A vague phrase ("about a third of the money") is converted to an explicit value (for example
+   33% of total candidate cost plus must-fund), and the explicit value is shown to the human.
+3. Anything that cannot be mapped to a field becomes a clarification question, not a guess.
+The gate is the safety net, not the interpreter: it checks values, it does not repair them.
+
+### Tests (written before the code)
+Request schema and hash (label excluded, ids normalized, field rules); the gate (each code alone,
+all codes together, missing version); force-in and force-out in both stages on a toy world; the
+infeasibility causes (each code, `CAUSE_UNKNOWN` through a patched solver, no solver call on
+pre-solve causes); the run record (a record file for completed, rejected and error attempts,
+distinct run ids, same request hash, target met/not met, region percentage); the unresolved report
+(threshold, ordering, ties); sweep CLI options. All 177 earlier tests pass unchanged.
+
+### Decisions (M2A)
+Approved by the owner: 1 request fields; 2 budget cap 1.5x; 3 six rejection codes, all reasons
+returned; 4 force-in/out fix x in both stages; 5 infeasible cause when known, else unknown, never
+a guess as a plan; 6 run id plus request hash; 7 one JSON per attempt in `runs/`; 8 still short is
+shortfall minus relief above 1e-6, listed by weighted gap. Project lead's proposals: A floors and
+caps in requests and the sweep; B `FLOORS_EXCEED_BUDGET` and `CAP_BELOW_FLOOR` as causes;
+C `region_total_sectors`; D `target_pct_resolved` (reported, no search); E `HORIZON_YEARS`; F the
+M3 interpretation rule. The remaining ones marked "(impl.)" are mine and are in the DEVLOG.

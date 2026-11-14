@@ -5,7 +5,7 @@ All data is synthetic. Use generic terms only (sectors, candidate solutions, off
 year, must-fund projects). Never mention real companies, internal tools, or proprietary methods.
 
 ## Working rules
-- One milestone at a time. Current: M1 (see docs/SPEC.md). Do not start later milestones.
+- One milestone at a time. Current: M2A (see docs/SPEC.md). Do not start later milestones.
 - Spec first (docs/SPEC.md), then tests, then code. Small commits, clear messages.
 - Ask before adding any dependency beyond: pydantic, numpy, pulp, typer, rich, pytest,
   pytest-cov, ruff (mypy optional).
@@ -20,5 +20,5 @@ year, must-fund projects). Never mention real companies, internal tools, or prop
 - Always `uv run`, never bare `python`; `uv add`, never `pip install`.
 
 ## Layout
-`src/happy_toad/{data,engine}`, `cli.py`, `tests/`, `data/inputs/`, `runs/` (gitignored),
+`src/happy_toad/{data,engine,services}`, `cli.py`, `tests/`, `data/inputs/`, `runs/` (gitignored),
 `docs/{SPEC,DECISIONS,DEVLOG}.md`.

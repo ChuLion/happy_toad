@@ -70,5 +70,49 @@ on a sector is the amount of that sector's shortfall it relieves if funded; reli
 - Single-threaded CBC with a 30 s limit in total across both stages; a time-limit stop is reported
   as `TimeLimit`, never `Optimal`.
 
+## Milestone 2A: decision services
+
+The deterministic services a later agent layer will call. There is no agent and no LLM call here.
+A request goes through a **gate**, then the solve, and every attempt (accepted, rejected or
+failed) leaves one JSON record in `runs/` (gitignored).
+
+```python
+from happy_toad.services.request import SolveRequest
+from happy_toad.services.run import run_request
+
+record = run_request(
+    SolveRequest(
+        input_version="v1",  # data/inputs/v1.json
+        budget=1400,  # total, including must-fund
+        force_out=["C001"],  # optional: force_in / force_out
+        market_cap_mult=1.5,  # optional floors and caps (None = off)
+        region_total_sectors=12345,  # optional, reporting only (made-up value)
+        target_pct_resolved=50,  # optional: reported as met / not met, no search
+        label="demo",
+    )
+)
+record.outcome, record.result.status, record.result.pct_resolved, record.result.target_met
+```
+
+- **Gate** (`check_request`): returns *all* problems with codes `VERSION_NOT_FOUND`,
+  `BUDGET_NOT_POSITIVE`, `BUDGET_ABOVE_CAP` (1.5 x candidate cost plus must-fund),
+  `UNKNOWN_CANDIDATE`, `FORCE_CONFLICT`, `FORCED_COST_EXCEEDS_BUDGET`.
+- **Infeasible results** carry a cause when it can be known (`FORCED_COST_EXCEEDS_BUDGET`,
+  `FLOORS_EXCEED_BUDGET`, `CAP_BELOW_FLOOR`, `FORCED_IN_EXCEEDS_CAP`, `FLOOR_UNREACHABLE`),
+  otherwise `CAUSE_UNKNOWN`. A guess is never presented as a plan.
+- **Run record**: run id, request and request hash, input version and content hash, settings,
+  outcome, reasons or error, result summary, timing. The same request run twice has two run ids and
+  one request hash.
+- **Unresolved sectors**: sectors still short after the plan (shortfall minus relief above 1e-6),
+  largest weighted gap first.
+- **Sweep**: `uv run happy-toad sweep data/inputs/v1.json --market-floor-mult 0.5
+  --market-cap-mult 1.5`. Infeasible budgets are listed below the table with their cause.
+- The sweep table needs about 100 terminal columns to avoid truncated cells.
+
+Limitations specific to M2A: no search for the smallest budget that meets a target (planned
+for M2B); the "cause unknown" label also covers infeasibility that comes from how candidate costs
+add up inside a market (for example floors that no combination of whole candidates can meet within
+the budget); `region_total_sectors` only changes the reported percentage.
+
 ### Layout
-`src/happy_toad/{data,engine}`, `cli.py`, `report.py`, `tests/`, `scripts/`, `docs/{SPEC,DECISIONS,DEVLOG}.md`.
+`src/happy_toad/{data,engine,services}`, `cli.py`, `report.py`, `tests/`, `scripts/`, `docs/{SPEC,DECISIONS,DEVLOG}.md`.

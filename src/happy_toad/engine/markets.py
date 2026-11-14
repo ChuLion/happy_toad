@@ -61,12 +61,3 @@ def clamp_floors(data: InputSet, limits: MarketLimits) -> MarketLimits:
     cost = market_costs(data)
     floors = {m: min(f, cost.get(m, 0.0)) for m, f in limits.floors.items()}
     return MarketLimits(floors, limits.caps)
-
-
-def is_infeasible(limits: MarketLimits, avail: float) -> bool:
-    """True if the floors alone exceed avail or some cap is below its floor."""
-    if sum(limits.floors.values()) > avail + FEASIBILITY_TOLERANCE:
-        return True
-    return any(
-        cap < limits.floors.get(m, 0.0) - FEASIBILITY_TOLERANCE for m, cap in limits.caps.items()
-    )

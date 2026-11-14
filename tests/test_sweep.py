@@ -112,3 +112,29 @@ def test_invalid_input_file_is_rejected(tmp_path, input_file) -> None:
     result = runner.invoke(app, ["sweep", str(bad), "--budgets", "6"])
     assert result.exit_code == 1
     assert "content_hash" in result.output
+
+
+def test_market_multipliers_are_passed_to_every_solve(input_file) -> None:
+    """One market, so fair share is 1: floor = floor_mult * avail. Budget 6 -> avail 4."""
+    args = ["sweep", str(input_file), "--budgets", "6", "--market-floor-mult", "1.0"]
+    result = runner.invoke(app, args)
+    assert result.exit_code == 0, result.output
+    rows = body_rows(result.output)
+    assert rows[0][3] == "4.00"  # must spend at least 4: C2 (cost 4)
+
+
+def test_infeasible_rows_name_their_cause_below_the_table(input_file) -> None:
+    args = ["sweep", str(input_file), "--budgets", "6,20", "--market-floor-mult", "2.0"]
+    result = runner.invoke(app, args)
+    assert result.exit_code == 0, result.output
+    rows = body_rows(result.output)
+    assert rows[0][2] == "Infeasible" and rows[0][3] == "-"
+    assert "6.00: FLOORS_EXCEED_BUDGET" in result.output
+    assert "20.00" not in result.output.split("┘")[-1]  # only infeasible budgets are listed
+
+
+def test_cap_multiplier_option(input_file) -> None:
+    args = ["sweep", str(input_file), "--budgets", "20", "--market-cap-mult", "0.2"]
+    result = runner.invoke(app, args)
+    assert result.exit_code == 0, result.output
+    assert body_rows(result.output)[0][3] == "0.00"  # cap 0.2 * 18 = 3.6 is below every cost

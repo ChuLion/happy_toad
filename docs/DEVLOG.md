@@ -390,3 +390,53 @@
   and tool names, currency and unit figures, and "real/actual/production/proprietary/internal".
   Only hits: `CLAUDE.md` (the rule itself) and ordinary uses of "actual" in code and tests. The
   scan is a keyword search, not proof; it cannot recognize a name it was not looking for.
+
+## M2A: decision services (2026-11-14)
+- Housekeeping: tag `v0.1` moved to f1d1c1f (the clean tree; the old tag pointed to 524b464);
+  history not rewritten. `CLAUDE.md` now says current milestone M2A and lists `services/`.
+- Order followed: SPEC (section "M2A - Decision services"), tests (confirmed failing: missing
+  modules `happy_toad.services`, `happy_toad.reasons`, constant `HORIZON_YEARS`, and unknown
+  sweep options), then code, then docs. 227 tests pass (the 177 earlier tests unchanged, 50 new).
+- Built: `services/{request,gate,unresolved,run}.py`, `reasons.py` (codes and `Reason`),
+  `engine/diagnose.py` (pre-solve causes), `force_in` / `force_out` in `solve()` and `_core`,
+  `SolveResult.cause`, `HORIZON_YEARS` and `BUDGET_CAP_FACTOR` constants, sweep options
+  `--market-floor-mult` / `--market-cap-mult` with cause lines below the table, D5.
+- Approved decisions 1-8 implemented as written. Project lead's proposals A-F implemented and
+  listed in the SPEC: A floors/caps in requests and the sweep; B the two reason codes as causes;
+  C `region_total_sectors` (reporting only); D `target_pct_resolved` (met / not met, no search);
+  E `HORIZON_YEARS = 5` (also drives the generator window); F the M3 rule (SPEC text only).
+- Check on a real case: at budget 700 on v1 seed 42 floors of 0.5 are infeasible and the result says
+  `CAUSE_UNKNOWN`. I verified with a subset-sum calculation that this is real, not a bug: the
+  cheapest whole-candidate combinations that meet each market's floor cost 426.9 in total, more
+  than the 388.6 available. A "floors cannot be met with whole candidates" cause would be a cheap
+  M2B addition; I did not add it because it was not in the list.
+- Decisions I made that you didn't specify:
+  - Request: `force_in` / `force_out` are normalized to sorted unique ids; the request hash is
+    SHA-256 of the canonical JSON of every field except `label`. Field rules (`mult >= 0`,
+    `region_total_sectors >= 1`, `0 <= target <= 100`, no unknown fields) are enforced by the
+    schema and raise before the gate, so a malformed request is not a run record.
+  - Versions are files `data/inputs/<input_version>.json`; a version that is not `[A-Za-z0-9_-]+`
+    (a path, for example) is reported as `VERSION_NOT_FOUND` rather than opened.
+  - Gate: NaN budget counts as not positive; `BUDGET_ABOVE_CAP` is only checked for positive
+    budgets; the forced-cost check counts must-fund plus force-in and is also reported for a
+    non-positive budget (redundant but harmless); reasons come in a fixed order.
+  - Extra cause codes beyond your list: `FORCED_IN_EXCEEDS_CAP`, `FLOOR_UNREACHABLE` (floor above
+    the cost of the market's candidates not forced out) and `CAUSE_UNKNOWN`. All except unknown
+    are decided before the solver runs, in the order of the SPEC table. Must-fund above budget
+    now reports `FORCED_COST_EXCEEDS_BUDGET` (same code as the gate); a solver-reported
+    `Infeasible` always gets `CAUSE_UNKNOWN`.
+  - Run record: `outcome` is `rejected`, `completed` or `error`; an infeasible solve is
+    `completed` with status `Infeasible` and a cause; failures use an `error` field, not a reason
+    code; a broad `except Exception` ensures every attempt leaves a record. Run id is a UTC
+    timestamp plus 8 hex characters; files are indented JSON. Rejected attempts record the default
+    solver settings and `content_hash` is null when the version was not found.
+  - Result summary: `pct_resolved` is None without a plan; `target_met` is False when there is no
+    plan and the comparison is `>=`; `pct_of_region` is resolved sectors over
+    `region_total_sectors`, with a warning when the region total is smaller than the modelled
+    sectors; the unresolved list is the full list, not truncated.
+  - Sweep: only the two multipliers are options (fair-share blend stays 0.5); infeasible budgets
+    are listed as `Infeasible <budget>: <CODE>` lines under the table rather than a table column.
+    No CLI command runs a request file; the services are a library API for now.
+  - `SolverSettings.as_dict()` added so results and run records record settings identically.
+  - The sweep table is truncated on an 80-column terminal when a status like `Infeasible`
+    appears; tests use 200 columns and the README says about 100 are needed.
