@@ -314,3 +314,27 @@ def test_run_ids_and_their_digit_only_suffixes_are_never_numbers(tmp_path) -> No
     rid = "20261114T184501-78612358"
     text = f"Run {rid} and run 78612358 and 20261114T184501 spent 11.00."
     assert [t for t, _ in find_numbers(text, [rid])] == ["11.00"]
+
+
+NOT_IN_CONVERSATION = "run was not executed or read in this conversation"
+
+
+def test_a_claim_citing_a_run_from_outside_the_conversation_fails(run, tmp_path) -> None:
+    report = Report(summary="Spend is 11.", claims=[claim(run, "spend", 11.0, "cost_units")])
+    outside = check_report(report, tmp_path / "runs", tmp_path / "inputs", conversation_runs=[])
+    assert not outside.ok
+    assert outside.claims[0].message == NOT_IN_CONVERSATION
+    inside = check_report(
+        report, tmp_path / "runs", tmp_path / "inputs", conversation_runs=[run.run_id]
+    )
+    assert inside.ok, inside.errors()
+
+
+def test_a_comparison_claim_fails_when_run_b_is_from_outside_the_conversation(tmp_path) -> None:
+    from happy_toad.services.runs import compare_runs
+
+    a, b = two_runs(tmp_path)
+    value = round(compare_runs(a, b).fields["spend"].difference, 2)
+    report = Report(summary="ok", claims=[diff_claim(a, b, "diff_spend", value)])
+    result = check_report(report, tmp_path / "runs", conversation_runs=[a.run_id])
+    assert not result.ok and result.claims[0].message == NOT_IN_CONVERSATION

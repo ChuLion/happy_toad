@@ -45,3 +45,19 @@ def test_ask_exits_1_when_the_step_cap_is_hit(invoke) -> None:
 def test_cost_not_configured_is_printed_when_the_response_has_none(invoke) -> None:
     result, _ = invoke([turn(call("submit_report", summary="Hello.", claims=[]), cost=None)])
     assert "cost: not configured" in result.output
+
+
+def test_a_rejected_draft_is_not_shown_as_the_report_when_the_run_did_not_finish(invoke) -> None:
+    draft = turn(call("submit_report", summary="Is 500 enough?", claims=[]))
+    result, _ = invoke([draft] + [turn(call("list_input_versions")) for _ in range(9)])
+    assert result.exit_code == 1 and "step_cap" in result.output
+    assert "Report:" not in result.output
+
+
+def test_an_unknown_profile_lists_the_valid_names(invoke, monkeypatch) -> None:
+    from happy_toad.agent.config import PROFILES
+
+    monkeypatch.setattr(cli, "make_client", lambda profile: None)
+    result = CliRunner().invoke(cli.app, ["ask", "q", "--profile", "nope"])
+    assert result.exit_code == 2
+    assert all(name in result.output for name in PROFILES)

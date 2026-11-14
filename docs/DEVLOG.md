@@ -720,3 +720,66 @@
 - README: demo model, the 75-conversation comparison with the rule and measured figures only, the
   Baseten fp32|fp8 caveat, and limitations (five runs per cell, one round, direction words and
   wording unchecked, defaults count not a quality signal).
+
+## 2026-11-14 — code review triage: fixes applied (test-first, one batch)
+- Owner chose the fixes from CODE_REVIEW.md. Each got a failing test first; the failure was the
+  one the review described (for #2/#8 a raw pydantic `ValidationError` escaped).
+  - #9: a claim whose `run_id` or `run_id_b` was not executed, read or compared in this
+    conversation fails ("run was not executed or read in this conversation"). The test cites a
+    run left on disk by another conversation.
+  - #13: only the first `submit_report` of a turn is checked; later ones in that turn get an error
+    result and use no correction.
+  - #1: with multiplier-derived floors and caps (any cause except `FORCED_COST_EXCEEDS_BUDGET`),
+    `required_minimum_budget` is None and the cause names the multiplier to change ("floor
+    multiplier 1.2 requires floors above the available budget at any budget; use 1.0 or less").
+    The SPEC "Required minimum budget" section is updated. The old loop test that expected a
+    minimum budget for `market_floor_mult=3.0` now expects None.
+  - #2/#8: `load_input_set` and `read_run` wrap `ValidationError` in `InputError`, so a malformed
+    `vN.json` leaves an error run record. Tests cover bad JSON, a schema break and a bad run file.
+  - #10: the endpoint listing uses `timeout=10` and treats `OSError`, `ValueError` and `KeyError`
+    as "unknown"; tests cover a network failure, non-JSON and a reshaped listing.
+  - #11: the CLI shows the report only for checked or unverified outcomes. #12: an unknown
+    `--profile` is a `typer.BadParameter` that lists the valid names.
+  - #14: refusals count only refused submits that a later checked submit followed. #15: Ctrl-C
+    saves the transcript (status `interrupted`) in a `finally`, then re-raises.
+- CLAUDE.md dependency list now includes `openai` (approved for M3).
+- #14 recount from saved transcripts for the post-fix round (bakeoff/20261114T201817.json and
+  20261114T202752.json): 75 transcripts were matched to the 75 rows, with status and turn count
+  checked per row. Gemma 12 → 12, Gemini 16 → 11, DeepSeek 5 → 5, GLM 11 → 11, Sonnet 3 → 3. The
+  decision is the same: the DeepSeek-GLM tie-break (5 vs 11) is unchanged.
+- Not specified by the owner: `check_report(conversation_runs=None)` skips the #9 rule (for
+  re-checking a saved report outside a conversation), and the loop always passes its list; the
+  ignored extra submit carries no `accepted` key, so it is never counted as a refusal; the other
+  multiplier messages are "cap multiplier X is below floor multiplier Y at any budget; use a cap
+  multiplier of Y or more", "raise the cap multiplier (now X) or force in fewer candidates" and
+  "lower the floor multiplier (now X) or force out fewer candidates"; `InputError` is reused for
+  malformed run files.
+
+### Deferred: post-checkpoint refactor pass, before M4 (not applied)
+Simplifications S1-S14 from CODE_REVIEW.md, behaviour-preserving, done in one pass after the v0.3
+checkpoint and before M4. Several touch frozen files, so they go between bake-off rounds.
+- S1: one `markets.market_spend(data, ids=None)` in place of `diagnose._market_spend` and
+  `markets.market_costs`.
+- S2: `record_invalid_request` in `services/run.py`; keep the current sha256 of the raw input.
+- S3: `InputSet.must_fund_total` and `candidate_total` properties; forced-in cost computed once
+  in `diagnose`.
+- S4: `has_plan(record)` in `runs.py`, used by the checker too.
+- S5: the checker imports `runs.RUN_ID`. S6: `stages._core` returns the relief expression and
+  drops its unused defaults. S7: type hints and keyword-only `cause`/`minimum` on `make_result`;
+  `_run_meta` helper. S8: `bakeoff._error_row` with keyword arguments, a plain `if`, a `def` in
+  place of the `git` lambda.
+- S9: `fair_share_table.py` calls `markets.fair_shares`. S10: `string_claims_ab` reuses
+  `TEXT_METRICS`; `Transcript.providers` property. S11: rename `happy_toad/report.py` to
+  `tables.py`.
+- S12: missing type hints. S13: `candidate_id`/`sector_id` helpers. S14: the small constructs
+  listed in CODE_REVIEW.md.
+
+### Known low-severity issues (logged, not fixed)
+- #3: `solve()`/`run_sweep()` called without the gate, with budget < must-fund and nothing forced,
+  is labelled `FORCED_COST_EXCEEDS_BUDGET` with "forced-in cost 0.00".
+- #4: `fair_shares` divides by zero when every shortfall is 0 and multipliers are on.
+- #5: the stage-2 `assert` is stripped under `python -O`.
+- #6: load checks use the default `BASE_YEAR`, but `solve(base_year=...)` accepts a later year.
+- #7: `request_hash` covers `input_version`, not the data's `content_hash`.
+- #16: each `OpenRouterClient(profile)` built without a listing fetches it again.
+- #17: error-body redaction covers only `user_…` ids; the rest of the body is kept.

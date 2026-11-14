@@ -42,6 +42,7 @@ LIST_MARKER = re.compile(r"(?m)^\s*\d+[.)](?=\s)")
 NUMBER = re.compile(r"(?<![\w.])[-+]?\d+(?:,\d{3})*(?:\.\d+)?%?(?!\w)")
 YEAR = re.compile(r"\d{4}")
 NOT_CHECKED = "not checked because no claim validated"
+NOT_IN_CONVERSATION = "run was not executed or read in this conversation"
 
 
 class ClaimCheck(BaseModel):
@@ -168,7 +169,13 @@ def _stored(claim: Claim, record: RunRecord, runs_dir: Path, inputs_dir: Path):
     return stored_value(record, claim.metric), "the run has no value for this metric"
 
 
-def check_claim(claim: Claim, runs_dir: Path, inputs_dir: Path) -> ClaimCheck:
+def check_claim(
+    claim: Claim, runs_dir: Path, inputs_dir: Path, known: set[str] | None = None
+) -> ClaimCheck:
+    """Check one claim; with `known`, every run it cites must be one of those runs."""
+    cited = {claim.run_id, claim.run_id_b} - {None}
+    if known is not None and not cited <= known:
+        return ClaimCheck(claim=claim, ok=False, message=NOT_IN_CONVERSATION)
     record = read_run(claim.run_id, runs_dir)
     if record is None:
         return ClaimCheck(claim=claim, ok=False, message="run not found")
@@ -232,16 +239,18 @@ def check_report(
     report: Report,
     runs_dir: Path,
     inputs_dir: Path = Path("data/inputs"),
-    conversation_runs: Iterable[str] = (),
+    conversation_runs: Iterable[str] | None = None,
 ) -> CheckResult:
     """Check every claim against its stored run and every summary number against the claims.
 
-    `conversation_runs` are the runs the agent executed or read; with the cited runs they decide
-    which minimum budgets must be claimed and which run ids are not numbers.
+    `conversation_runs` are the runs the agent executed or read. When given, a claim citing any
+    other run fails; with the cited runs they decide which minimum budgets must be claimed and
+    which run ids are not numbers. None (re-checking a saved report) skips the first rule.
     """
-    claims = [check_claim(c, runs_dir, inputs_dir) for c in report.claims]
+    known = None if conversation_runs is None else set(conversation_runs)
+    claims = [check_claim(c, runs_dir, inputs_dir, known) for c in report.claims]
     valid = Report(summary=report.summary, claims=[c.claim for c in claims if c.ok])
-    run_ids = list(dict.fromkeys([*conversation_runs, *_run_ids(report)]))
+    run_ids = list(dict.fromkeys([*(conversation_runs or ()), *_run_ids(report)]))
     allowed = allowed_numbers(valid, runs_dir)
     nothing_validated = bool(claims) and not valid.claims
     numbers = []

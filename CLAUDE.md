@@ -7,8 +7,8 @@ year, must-fund projects). Never mention real companies, internal tools, or prop
 ## Working rules
 - One milestone at a time. Current: M3 (see docs/SPEC.md). Do not start later milestones.
 - Spec first (docs/SPEC.md), then tests, then code. Small commits, clear messages.
-- Ask before adding any dependency beyond: pydantic, numpy, pulp, typer, rich, pytest,
-  pytest-cov, ruff (mypy optional).
+- Ask before adding any dependency beyond: pydantic, numpy, pulp, typer, rich, openai (approved
+  for M3), pytest, pytest-cov, ruff (mypy optional).
 - After each subtask: a plain-English summary only.
 - Keep docs/DEVLOG.md updated (date, what was done, what the owner changed or rejected), and list
   any decision made that the owner did not specify.

@@ -243,15 +243,15 @@ def test_gate_rejection_tells_the_model_the_minimum_budget(dirs) -> None:
     assert "at least 17.00" not in json.dumps(seen)  # the model states it; the number is in data
 
 
-def test_solver_infeasible_result_carries_the_minimum_budget_in_the_record(dirs) -> None:
+def test_multiplier_floors_give_no_minimum_budget_but_name_the_multiplier(dirs) -> None:
     from happy_toad.services.request import SolveRequest
     from happy_toad.services.run import run_request
 
     request = SolveRequest(input_version="test", budget=12, market_floor_mult=3.0)
     record = run_request(request, dirs["inputs_dir"], dirs["runs_dir"])
     assert record.result.status == "Infeasible" and record.result.cause is not None
-    assert record.required_minimum_budget == record.result.required_minimum_budget
-    assert record.required_minimum_budget > 12
+    assert record.required_minimum_budget is None and record.result.required_minimum_budget is None
+    assert "floor multiplier 3.0" in record.result.cause.message
 
 
 def test_the_api_key_and_system_prompt_rules(dirs, monkeypatch) -> None:
@@ -483,3 +483,37 @@ def test_printed_transcripts_redact_the_account_id(dirs) -> None:
 
     text = '{"user_id":"user_3FEB9A6yngm4bVylctIJkgAmiTJ", "run": "20261114T184501-78612358"}'
     assert redact(text) == '{"user_id":"[redacted]", "run": "20261114T184501-78612358"}'
+
+
+def test_a_claim_citing_an_earlier_conversations_run_is_refused(dirs) -> None:
+    from agent_helpers import make_run
+
+    earlier = make_run(dirs["inputs_dir"].parent)  # on disk, but not run in this conversation
+    claims = claims_for(earlier.run_id, spend=11.0)
+    client = FakeClient([turn(call("submit_report", summary="Spend is 11.", claims=claims))] * 2)
+    t = ask("What does budget 12 give?", client, SMOKE, **dirs)
+    assert t.status == "unverified"
+    assert "not executed or read in this conversation" in t.checks[0].errors()[0]
+
+
+def test_a_second_submit_report_in_the_same_turn_is_not_checked(dirs) -> None:
+    """The model must see the first errors before it uses its one correction."""
+    bad = call("submit_report", summary="Is 500 enough?", claims=[])
+    again = call("submit_report", summary="Is 600 enough?", claims=[])
+    fixed = call("submit_report", summary="Which budget do you want?", claims=[])
+    client = FakeClient([turn(bad, again), turn(fixed)])
+    t = ask("q", client, SMOKE, **dirs)
+    assert t.status == "checked" and [c.ok for c in t.checks] == [False, True]
+    second = t.turns[0].tool_calls[1]["result"]
+    assert "accepted" not in second and "one submit_report per turn" in second["error"]
+
+
+def test_an_interrupted_run_still_saves_its_transcript(dirs) -> None:
+    class Interrupting:
+        def complete(self, messages, tools):
+            raise KeyboardInterrupt
+
+    with pytest.raises(KeyboardInterrupt):
+        ask("q", Interrupting(), SMOKE, **dirs)
+    saved = list(dirs["transcripts_dir"].glob("*.json"))
+    assert len(saved) == 1 and json.loads(saved[0].read_text())["status"] == "interrupted"

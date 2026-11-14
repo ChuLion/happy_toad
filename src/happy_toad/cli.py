@@ -92,7 +92,7 @@ def _show_event(kind: str, payload: dict) -> None:
 
 def _show_outcome(t) -> None:
     typer.echo(f"\nStatus: {t.status}" + (f" ({t.error})" if t.error else ""))
-    if t.report is not None:
+    if t.report is not None and t.status in ("checked", "unverified"):
         typer.echo(f"\nReport:\n{t.report.summary}")
     for check in t.checks[-1:]:
         for c in check.claims:
@@ -115,12 +115,18 @@ def _show_outcome(t) -> None:
 @app.command()
 def ask(
     question: Annotated[str, typer.Argument(help="A plain-English question about the scenarios.")],
-    profile: Annotated[str, typer.Option(help="smoke (free model) or demo.")] = "demo",
+    profile: Annotated[
+        str, typer.Option(help="demo (default), smoke (free) or a round name.")
+    ] = "demo",
     inputs_dir: Annotated[Path, typer.Option()] = Path("data/inputs"),
     runs_dir: Annotated[Path, typer.Option()] = Path("runs"),
     transcripts_dir: Annotated[Path, typer.Option()] = Path("transcripts"),
 ) -> None:
     """Ask the agent a question; shows its tool calls, the checked report and the check results."""
+    if profile not in PROFILES:
+        raise typer.BadParameter(
+            f"unknown profile {profile!r}; valid: {', '.join(PROFILES)}", param_hint="--profile"
+        )
     chosen = PROFILES[profile]
     try:
         client = make_client(chosen)

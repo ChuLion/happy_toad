@@ -34,6 +34,7 @@ class Completion:
     model: str = ""
 
 
+LISTING_TIMEOUT = 10  # seconds
 ACCOUNT_ID = re.compile(r"\buser_[A-Za-z0-9]{16,}\b")  # not the key "user_id"
 
 
@@ -90,9 +91,10 @@ def quantization_by_provider(listing: dict) -> dict[str, str]:
 def fetch_quantizations(model: str) -> dict[str, str]:
     """The public endpoint listing for a model; empty if it cannot be read (recorded as unknown)."""
     try:
-        with urllib.request.urlopen(f"{BASE_URL}/models/{model}/endpoints") as response:
+        url = f"{BASE_URL}/models/{model}/endpoints"
+        with urllib.request.urlopen(url, timeout=LISTING_TIMEOUT) as response:
             return quantization_by_provider(json.load(response))
-    except OSError:
+    except (OSError, ValueError, KeyError):  # network, not JSON, or a reshaped listing
         return {}
 
 

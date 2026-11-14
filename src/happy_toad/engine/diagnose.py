@@ -89,3 +89,24 @@ def required_minimum_budget(
     floored = sum(max(f, in_market.get(m, 0.0)) for m, f in floors.items())
     unfloored = sum(v for m, v in in_market.items() if m not in floors)
     return must_fund + floored + unfloored + (forced - sum(in_market.values()))
+
+
+def multiplier_advice(code: ReasonCode, floor_mult: float | None, cap_mult: float | None) -> str:
+    """Which multiplier to change when limits come from multipliers (no minimum budget exists).
+
+    Floors and caps are both multiples of the same shares x avail, so a larger budget scales
+    them together and cannot remove these causes.
+    """
+    if code == ReasonCode.FLOORS_EXCEED_BUDGET:
+        return (
+            f"floor multiplier {floor_mult} requires floors above the available budget at any "
+            "budget; use 1.0 or less"
+        )
+    if code == ReasonCode.CAP_BELOW_FLOOR:
+        return (
+            f"cap multiplier {cap_mult} is below floor multiplier {floor_mult} at any budget; "
+            f"use a cap multiplier of {floor_mult} or more"
+        )
+    if code == ReasonCode.FORCED_IN_EXCEEDS_CAP:
+        return f"raise the cap multiplier (now {cap_mult}) or force in fewer candidates"
+    return f"lower the floor multiplier (now {floor_mult}) or force out fewer candidates"

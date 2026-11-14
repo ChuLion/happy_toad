@@ -140,3 +140,18 @@ def test_force_lists_reach_the_solver(dirs) -> None:
     record = run(dirs, force_out=["X1"])
     assert "X1" not in record.result.selected
     assert not math.isnan(record.timing["total"])
+
+
+def test_malformed_input_file_is_an_error_record(dirs) -> None:
+    inputs = dirs[0]
+    (inputs / "test.json").write_text('{"version_id": "test", "sectors": ')
+    record = run(dirs)
+    assert record.outcome == "error" and record.result is None
+    assert (dirs[1] / f"{record.run_id}.json").exists()
+
+
+def test_input_file_that_breaks_the_schema_is_an_error_record(dirs) -> None:
+    inputs = dirs[0]
+    (inputs / "test.json").write_text('{"version_id": "test"}')
+    record = run(dirs)
+    assert record.outcome == "error" and "sectors" in record.error

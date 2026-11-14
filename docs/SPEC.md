@@ -530,6 +530,16 @@ is counted twice. It is a lower bound, not a promise: a budget at or above it ma
 infeasible. The cause message ends "the budget must be at least X", and the M3 agent's tool result
 states it the same way ("at least X"). No new gate codes. For `CAUSE_UNKNOWN` it is None.
 
+When the floors and caps come from multipliers (`market_floor_mult`, `market_cap_mult`) and the
+cause is not `FORCED_COST_EXCEEDS_BUDGET`, it is also None: the limits are multiples of the
+same fair shares x avail, so a larger budget scales them together and no budget is sure to help.
+The cause message then names the multiplier to change instead of a budget, for example "floor
+multiplier 1.2 requires floors above the available budget at any budget; use 1.0 or less", "cap
+multiplier 0.8 is below floor multiplier 1.0 at any budget; use a cap multiplier of 1.0 or more",
+"raise the cap multiplier (now X) or force in fewer candidates" (`FORCED_IN_EXCEEDS_CAP`) and
+"lower the floor multiplier (now X) or force out fewer candidates" (`FLOOR_UNREACHABLE`). Explicit
+`limits` (spend per market) keep the minimum budget.
+
 ### Rule for the M3 agent (F; SPEC text only, no code in M2A)
 When the agent turns a plain-English question into a request it **never invents a number**.
 1. A missing budget means asking the human, or stating the assumption in the request `label`.
@@ -615,7 +625,7 @@ the section "M3 — approved changes and specification" at the end wins.
 8. **Transcripts [owner].** One JSON file per conversation in `transcripts/` (**[lead]** name;
    gitignored): question, every model turn, tool calls and results, checker results, model ID,
    token counts per turn and total, elapsed time, final status (checked, unverified, step cap,
-   error). M4 reuses them. The API key never appears.
+   error, or interrupted: Ctrl-C still saves the transcript, then stops). M4 reuses them. The API key never appears.
 9. **Cost and speed [owner].** Record tokens, elapsed time and estimated cost per question.
    **[lead]** Estimated cost = tokens x per-million-token rates held as constants in `config`.
    The rates are not set here: I will not invent prices. The owner supplies them, or the cost
@@ -694,6 +704,10 @@ A claim is `{metric, value, run_id, run_id_b?, unit?, entity?}`. `run_id_b` is r
 always `"plan"`; a missing or different value sent by the model is replaced and logged in the
 transcript (`defaults`, counted like coercions). A plain-number string is coerced for a numeric
 metric (`coercions`). A claim fails if the run file is missing or the stored value is `None`.
+**Runs of this conversation only:** a claim fails ("run was not executed or read in this
+conversation") if its `run_id` or `run_id_b` is not a run the agent executed, read or compared
+in this conversation; a run file left by another conversation does not count. Re-checking a
+saved report outside a conversation skips this rule.
 **Minimum budget is mandatory:** every run the agent executed, read, compared or cited that is
 rejected or infeasible and has a `required_minimum_budget` must have a validated
 `required_minimum_budget` claim, or the report fails.
@@ -731,7 +745,10 @@ difference of -243.70) would pass.
 error (a turn used, no correction used). A schema-valid report is checked: if all pass, the report
 is accepted as **checked** and the loop ends. Otherwise the failures go back to the model once; the
 second schema-valid report ends the loop whatever the result, and a failing one is shown and
-recorded as **unverified**.
+recorded as **unverified**. Only the first `submit_report` of a turn is handled; any later one in
+the same turn gets an error result ("only one submit_report per turn is checked") and uses no
+correction, so the model sees the first errors before it corrects. The CLI shows the report text
+only for a checked or unverified outcome, never a rejected draft of a run that ended otherwise.
 
 **SCHEMA_INVALID.** A `run_scenario` input that fails the `SolveRequest` schema is written by the
 agent layer as a rejected run record in the usual format: `outcome` rejected, `request` the raw

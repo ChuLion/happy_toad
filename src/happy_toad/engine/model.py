@@ -8,7 +8,7 @@ from collections.abc import Collection
 
 from happy_toad.constants import BASE_YEAR
 from happy_toad.data.schemas import InputSet
-from happy_toad.engine.diagnose import diagnose, required_minimum_budget
+from happy_toad.engine.diagnose import diagnose, multiplier_advice, required_minimum_budget
 from happy_toad.engine.markets import MarketLimits, clamp_floors, fair_share_limits
 from happy_toad.engine.relief import sector_relief, sector_weights, weighted, weighted_relief
 from happy_toad.engine.result import DEFAULT_SETTINGS, SolveResult, SolverSettings
@@ -68,7 +68,10 @@ def solve(
     """
     must_fund_total = sum(m.cost for m in data.must_fund)
     avail = budget - must_fund_total
-    if limits is None and (market_floor_mult is not None or market_cap_mult is not None):
+    from_multipliers = limits is None and (
+        market_floor_mult is not None or market_cap_mult is not None
+    )
+    if from_multipliers:
         limits = fair_share_limits(
             data, avail, market_floor_mult, market_cap_mult, fair_share_blend
         )
@@ -95,6 +98,15 @@ def solve(
 
     force_in, force_out = set(force_in), set(force_out)
     cause = diagnose(data, avail, force_in, force_out, limits)  # pre-solve: no solver call
+    if (
+        cause is not None
+        and from_multipliers
+        and cause.code != ReasonCode.FORCED_COST_EXCEEDS_BUDGET
+    ):
+        advice = multiplier_advice(cause.code, market_floor_mult, market_cap_mult)
+        return result(
+            None, "Infeasible", Reason(code=cause.code, message=f"{cause.message}; {advice}")
+        )
     if cause is not None:
         minimum = required_minimum_budget(data, force_in, limits)
         said = Reason(

@@ -49,3 +49,12 @@ def test_compare_runs_refuses_a_run_without_a_plan(tmp_path) -> None:
     infeasible = make_run(tmp_path, force_in=["X1", "X2", "Y1"])
     with pytest.raises(CompareError, match=infeasible.run_id):
         compare_runs(good, infeasible)
+
+
+def test_read_run_of_a_malformed_record_raises_input_error(tmp_path) -> None:
+    from happy_toad.data.checks import InputError
+
+    run_id = "20260101T000000-deadbeef"
+    (tmp_path / f"{run_id}.json").write_text("{not json")
+    with pytest.raises(InputError, match=run_id):
+        read_run(run_id, tmp_path)

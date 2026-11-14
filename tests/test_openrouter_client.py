@@ -224,3 +224,47 @@ def test_the_demo_profile_is_the_approved_deepseek_pin() -> None:
     assert DEMO.model == "deepseek/deepseek-v4-flash-0731"
     assert DEMO.provider_order == ("baseten/fp8", "baidu/fp8") and not DEMO.allow_fallbacks
     assert DEMO.reasoning_off and DEMO.reasoning_effort is None
+
+
+class _Reply:
+    def __init__(self, body: bytes) -> None:
+        self.body = body
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc) -> None:
+        pass
+
+    def read(self, *args) -> bytes:
+        return self.body
+
+
+def test_the_endpoint_listing_uses_a_10_second_timeout(monkeypatch) -> None:
+    from happy_toad.agent import client
+
+    seen = {}
+
+    def urlopen(url, timeout=None):
+        seen["timeout"] = timeout
+        return _Reply(b'{"data": {"endpoints": [{"provider_name": "A", "quantization": "fp8"}]}}')
+
+    monkeypatch.setattr(client.urllib.request, "urlopen", urlopen)
+    assert client.fetch_quantizations("m") == {"A": "fp8"} and seen["timeout"] == 10
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [OSError("timed out"), _Reply(b"<html>not json</html>"), _Reply(b'{"data": {}}')],
+    ids=["network", "not-json", "reshaped"],
+)
+def test_an_unreadable_endpoint_listing_is_empty(monkeypatch, failure) -> None:
+    from happy_toad.agent import client
+
+    def urlopen(url, timeout=None):
+        if isinstance(failure, Exception):
+            raise failure
+        return failure
+
+    monkeypatch.setattr(client.urllib.request, "urlopen", urlopen)
+    assert client.fetch_quantizations("m") == {}

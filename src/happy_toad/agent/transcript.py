@@ -39,7 +39,7 @@ class Transcript(BaseModel):
     turns: list[TurnRecord] = []
     checks: list[CheckResult] = []
     report: Report | None = None
-    status: str = "error"  # checked, unverified, step_cap, api_error or error
+    status: str = "error"  # checked, unverified, step_cap, api_error, error or interrupted
     error: str | None = None
     api_error: dict | None = None  # {status, body, step} when the provider refused a request
     coercions: list[dict] = []  # claim values the schema turned from strings into numbers

@@ -239,3 +239,11 @@ def test_rows_carry_defaults_reasoning_tokens_and_an_unequal_terms_note(dirs) ->
     assert (
         "defaults 4" in text and "reasoning tokens 14.0 mean" in text and "not equal terms" in text
     )
+
+
+def test_the_final_failing_report_of_an_unverified_run_is_not_a_refusal(dirs) -> None:
+    """A refusal is one the model had to correct; nothing followed the last one."""
+    bad = turn(call("submit_report", summary="Is 500 enough?", claims=[]))
+    client = FakeClient([bad, bad])
+    rows = run_bakeoff({"one": PROFILES["one"]}, lambda p: client, {"q1": "q"}, **dirs)
+    assert rows[0].status == "unverified" and rows[0].refusals == 1

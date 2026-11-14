@@ -3,8 +3,9 @@
 import re
 from pathlib import Path
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
+from happy_toad.data.checks import InputError
 from happy_toad.services.run import RunRecord
 
 RUN_ID = re.compile(r"\d{8}T\d{6}-[0-9a-f]{8}")
@@ -39,11 +40,17 @@ def list_versions(inputs_dir: Path = Path("data/inputs")) -> list[str]:
 
 
 def read_run(run_id: str, runs_dir: Path = Path("runs")) -> RunRecord | None:
-    """The stored record for a run id, or None if the id is not a run id or has no file."""
+    """The stored record for a run id, or None if the id is not a run id or has no file.
+
+    Raises InputError if the file is malformed.
+    """
     path = runs_dir / f"{run_id}.json"
     if not RUN_ID.fullmatch(run_id) or not path.exists():
         return None
-    return RunRecord.model_validate_json(path.read_text())
+    try:
+        return RunRecord.model_validate_json(path.read_text())
+    except ValidationError as err:
+        raise InputError([f"run record {run_id} is malformed: {err}"]) from err
 
 
 def metrics(record: RunRecord) -> dict:

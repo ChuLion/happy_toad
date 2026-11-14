@@ -77,10 +77,14 @@ def _malformed(transcript) -> int:
 
 
 def _refusals(transcript) -> int:
-    calls = [
-        c for turn in transcript.turns for c in turn.tool_calls if c["name"] == "submit_report"
+    """Refused submit_report calls the model went on to correct (a later submit followed)."""
+    answers = [
+        c["result"]
+        for turn in transcript.turns
+        for c in turn.tool_calls
+        if c["name"] == "submit_report" and "accepted" in c["result"]  # not the ignored extras
     ]
-    return sum(c["result"].get("accepted") is False for c in calls)
+    return sum(a["accepted"] is False for a in answers[:-1])
 
 
 def _row(profile: Profile, key: str, repeat: int, transcript, price) -> Row:

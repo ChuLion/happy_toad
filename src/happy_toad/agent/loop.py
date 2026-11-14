@@ -18,6 +18,7 @@ from happy_toad.agent.transcript import Transcript, TurnRecord
 from happy_toad.services.run import new_run_id
 
 NUDGE = "Reply by calling submit_report with your answer."
+ONE_SUBMIT = "only one submit_report per turn is checked; this one was not"
 RAW_ECHO_LIMIT = 500  # characters of unparseable arguments kept in the history sent back
 
 
@@ -102,8 +103,11 @@ class Conversation:
         calls = []
         message, sanitized = _assistant_message(done)
         self.messages.append(message)
+        submitted = False
         for call in done.tool_calls:
-            result = self.run_call(call)
+            again = submitted and call.name == "submit_report"
+            submitted |= call.name == "submit_report"
+            result = {"error": ONE_SUBMIT} if again else self.run_call(call)
             calls.append({"name": call.name, "arguments": call.arguments, "result": result})
             self.on_event("tool_call", calls[-1])
             content = json.dumps(result, default=str)
@@ -162,12 +166,16 @@ def ask(
         t.api_error = {"status": err.status, "body": err.body, "step": len(t.turns) + 1}
     except Exception as err:  # the transcript must exist whatever the provider did
         t.status, t.error = "error", f"{type(err).__name__}: {err}"
-    t.total_tokens = {
-        "prompt": sum(x.prompt_tokens for x in t.turns),
-        "completion": sum(x.completion_tokens for x in t.turns),
-        "reasoning": sum(x.reasoning_tokens for x in t.turns),
-    }
-    t.cost = _sum_cost(t.turns)
-    t.elapsed_seconds = time.perf_counter() - started
-    t.save(transcripts_dir)
+    except KeyboardInterrupt:
+        t.status = "interrupted"
+        raise
+    finally:
+        t.total_tokens = {
+            "prompt": sum(x.prompt_tokens for x in t.turns),
+            "completion": sum(x.completion_tokens for x in t.turns),
+            "reasoning": sum(x.reasoning_tokens for x in t.turns),
+        }
+        t.cost = _sum_cost(t.turns)
+        t.elapsed_seconds = time.perf_counter() - started
+        t.save(transcripts_dir)
     return t

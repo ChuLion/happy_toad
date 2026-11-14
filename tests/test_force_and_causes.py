@@ -145,3 +145,31 @@ def test_no_required_minimum_budget_when_the_cause_is_unknown_or_there_is_a_plan
     assert unknown.required_minimum_budget is None
     assert "at least" not in unknown.cause.message
     assert solve(toy, budget=12).required_minimum_budget is None
+
+
+def test_no_minimum_budget_when_multiplier_floors_exceed_any_budget(toy, no_solver) -> None:
+    """Floors from multipliers grow with the budget: 1.2 x the shares (sum 1) never fits."""
+    result = solve(toy, budget=12, market_floor_mult=1.2)
+    assert result.cause.code == ReasonCode.FLOORS_EXCEED_BUDGET
+    assert result.required_minimum_budget is None
+    assert "at least" not in result.cause.message
+    assert (
+        "floor multiplier 1.2 requires floors above the available budget at any budget; "
+        "use 1.0 or less" in result.cause.message
+    )
+
+
+def test_no_minimum_budget_when_the_cap_multiplier_is_below_the_floor_multiplier(
+    toy, no_solver
+) -> None:
+    result = solve(toy, budget=12, market_floor_mult=1.0, market_cap_mult=0.8)
+    assert result.cause.code == ReasonCode.CAP_BELOW_FLOOR
+    assert result.required_minimum_budget is None
+    assert "at least" not in result.cause.message
+    assert "cap multiplier 0.8 is below floor multiplier 1.0 at any budget" in result.cause.message
+
+
+def test_forced_cost_keeps_its_minimum_budget_with_multipliers(toy, no_solver) -> None:
+    result = solve(toy, budget=12, force_in=["X1", "X2", "Y1"], market_cap_mult=1.5)
+    assert result.cause.code == ReasonCode.FORCED_COST_EXCEEDS_BUDGET
+    assert result.required_minimum_budget == pytest.approx(17)
