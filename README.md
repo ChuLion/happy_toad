@@ -172,11 +172,11 @@ failure reasons per model are in docs/DEVLOG.md.
   checked against the runs, and a count claimed as a whole-valued float (2.0 instead of 2) is
   rejected.
 
+## Layout
+`src/happy_toad/{data,engine,services,agent}`, `cli.py`, `report.py`, `tests/`, `scripts/`, `docs/{SPEC,DECISIONS,DEVLOG}.md`.
+
 ## What is next (planned, not done)
 - M2B: diagnostics (for example the smallest budget that meets a target).
 - M4: evaluations.
 - M5: revision analysis.
 - M6: an MCP server.
-
-### Layout
-`src/happy_toad/{data,engine,services,agent}`, `cli.py`, `report.py`, `tests/`, `scripts/`, `docs/{SPEC,DECISIONS,DEVLOG}.md`.
