@@ -379,3 +379,14 @@
   - README claims kept to: PuLP with CBC, synthetic data, checked and measured, "a small
     synthetic reference build ... not a product"; no novelty claim.
   - The fair-share script lives in `scripts/fair_share_table.py` and is embedded in the SPEC.
+
+## M2A opened: README scrub (2026-11-14)
+- README: the sentence with the real-region sector count is replaced by "a production region
+  would have far more sectors". The figure is also removed from this DEVLOG. It was removed
+  from git history as well on 2026-11-15 (git filter-repo, before the move to a new
+  repository); commit hashes in these docs were remapped to the rewritten commits.
+- Repo scan (tracked files and commit subjects) for company names, internal tool names and real
+  figures: nothing found. Searched for company/entity words, equipment and domain terms, vendor
+  and tool names, currency and unit figures, and "real/actual/production/proprietary/internal".
+  Only hits: `CLAUDE.md` (the rule itself) and ordinary uses of "actual" in code and tests. The
+  scan is a keyword search, not proof; it cannot recognize a name it was not looking for.
