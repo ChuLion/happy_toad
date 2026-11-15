@@ -314,7 +314,7 @@ function startLive() {
     try {
       const res = await fetch("/api/ask", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question }) });
-      if (!res.ok) { fail((await res.json()).error); pending.remove(); return; }
+      if (!res.ok) { fail((await res.json()).error); show(el("div")); return; }
       const reader = res.body.getReader(), dec = new TextDecoder();
       let buf = "";
       for (;;) {
