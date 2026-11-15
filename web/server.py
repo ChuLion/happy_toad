@@ -119,6 +119,7 @@ def make_handler(settings: Settings) -> type[BaseHTTPRequestHandler]:
                 runs_dir=settings.runs_dir,
                 transcripts_dir=settings.transcripts_dir,
                 on_event=lambda _kind, call: self._line({"type": "step", "step": step(call)}),
+                source="web",
             )
             self._line(
                 {"type": "view", "view": build_view(t, referenced_runs(t, settings.runs_dir))}

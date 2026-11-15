@@ -15,11 +15,10 @@ from happy_toad.agent.client import OpenRouterClient, fetch_quantizations
 from happy_toad.agent.config import BAKEOFF
 from happy_toad.agent.demo import QUESTIONS
 from happy_toad.agent.loop import ask
+from happy_toad.agent.report import TEXT_METRICS
 from happy_toad.agent.tools import CLARIFY_SENTENCE, TOOLS
 from happy_toad.data.generator import make_v1
 from happy_toad.data.loader import save_input_set
-
-TEXT = {"status", "target_met"}
 
 
 def without_sentence() -> list[dict]:
@@ -36,7 +35,9 @@ def string_claims(transcript) -> int:
         for c in turn.tool_calls:
             if c["name"] == "submit_report":
                 for claim in json.loads(c["arguments"]).get("claims", []):
-                    count += claim.get("metric") not in TEXT and isinstance(claim.get("value"), str)
+                    count += claim.get("metric") not in TEXT_METRICS and isinstance(
+                        claim.get("value"), str
+                    )
     return count
 
 
@@ -59,7 +60,7 @@ def main(n: int) -> None:
                     transcripts_dir=Path("transcripts"),
                     tools=tools,
                 )
-                providers = sorted({x.provider or "?" for x in t.turns})
+                providers = t.providers
                 print(
                     f"{label} #{i}: {t.status}, turns {len(t.turns)}, "
                     f"string-valued numeric claims {string_claims(t)}, "

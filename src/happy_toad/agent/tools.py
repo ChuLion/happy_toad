@@ -113,9 +113,10 @@ def _fields_in(error: ValidationError) -> str:
 class ToolRunner:
     """Runs the five deterministic tools against the inputs and runs folders."""
 
-    def __init__(self, inputs_dir: Path, runs_dir: Path) -> None:
+    def __init__(self, inputs_dir: Path, runs_dir: Path, transcript_id: str | None = None) -> None:
         self.inputs_dir = inputs_dir
         self.runs_dir = runs_dir
+        self.transcript_id = transcript_id  # stored on every run record this runner makes
 
     def call(self, name: str, arguments: str) -> dict:
         """Run a tool by name with its JSON arguments; every outcome is a dict for the model."""
@@ -140,16 +141,25 @@ class ToolRunner:
         try:
             request = SolveRequest.model_validate(args)
         except ValidationError as err:
-            return run_view(record_invalid_request(args, _fields_in(err), self.runs_dir))
-        return run_view(run_request(request, self.inputs_dir, self.runs_dir))
+            record = record_invalid_request(
+                args, _fields_in(err), self.runs_dir, transcript_id=self.transcript_id
+            )
+            return run_view(record)
+        return run_view(
+            run_request(request, self.inputs_dir, self.runs_dir, transcript_id=self.transcript_id)
+        )
 
     def find_target_budget(self, args: dict) -> dict:
         try:
             request = TargetBudgetRequest.model_validate(args)
         except ValidationError as err:
-            record = record_invalid_request(args, _fields_in(err), self.runs_dir, "target_budget")
+            record = record_invalid_request(
+                args, _fields_in(err), self.runs_dir, "target_budget", self.transcript_id
+            )
             return run_view(record) | {"follow_up_run_id": None}
-        record = run_target(request, self.inputs_dir, self.runs_dir)
+        record = run_target(
+            request, self.inputs_dir, self.runs_dir, transcript_id=self.transcript_id
+        )
         view = run_view(record) | {"follow_up_run_id": record.follow_up_run_id}
         if record.follow_up_run_id:
             view["follow_up"] = run_view(read_run(record.follow_up_run_id, self.runs_dir))

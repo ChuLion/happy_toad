@@ -139,7 +139,7 @@ def test_the_serving_providers_quantization_is_on_every_completion() -> None:
     assert client.complete([], []).quantization == "unknown"
 
 
-def test_a_provider_status_error_keeps_the_status_and_the_whole_body() -> None:
+def test_a_provider_status_error_keeps_the_status_and_the_body() -> None:
     import httpx2 as httpx
     import openai
 

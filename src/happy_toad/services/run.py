@@ -70,6 +70,7 @@ class RunRecord(BaseModel):
     result: RunResult | None
     timing: dict[str, float]
     warnings: list[str]
+    transcript_id: str | None = None  # M4: the conversation whose tool call made this run
     follow_up_run_id: str | None = None  # M2B: the optimizer run at target_budget
 
 
@@ -84,7 +85,13 @@ def write_record(record: RunRecord, runs_dir: Path) -> None:
     (runs_dir / f"{record.run_id}.json").write_text(record.model_dump_json(indent=2))
 
 
-def base_fields(request: dict, hash_: str, input_version: str, settings: SolverSettings) -> dict:
+def base_fields(
+    request: dict,
+    hash_: str,
+    input_version: str,
+    settings: SolverSettings,
+    transcript_id: str | None = None,
+) -> dict:
     """The fields every new run record starts with: a fresh run id and nothing found yet."""
     created = datetime.now(UTC)
     return dict(
@@ -100,6 +107,7 @@ def base_fields(request: dict, hash_: str, input_version: str, settings: SolverS
         result=None,
         timing={},
         warnings=[],
+        transcript_id=transcript_id,
     )
 
 
@@ -112,7 +120,11 @@ def save_record(fields: dict, outcome: str, started: float, runs_dir: Path) -> R
 
 
 def record_invalid_request(
-    raw: dict, message: str, runs_dir: Path, kind: str = "scenario"
+    raw: dict,
+    message: str,
+    runs_dir: Path,
+    kind: str = "scenario",
+    transcript_id: str | None = None,
 ) -> RunRecord:
     """Write a rejected record for an agent input that does not fit the request schema.
 
@@ -125,6 +137,7 @@ def record_invalid_request(
         hashlib.sha256(json.dumps(raw, sort_keys=True, default=str).encode()).hexdigest(),
         version if isinstance(version, str) else "",
         DEFAULT_SETTINGS,
+        transcript_id,
     )
     fields["reasons"] = [Reason(code=ReasonCode.SCHEMA_INVALID, message=message)]
     record = RunRecord(outcome="rejected", kind=kind, **fields)
@@ -173,11 +186,12 @@ def run_request(
     inputs_dir: Path = Path("data/inputs"),
     runs_dir: Path = Path("runs"),
     settings: SolverSettings = DEFAULT_SETTINGS,
+    transcript_id: str | None = None,
 ) -> RunRecord:
     """Gate, solve and record one request. Rejections and failures are recorded too."""
     started = time.perf_counter()
     fields = base_fields(
-        request.model_dump(), request_hash(request), request.input_version, settings
+        request.model_dump(), request_hash(request), request.input_version, settings, transcript_id
     )
 
     def finish(outcome: str, **changes) -> RunRecord:

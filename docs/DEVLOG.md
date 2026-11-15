@@ -1235,3 +1235,24 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   at 500 characters; `report_accepted` as an explicit transcript field; the runner command and its
   `--unofficial` flag; round reports in `evals/rounds/`; fix letters a-j (the default version is
   j); tag v0.5 when done.
+
+## 2026-11-15 — M4 part A: provenance, source, run-to-transcript link, accepted flag, redaction
+- Tests first (`tests/test_provenance.py`, one web-server test): seen failing at collection with
+  `No module named 'happy_toad.agent.provenance'` and on the missing `Transcript.source`.
+- `agent/provenance.py`: `git_sha`, `git_dirty`, `prompt_sha256` (system prompt plus sorted-key
+  JSON of the tool definitions); every transcript stores it with `source` (cli, web, eval,
+  bakeoff) and `report_accepted`. Run records store `transcript_id` when an agent tool call made
+  them (scenario, search, follow-up and schema-invalid records). `agent/redaction.py` holds the key
+  and account-id patterns (moved from `web/redact.py` and `client.py`) and `redact_error`
+  (redact, then cut to 500 characters), used for provider error bodies and unexpected-error text.
+  S8 (`_error_row` with keywords, plain `if`, the git lambda replaced by the shared module) and S10
+  (`Transcript.providers` in the CLI, bake-off, web view and script; the script reuses
+  `TEXT_METRICS`). Stored transcripts and run records still load (tested).
+- Changed existing tests: the bake-off provenance test now expects the new prompt hash (prompt
+  plus tools); the provider-error test is renamed (the body is now cut at 500 characters).
+- **Bake-off prompt hashes before and after this change are not comparable**: the hash now covers
+  the tool definitions too. 475 pass, ruff clean.
+- Not specified by the owner: `report_accepted` and `source` are `None` on transcripts saved before
+  M4 (unknown) rather than guessed from `status`; `ask()` takes `source` as an optional argument
+  (`None` in tests); the string-claims script now prints "unknown" instead of "?" for a turn with
+  no provider.

@@ -1,10 +1,7 @@
 """Redaction of anything resembling an API key or account id, applied to every view."""
 
-import re
-
+from happy_toad.agent.redaction import KEY_LIKE
 from happy_toad.agent.transcript import redact as redact_account_ids
-
-KEY_LIKE = re.compile(r"\b(sk|pk|rk)-[A-Za-z0-9_-]{16,}|\bBearer\s+[A-Za-z0-9._-]{16,}")
 
 
 def redact_text(text: str) -> str:

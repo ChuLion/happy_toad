@@ -76,7 +76,7 @@ def build_view(transcript: Transcript, run_records: list[RunRecord]) -> dict:
     t = transcript
     label = verdict(t)
     report = t.report if label else None
-    providers = ", ".join(sorted({x.provider or "unknown" for x in t.turns})) or "no provider"
+    providers = ", ".join(t.providers) or "no provider"
     view = {
         "schema_version": SCHEMA_VERSION,
         "transcript_id": t.transcript_id,

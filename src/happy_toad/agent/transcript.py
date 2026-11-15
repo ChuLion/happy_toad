@@ -1,11 +1,12 @@
 """The transcript of one conversation, saved as JSON for review and for M4 (SPEC, M3 decision 8)."""
 
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel
 
 from happy_toad.agent.checker import CheckResult
-from happy_toad.agent.client import ACCOUNT_ID
+from happy_toad.agent.redaction import ACCOUNT_ID
 from happy_toad.agent.report import Report
 
 
@@ -47,6 +48,14 @@ class Transcript(BaseModel):
     total_tokens: dict[str, int] = {"prompt": 0, "completion": 0, "reasoning": 0}
     cost: float | None = None
     elapsed_seconds: float = 0.0
+    source: Literal["cli", "web", "eval", "bakeoff"] | None = None  # None: before M4, or a test
+    provenance: dict | None = None  # git_sha, git_dirty, prompt_sha256 (agent/provenance.py)
+    report_accepted: bool | None = None  # None: saved before M4
+
+    @property
+    def providers(self) -> list[str]:
+        """The providers that served the turns, sorted, "unknown" when a turn did not say."""
+        return sorted({x.provider or "unknown" for x in self.turns})
 
     def save(self, folder: Path) -> Path:
         folder.mkdir(parents=True, exist_ok=True)

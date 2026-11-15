@@ -173,12 +173,15 @@ def test_summary_counts_api_errors_and_coercions_apart_from_checker_failures(dir
 
 def test_provenance_records_commit_prompt_hash_and_frozen_files() -> None:
     import hashlib
+    import json
 
     from happy_toad.agent.bakeoff import provenance
     from happy_toad.agent.prompt import SYSTEM_PROMPT
+    from happy_toad.agent.tools import TOOLS
 
     info = provenance()
-    assert info["prompt_sha256"] == hashlib.sha256(SYSTEM_PROMPT.encode()).hexdigest()
+    text = SYSTEM_PROMPT + json.dumps(TOOLS, sort_keys=True)  # M4: prompt plus tool definitions
+    assert info["prompt_sha256"] == hashlib.sha256(text.encode()).hexdigest()
     assert len(info["git_sha"]) == 40 and isinstance(info["git_dirty"], bool)
     assert set(info["frozen_files"]) == {
         "checker.py",

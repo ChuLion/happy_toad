@@ -2,7 +2,6 @@
 
 import json
 import os
-import re
 import urllib.request
 from dataclasses import dataclass, field, replace
 from typing import Protocol
@@ -10,6 +9,7 @@ from typing import Protocol
 from openai import APIStatusError
 
 from happy_toad.agent.config import BASE_URL, KEY_ENV, Profile
+from happy_toad.agent.redaction import redact_error
 
 
 @dataclass(frozen=True)
@@ -35,14 +35,13 @@ class Completion:
 
 
 LISTING_TIMEOUT = 10  # seconds
-ACCOUNT_ID = re.compile(r"\buser_[A-Za-z0-9]{16,}\b")  # not the key "user_id"
 
 
 class ProviderError(Exception):
-    """The provider answered with an error status; its body is kept, minus the account id."""
+    """The provider answered with an error status; its body is kept, redacted and cut."""
 
     def __init__(self, status: int, body: str) -> None:
-        body = ACCOUNT_ID.sub("[redacted]", body)
+        body = redact_error(body)
         super().__init__(f"HTTP {status}: {body}")
         self.status, self.body = status, body
 

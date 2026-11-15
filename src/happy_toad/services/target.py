@@ -136,11 +136,12 @@ def run_target(
     inputs_dir: Path = Path("data/inputs"),
     runs_dir: Path = Path("runs"),
     settings: SolverSettings = DEFAULT_SETTINGS,
+    transcript_id: str | None = None,
 ) -> RunRecord:
     """Gate, search and record; when a budget is found, also run the optimizer at it."""
     started = time.perf_counter()
     fields = base_fields(
-        request.model_dump(), target_hash(request), request.input_version, settings
+        request.model_dump(), target_hash(request), request.input_version, settings, transcript_id
     )
     fields["kind"] = "target_budget"
     try:
@@ -171,7 +172,7 @@ def run_target(
         force_in=request.force_in,
         force_out=request.force_out,
     )
-    follow_up_id = run_request(follow_up, inputs_dir, runs_dir, settings).run_id
+    follow_up_id = run_request(follow_up, inputs_dir, runs_dir, settings, transcript_id).run_id
     record = record.model_copy(update={"follow_up_run_id": follow_up_id})
     write_record(record, runs_dir)
     return record

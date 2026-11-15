@@ -191,3 +191,12 @@ def test_refusal_log_folder_is_created(live):
     status, _ = _post(url, "   ")
     assert status == 400
     assert _refusals(settings)[0]["reason"] == "empty"
+
+
+def test_web_transcripts_are_marked_web(live):
+    from happy_toad.agent.transcript import Transcript
+
+    url, settings, _ = live
+    _post(url, "Which versions exist?")
+    saved = next(settings.transcripts_dir.glob("*.json")).read_text()
+    assert Transcript.model_validate_json(saved).source == "web"

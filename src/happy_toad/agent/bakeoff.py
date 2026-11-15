@@ -2,7 +2,6 @@
 
 import hashlib
 import json
-import subprocess
 from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -12,7 +11,7 @@ from happy_toad.agent.client import ChatClient
 from happy_toad.agent.config import Profile
 from happy_toad.agent.demo import QUESTIONS
 from happy_toad.agent.loop import ask
-from happy_toad.agent.prompt import SYSTEM_PROMPT
+from happy_toad.agent.provenance import provenance as shared_provenance
 
 FROZEN_FILES = ("checker.py", "report.py", "tools.py", "prompt.py", "loop.py")
 
@@ -102,7 +101,7 @@ def _row(profile: Profile, key: str, repeat: int, transcript, price) -> Row:
         prompt_tokens=t.total_tokens["prompt"],
         completion_tokens=t.total_tokens["completion"],
         cost=t.cost,
-        providers=sorted({x.provider or "unknown" for x in t.turns}),
+        providers=t.providers,
         seconds=t.elapsed_seconds,
         price=price,
         error=t.error
@@ -128,9 +127,23 @@ def _note(profile: Profile) -> str | None:
 
 def _error_row(profile: Profile, key: str, repeat: int, price, message: str) -> Row:
     return Row(
-        profile.name, profile.model, key, "error", [], 0, [], 0, 0, 0, None, [], 0.0, price,
-        message, repeat,
-    )  # fmt: skip
+        profile=profile.name,
+        model=profile.model,
+        question=key,
+        status="error",
+        tools=[],
+        schema_errors=0,
+        check_failures=[],
+        turns=0,
+        prompt_tokens=0,
+        completion_tokens=0,
+        cost=None,
+        providers=[],
+        seconds=0.0,
+        price=price,
+        error=message,
+        repeat=repeat,
+    )
 
 
 def run_bakeoff(
@@ -170,6 +183,7 @@ def run_bakeoff(
                         inputs_dir=inputs_dir,
                         runs_dir=runs_dir,
                         transcripts_dir=transcripts_dir,
+                        source="bakeoff",
                     )
                     row = _row(profile, key, repeat, t, price)
                 rows.append(row)
@@ -255,15 +269,6 @@ def _totals(rows: list[Row]) -> list[str]:
 
 def provenance() -> dict:
     """What the results came from: commit, prompt hash and the hashes of the frozen files."""
-    git = lambda *args: subprocess.run(  # noqa: E731
-        ["git", *args], capture_output=True, text=True, check=True
-    ).stdout.strip()
     here = Path(__file__).parent
-    return {
-        "git_sha": git("rev-parse", "HEAD"),
-        "git_dirty": bool(git("status", "--porcelain", "--untracked-files=no")),
-        "prompt_sha256": hashlib.sha256(SYSTEM_PROMPT.encode()).hexdigest(),
-        "frozen_files": {
-            name: hashlib.sha256((here / name).read_bytes()).hexdigest() for name in FROZEN_FILES
-        },
-    }
+    frozen = {name: hashlib.sha256((here / name).read_bytes()).hexdigest() for name in FROZEN_FILES}
+    return shared_provenance() | {"frozen_files": frozen}

@@ -113,7 +113,7 @@ def _show_outcome(t) -> None:
     if label := verdict(t):
         typer.echo(f"\nVerdict: {label}")
     cost = "cost: not configured" if t.cost is None else f"cost: ${t.cost:.4f}"
-    providers = sorted({x.provider or "unknown" for x in t.turns})
+    providers = t.providers
     tokens = t.total_tokens
     typer.echo(
         f"\n{len(t.turns)} turns, tokens {tokens['prompt']} in / {tokens['completion']} out, "
@@ -286,7 +286,7 @@ def exit_code(t) -> int:
 
 
 def _footer(t) -> str:
-    providers = ", ".join(sorted({x.provider or "unknown" for x in t.turns})) or "no provider"
+    providers = ", ".join(t.providers) or "no provider"
     cost = "cost not configured" if t.cost is None else f"${t.cost:.4f}"
     return f"{t.model} | {providers} | {len(t.turns)} turns | {cost} | {t.elapsed_seconds:.1f} s"
 
@@ -422,6 +422,7 @@ def ask(
         runs_dir=runs_dir,
         transcripts_dir=transcripts_dir,
         on_event=_show_event if verbose else lambda _kind, call: compact_tool_call(call, console),
+        source="cli",
     )
     if verbose:
         _show_outcome(t)

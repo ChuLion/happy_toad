@@ -12,6 +12,7 @@ from happy_toad.agent.checker import check_report
 from happy_toad.agent.client import ChatClient, Completion, ProviderError, ToolCall
 from happy_toad.agent.config import MAX_STEPS, Profile
 from happy_toad.agent.prompt import SYSTEM_PROMPT
+from happy_toad.agent.provenance import provenance, redact_error
 from happy_toad.agent.report import Report, coercions, defaults
 from happy_toad.agent.tools import TOOLS, ToolRunner
 from happy_toad.agent.transcript import Transcript, TurnRecord
@@ -53,8 +54,8 @@ def _sum_cost(turns: list[TurnRecord]) -> float | None:
 class Conversation:
     """State of one question: messages, transcript, tool runner and the checker flow."""
 
-    def __init__(self, question, profile, runner, runs_dir, inputs_dir, on_event) -> None:
-        self.runner, self.runs_dir, self.on_event = runner, runs_dir, on_event
+    def __init__(self, question, profile, runs_dir, inputs_dir, on_event, source, tools) -> None:
+        self.runs_dir, self.on_event = runs_dir, on_event
         self.inputs_dir = inputs_dir
         self.runs: list[str] = []  # run ids the agent executed, read or compared
         self.transcript = Transcript(
@@ -62,7 +63,11 @@ class Conversation:
             question=question,
             profile=profile.name,
             model=profile.model,
+            source=source,
+            provenance=provenance(tools),
+            report_accepted=False,
         )
+        self.runner = ToolRunner(inputs_dir, runs_dir, self.transcript.transcript_id)
         self.messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": question},
@@ -81,7 +86,7 @@ class Conversation:
         t.checks.append(result)
         t.report = report
         if result.ok:
-            t.status = "checked"
+            t.status, t.report_accepted = "checked", True
             return {"accepted": True}
         if len(t.checks) == 1:
             errors = result.errors()
@@ -146,12 +151,11 @@ def ask(
     transcripts_dir: Path = Path("transcripts"),
     tools: list[dict] = TOOLS,
     on_event: Callable[[str, dict], None] = lambda kind, payload: None,
+    source: str | None = None,
 ) -> Transcript:
     """Answer one question. Every outcome, including failures, leaves a saved transcript."""
     started = time.perf_counter()
-    convo = Conversation(
-        question, profile, ToolRunner(inputs_dir, runs_dir), runs_dir, inputs_dir, on_event
-    )
+    convo = Conversation(question, profile, runs_dir, inputs_dir, on_event, source, tools)
     t = convo.transcript
     t.status = "step_cap"
     try:
@@ -165,7 +169,7 @@ def ask(
         t.status = "api_error"
         t.api_error = {"status": err.status, "body": err.body, "step": len(t.turns) + 1}
     except Exception as err:  # the transcript must exist whatever the provider did
-        t.status, t.error = "error", f"{type(err).__name__}: {err}"
+        t.status, t.error = "error", redact_error(f"{type(err).__name__}: {err}")
     except KeyboardInterrupt:
         t.status = "interrupted"
         raise
