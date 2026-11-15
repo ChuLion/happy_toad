@@ -7,7 +7,7 @@ from rich.console import Console
 from happy_toad.agent.checker import CheckResult, ClaimCheck
 from happy_toad.agent.report import Report
 from happy_toad.agent.transcript import Transcript
-from happy_toad.cli import compact_outcome, compact_tool_call
+from happy_toad.cli import compact_outcome, compact_tool_call, exit_code, verdict
 
 FIXTURE = Path(__file__).parent / "fixtures" / "transcript_demo_c.json"
 
@@ -80,7 +80,7 @@ def no_figures(t: Transcript) -> Transcript:
 
 def test_a_report_with_no_claims_and_no_numbers_is_not_shown_as_checked() -> None:
     out = render(no_figures(demo_c()))
-    assert "NO NUMBERS TO CHECK" in out and "This answer contains no figures" in out
+    assert "NO NUMBERS TO CHECK" in out and "No checkable figures in this answer" in out
     assert "CHECKED" not in out
     assert "numbers matched" not in out
 
@@ -102,3 +102,16 @@ def test_one_verified_claim_keeps_the_checked_badge() -> None:
     out = render(one)
     assert "CHECKED" in out and "NO NUMBERS TO CHECK" not in out
     assert "1 claims, 0 numbers matched against stored runs, 0 mismatches" in out
+
+
+def test_one_verdict_per_transcript_and_its_exit_code() -> None:
+    t = demo_c()
+    cases = {
+        "checked": (t, "CHECKED", 0),
+        "no figures": (no_figures(t), "NO NUMBERS TO CHECK", 3),
+        "unverified": (t.model_copy(update={"status": "unverified"}), "NOT CHECKED", 1),
+        "step cap": (t.model_copy(update={"status": "step_cap"}), None, 1),
+        "api error": (t.model_copy(update={"status": "api_error", "report": None}), None, 1),
+    }
+    for name, (case, label, code) in cases.items():
+        assert (verdict(case), exit_code(case)) == (label, code), name

@@ -106,6 +106,8 @@ def _show_outcome(t) -> None:
             typer.echo(f"  {'ok  ' if n.ok else 'FAIL'} number {n.text}: {n.message}")
     if t.status == "unverified":
         typer.echo("UNVERIFIED: the numbers above did not all match the stored runs.")
+    if label := verdict(t):
+        typer.echo(f"\nVerdict: {label}")
     cost = "cost: not configured" if t.cost is None else f"cost: ${t.cost:.4f}"
     providers = sorted({x.provider or "unknown" for x in t.turns})
     tokens = t.total_tokens
@@ -217,14 +219,31 @@ def _counts(check) -> list[str]:
     return [head] + [f"  {e}" for e in errors]
 
 
-def _badge(t) -> tuple[str, str]:
-    """CHECKED needs a verified claim or number; an answer with neither gets a neutral badge."""
+NO_FIGURES = "NO NUMBERS TO CHECK"
+BADGE_STYLE = {
+    "CHECKED": "bold reverse green",
+    "NOT CHECKED": "bold reverse red",
+    NO_FIGURES: "bold reverse",
+}
+EXIT_CODE = {"CHECKED": 0, NO_FIGURES: 3}  # anything else: 1
+
+
+def verdict(t) -> str | None:
+    """The one verdict for both outputs and the exit code; None when there is no report to show.
+
+    CHECKED needs a verified claim or number; an answer with neither is NO NUMBERS TO CHECK.
+    """
+    if t.report is None or t.status not in ("checked", "unverified"):
+        return None
     if t.status != "checked":
-        return " NOT CHECKED ", "bold reverse red"
+        return "NOT CHECKED"
     last = t.checks[-1]
-    if not last.claims and not last.numbers:
-        return " NO NUMBERS TO CHECK ", "bold reverse"
-    return " CHECKED ", "bold reverse green"
+    return NO_FIGURES if not last.claims and not last.numbers else "CHECKED"
+
+
+def exit_code(t) -> int:
+    """0 CHECKED, 3 NO NUMBERS TO CHECK, 1 otherwise (SPEC, M3 decision 10)."""
+    return EXIT_CODE.get(verdict(t), 1)
 
 
 def _footer(t) -> str:
@@ -235,14 +254,13 @@ def _footer(t) -> str:
 
 def compact_outcome(t, console: Console) -> None:
     """Summary panel with a badge (CHECKED, NOT CHECKED or NO NUMBERS TO CHECK), counts, footer."""
-    if t.report is not None and t.status in ("checked", "unverified"):
-        label, style = _badge(t)
-        badge = Text(label, style=style)
+    if label := verdict(t):
+        badge = Text(f" {label} ", style=BADGE_STYLE[label])
         console.print(Panel(Text(redact(t.report.summary)), title=badge, title_align="left"))
         if note := _correction(t):
             _say(console, note)
-        no_figures = label == " NO NUMBERS TO CHECK "
-        lines = ["This answer contains no figures"] if no_figures else _counts(t.checks[-1])
+        no_figures = label == NO_FIGURES
+        lines = ["No checkable figures in this answer"] if no_figures else _counts(t.checks[-1])
         for line in lines:
             _say(console, line)
     else:
@@ -287,4 +305,4 @@ def ask(
         _show_outcome(t)
     else:
         compact_outcome(t, console)
-    raise typer.Exit(0 if t.status == "checked" else 1)
+    raise typer.Exit(exit_code(t))

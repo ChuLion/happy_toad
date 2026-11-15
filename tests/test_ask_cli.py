@@ -1,7 +1,7 @@
 """The `ask` command (SPEC, M3 decision 10)."""
 
 import pytest
-from agent_helpers import FakeClient, call, toy_dirs, turn
+from agent_helpers import FakeClient, call, make_run, toy_dirs, turn
 from typer.testing import CliRunner
 
 import happy_toad.cli as cli
@@ -23,18 +23,26 @@ def invoke(tmp_path, monkeypatch):
     return go
 
 
-def test_ask_prints_tool_calls_report_and_checks_and_exits_0(invoke) -> None:
-    first = turn(call("run_scenario", input_version="test", budget=12))
-
-    class Script(list):
-        """Build the report from the real run id once the run exists."""
-
-    result, runs = invoke([first, turn(call("submit_report", summary="Which budget?", claims=[]))])
+def test_verbose_checked_answer_prints_calls_report_checks_and_exits_0(invoke, tmp_path) -> None:
+    run_id = make_run(tmp_path).run_id
+    claim = {"metric": "status", "value": "Optimal", "run_id": run_id}
+    script = [
+        turn(call("get_run", run_id=run_id)),
+        turn(call("submit_report", summary="The run is Optimal.", claims=[claim])),
+    ]
+    result, runs = invoke(script)
     assert result.exit_code == 0, result.output
-    assert "run_scenario" in result.output and "submit_report" in result.output
-    assert "checked" in result.output and "Which budget?" in result.output
+    assert "get_run" in result.output and "submit_report" in result.output
+    assert "Verdict: CHECKED" in result.output and "The run is Optimal." in result.output
     assert "cost:" in result.output and "tokens" in result.output
     assert list(runs.glob("*.json"))
+
+
+def test_verbose_answer_without_figures_shows_the_same_label_and_exits_3(invoke) -> None:
+    first = turn(call("run_scenario", input_version="test", budget=12))
+    result, _ = invoke([first, turn(call("submit_report", summary="Which budget?", claims=[]))])
+    assert result.exit_code == 3, result.output
+    assert "Verdict: NO NUMBERS TO CHECK" in result.output and "Which budget?" in result.output
 
 
 def test_ask_exits_1_when_the_step_cap_is_hit(invoke) -> None:
@@ -67,7 +75,7 @@ def test_default_output_is_compact(invoke) -> None:
     first = turn(call("run_scenario", input_version="test", budget=12))
     done = turn(call("submit_report", summary="Which budget?", claims=[]))
     result, _ = invoke([first, done], verbose=False)
-    assert result.exit_code == 0, result.output
+    assert result.exit_code == 3, result.output
     assert "run_scenario test, budget 12 -> Optimal" in result.output
     assert "NO NUMBERS TO CHECK" in result.output and "Which budget?" in result.output
     assert "tokens" not in result.output and '"result"' not in result.output

@@ -893,3 +893,22 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   refused); the badge decision reads only the last check (claims and numbers both empty) and the
   status; "1 claims" is kept as the owner's "N claims" pattern; the README demo excerpt's check
   line updated to the new wording (diffed against the renderer output).
+
+## 2026-11-15 — Review fixes: one verdict for both outputs and the exit code
+- From an automated review of the previous commit, owner chose: (1) work out the verdict once
+  (`verdict(t)` in cli.py) and use it for the compact badge, a `Verdict: <label>` line in
+  `--verbose`, and the exit code; NO NUMBERS TO CHECK gets its own exit code, 3 (unused before:
+  0 checked, 1 not checked or no report, 2 bad option or missing key); (2) the no-figures line
+  reworded to "No checkable figures in this answer", because the checker's number list skips
+  whole numbers 1900-2199, list markers and run ids, so "contains no figures" could be false.
+- Exit-code dependence checked: nothing in scripts/ or on the web-replay branch reads the CLI
+  exit code (bakeoff and the web server call the loop directly). Two CLI tests relied on exit 0
+  for a no-figures answer; one now expects 3 (compact), and the verbose one was split into a
+  real CHECKED case (a created run, get_run, a status claim; exit 0) and a no-figures case
+  (exit 3, same label). 372 pass.
+- Not specified by the owner: `exit_code(t)` and `verdict(t)` are public for the tests; verbose
+  prints the label as "Verdict: <label>" after the check lines and keeps the UNVERIFIED line;
+  statuses without a report (step cap, API error, error) have no verdict and exit 1 as before.
+- Open, not changed (other session's branch): web-replay `web/view.py:79` still labels a
+  no-figures answer CHECKED; to settle when the branch is merged. Bake-off counts use transcript
+  status, so a no-figures answer to a demo question would count as checked there.
