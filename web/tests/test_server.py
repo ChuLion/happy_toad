@@ -3,6 +3,7 @@
 import http.client
 import json
 import threading
+import time
 import urllib.error
 import urllib.request
 
@@ -119,10 +120,22 @@ def _refusals(settings) -> list[dict]:
     return [json.loads(line) for line in settings.refusal_log.read_text().splitlines()]
 
 
+def _wait_for_lines(settings, count: int) -> None:
+    """Poll the refusal log for `count` lines, so the next request cannot write first."""
+    deadline = time.monotonic() + 2
+    while time.monotonic() < deadline:
+        log = settings.refusal_log
+        if log.exists() and len(log.read_text().splitlines()) >= count:
+            return
+        time.sleep(0.01)
+
+
 def test_refusals_are_logged_without_the_question(live, monkeypatch):
     url, settings, _ = live
     _post(url, "x" * (server.MAX_CHARS + 1))
+    _wait_for_lines(settings, 1)
     _post(url, "   ")
+    _wait_for_lines(settings, 2)
 
     def no_key(profile):
         raise RuntimeError("OPENROUTER_API_KEY is not set")
