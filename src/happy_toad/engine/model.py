@@ -23,7 +23,15 @@ UNKNOWN_CAUSE = Reason(
 
 
 def make_result(
-    data, selected, status, base_year, meta, times, cause=None, minimum=None
+    data: InputSet,
+    selected: list[str] | None,
+    status: str,
+    base_year: int,
+    meta: dict,
+    times: dict[str, float],
+    *,
+    cause: Reason | None = None,
+    minimum: float | None = None,
 ) -> SolveResult:
     """Assemble a SolveResult. selected=None means no plan; relief and objective are recomputed."""
     plan = dict(objective=None, selected=None, relief=None, spend=None)
@@ -47,6 +55,32 @@ def make_result(
     )
 
 
+def _run_meta(
+    data: InputSet,
+    budget: float,
+    settings: SolverSettings,
+    market_floor_mult: float | None,
+    market_cap_mult: float | None,
+    fair_share_blend: float,
+    limits: MarketLimits | None,
+) -> dict:
+    """The SolveResult fields that describe the run: budget, data identity, solver settings."""
+    return dict(
+        budget=budget,
+        must_fund_total=data.must_fund_total,
+        version_id=data.version_id,
+        content_hash=data.content_hash,
+        solver_settings={
+            **settings.as_dict(),
+            "market_floor_mult": market_floor_mult,
+            "market_cap_mult": market_cap_mult,
+            "fair_share_blend": fair_share_blend,
+            "market_floors": (limits.floors or None) if limits else None,
+            "market_caps": (limits.caps or None) if limits else None,
+        },
+    )
+
+
 def solve(
     data: InputSet,
     budget: float,
@@ -66,8 +100,7 @@ def solve(
     explicit `limits` (spend per market) are passed, which replace the computed ones. Candidates
     in `force_in` are fixed to funded and those in `force_out` to not funded, in both stages.
     """
-    must_fund_total = data.must_fund_total
-    avail = budget - must_fund_total
+    avail = budget - data.must_fund_total
     from_multipliers = limits is None and (
         market_floor_mult is not None or market_cap_mult is not None
     )
@@ -77,24 +110,15 @@ def solve(
         )
     if limits is not None:
         limits = clamp_floors(data, limits)
-    meta = dict(
-        budget=budget,
-        must_fund_total=must_fund_total,
-        version_id=data.version_id,
-        content_hash=data.content_hash,
-        solver_settings={
-            **settings.as_dict(),
-            "market_floor_mult": market_floor_mult,
-            "market_cap_mult": market_cap_mult,
-            "fair_share_blend": fair_share_blend,
-            "market_floors": (limits.floors or None) if limits else None,
-            "market_caps": (limits.caps or None) if limits else None,
-        },
+    meta = _run_meta(
+        data, budget, settings, market_floor_mult, market_cap_mult, fair_share_blend, limits
     )
     times: dict[str, float] = {}
 
-    def result(selected, status, cause=None, minimum=None):
-        return make_result(data, selected, status, base_year, meta, times, cause, minimum)
+    def result(selected, status, *, cause=None, minimum=None):
+        return make_result(
+            data, selected, status, base_year, meta, times, cause=cause, minimum=minimum
+        )
 
     force_in, force_out = set(force_in), set(force_out)
     cause = diagnose(data, avail, force_in, force_out, limits)  # pre-solve: no solver call
@@ -104,22 +128,21 @@ def solve(
         and cause.code != ReasonCode.FORCED_COST_EXCEEDS_BUDGET
     ):
         advice = multiplier_advice(cause.code, market_floor_mult, market_cap_mult)
-        return result(
-            None, "Infeasible", Reason(code=cause.code, message=f"{cause.message}; {advice}")
-        )
+        said = Reason(code=cause.code, message=f"{cause.message}; {advice}")
+        return result(None, "Infeasible", cause=said)
     if cause is not None:
         minimum = required_minimum_budget(data, force_in, limits)
         said = Reason(
             code=cause.code, message=f"{cause.message}; the budget must be at least {minimum:.2f}"
         )
-        return result(None, "Infeasible", said, minimum)
+        return result(None, "Infeasible", cause=said, minimum=minimum)
 
     prob1, x1 = build_stage1(data, avail, base_year, limits, force_in, force_out)
     stats1 = prob1.solve(make_solver(settings, settings.time_limit))
     times["stage1"] = stats1.time
     status = map_status(stats1.status)
     if not stats1.has_solution:
-        return result(None, status, UNKNOWN_CAUSE if status == "Infeasible" else None)
+        return result(None, status, cause=UNKNOWN_CAUSE if status == "Infeasible" else None)
     plan1 = chosen_ids(data, x1)
     if status != "Optimal":  # stage-1 timeout (or error): report its best plan
         return result(plan1, status)

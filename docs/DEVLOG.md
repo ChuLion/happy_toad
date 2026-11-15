@@ -1094,3 +1094,6 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   replaces its two forced-in sums. The checker's forced-cost lookup (request order) is left as
   is, so its float sum cannot shift. `scripts/fair_share_table` output identical before/after.
   Edits `agent/checker.py` (frozen list). 409 pass, tests unchanged.
+- S7: `engine/model.py`: `make_result` typed, with `cause` and `minimum` keyword-only; the
+  meta/settings dict moved to `_run_meta(...)`; `solve` 96 → 80 lines. Not split further (the
+  review asked only for this). 409 pass, tests unchanged.
