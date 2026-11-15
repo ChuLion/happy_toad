@@ -3,64 +3,145 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'">
 <title>happy_toad agent</title>
 <style>
 :root {
-  --bg: #f7f7f5; --panel: #ffffff; --text: #1d1d1b; --muted: #66665f; --line: #deded8;
-  --ok: #1f7a3d; --ok-bg: #e3f3e8; --bad: #a8321e; --bad-bg: #f8e4df; --accent: #2f5d8a;
-  --note-bg: #fff6d8; --note-line: #e5cf7a;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #161615; --panel: #20201e; --text: #ecece6; --muted: #a3a39a; --line: #36362f;
-    --ok: #7fd39a; --ok-bg: #1c3324; --bad: #f09a87; --bad-bg: #3a221d; --accent: #8db8e3;
-    --note-bg: #332c14; --note-line: #6b5a1f;
-  }
+  --canvas: #ffffff; --ink: #000000; --muted: #6f7171; --line: #d8dada;
+  --accent: #ee001e; --chip: #f8f3e9; --ok: #00873e; --soft: #f6f6f6;
+  --radius: 16px;
+  --sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text);
-  font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-main { max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; }
-h1 { font-size: 20px; margin: 0 0 4px; }
-h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
-  margin: 22px 0 8px; }
-.banner { background: var(--note-bg); border: 1px solid var(--note-line); border-radius: 6px;
-  padding: 8px 12px; margin: 12px 0 18px; font-weight: 600; }
-.sub { color: var(--muted); margin: 0; }
-.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
-  padding: 16px; margin-top: 14px; }
-button { font: inherit; border: 1px solid var(--line); background: var(--panel); color: var(--text);
-  border-radius: 6px; padding: 6px 12px; cursor: pointer; }
-button.on, button.primary { border-color: var(--accent); color: var(--accent); font-weight: 600; }
-button:disabled { opacity: .5; cursor: default; }
-.row { display: flex; flex-wrap: wrap; gap: 8px; }
-textarea { width: 100%; min-height: 70px; font: inherit; padding: 8px; border-radius: 6px;
-  border: 1px solid var(--line); background: var(--panel); color: var(--text); }
-.hint { color: var(--muted); font-size: 13px; }
-ol.steps { margin: 0; padding-left: 22px; }
-ol.steps li { margin: 4px 0; overflow-wrap: anywhere; }
-code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
-.badge { display: inline-block; font-weight: 700; letter-spacing: .04em; padding: 3px 10px;
-  border-radius: 4px; }
-.badge.ok { color: var(--ok); background: var(--ok-bg); }
-.badge.bad { color: var(--bad); background: var(--bad-bg); }
-.summary { white-space: pre-wrap; margin: 10px 0 0; }
-ul.mismatch { color: var(--bad); margin: 6px 0 0; }
+html { background: var(--canvas); }
+body { margin: 0; background: var(--canvas); color: var(--ink); font: 15px/1.55 var(--sans);
+  -webkit-font-smoothing: antialiased; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.topbar { height: 4px; background: var(--accent); }
+header { max-width: 880px; margin: 0 auto; padding: 22px 16px 0; display: flex; flex-wrap: wrap;
+  align-items: center; justify-content: space-between; gap: 12px; }
+.brand h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin: 0; }
+.brand { flex: 1 1 320px; min-width: 0; }
+.brand p { margin: 2px 0 0; color: var(--muted); font-size: 14px; max-width: 46ch; }
+.status { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line);
+  border-radius: 999px; padding: 5px 12px; font-size: 13px; font-weight: 500; white-space: nowrap; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; }
+.dot.live { animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .3; } }
+
+main { max-width: 880px; margin: 0 auto; padding: 20px 16px 56px; }
+.card { border: 1px solid var(--line); border-radius: var(--radius); background: var(--canvas); }
+
+.composer { padding: 14px 14px 12px; }
+.composer:focus-within { border-color: var(--ink); }
+.composer textarea { width: 100%; min-height: 76px; resize: vertical; border: 0; outline: none;
+  font: 16px/1.5 var(--sans); color: var(--ink); background: transparent; padding: 2px; }
+.composer textarea::placeholder { color: var(--muted); }
+.composer-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.spacer { flex: 1; }
+.counter { font: 12px var(--mono); color: var(--muted); }
+.counter.full { color: var(--accent); }
+
+button { font: inherit; cursor: pointer; }
+.chip { border: 1px solid transparent; background: var(--chip); color: var(--ink); border-radius: 999px;
+  padding: 6px 14px; font-size: 13px; font-weight: 500; }
+.chip:hover { border-color: var(--line); }
+.chip.on { background: var(--ink); color: var(--canvas); }
+.ask { border: 0; background: var(--ink); color: var(--canvas); border-radius: 999px; padding: 8px 22px;
+  font-weight: 600; }
+.ask:disabled { background: var(--muted); cursor: default; }
+.hint { color: var(--muted); font-size: 13px; margin: 10px 2px 0; }
+.error { color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.result { margin-top: 20px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.question { color: var(--muted); font-size: 14px; margin: 0 2px; }
+.question strong { color: var(--ink); font-weight: 600; }
+
+.answer { padding: 22px 22px 18px; }
+.answer-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.answer-head h2 { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
+.badge { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 3px 10px;
+  font-size: 12px; font-weight: 700; letter-spacing: .02em; border: 1px solid currentColor; }
+.badge.ok { color: var(--ok); }
+.badge.bad { color: var(--accent); }
+.badge-note { color: var(--muted); font-size: 13px; }
+.summary { white-space: pre-wrap; font-size: 16px; line-height: 1.6; margin: 14px 0 0; max-width: 72ch; }
+.note { margin: 12px 0 0; font-size: 13px; color: var(--muted); border-left: 2px solid var(--accent);
+  padding-left: 10px; }
+
+.numbers { margin-top: 20px; border-top: 1px solid var(--line); padding-top: 16px; }
+.numbers h3, .section h3 { font-size: 14px; font-weight: 600; margin: 0 0 10px; }
+.checks-line { color: var(--muted); font-size: 13px; margin: -4px 0 12px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+.num { background: var(--soft); border-radius: 12px; padding: 10px 12px; min-width: 0; }
+.num .k { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.num .v { font: 600 18px/1.3 var(--mono); margin-top: 2px; overflow-wrap: anywhere; }
+.num .r { font: 11px var(--mono); color: var(--muted); margin-top: 4px; overflow-wrap: anywhere; }
+ul.mismatch { color: var(--accent); margin: 10px 0 0; padding-left: 18px; font-size: 13px; }
+
+.section { padding: 18px 22px; }
 .table-wrap { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; font-size: 13px; }
-th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line);
-  vertical-align: top; }
-th { color: var(--muted); font-weight: 600; }
-footer.run { color: var(--muted); font-size: 13px; margin-top: 14px; overflow-wrap: anywhere; }
+th, td { text-align: left; padding: 7px 10px 7px 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { color: var(--muted); font-weight: 500; }
+td { font-family: var(--mono); }
+tr:last-child td { border-bottom: 0; }
+
+details.trace { overflow: hidden; }
+details.trace summary { list-style: none; cursor: pointer; padding: 16px 22px; display: flex;
+  align-items: center; gap: 10px; font-weight: 600; font-size: 14px; }
+details.trace summary::-webkit-details-marker { display: none; }
+details.trace summary::before { content: ""; width: 7px; height: 7px; border-right: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink); transform: rotate(-45deg); transition: transform .15s; }
+details.trace[open] summary::before { transform: rotate(45deg); }
+.count { font: 12px var(--mono); color: var(--muted); font-weight: 400; }
+ol.steps { list-style: none; margin: 0; padding: 0 22px 18px; border-top: 1px solid var(--line); }
+ol.steps li { display: grid; grid-template-columns: 28px 1fr; gap: 10px; padding: 10px 0;
+  border-bottom: 1px solid var(--line); font: 13px/1.5 var(--mono); }
+ol.steps li:last-child { border-bottom: 0; }
+.step-n { width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--line);
+  display: grid; place-items: center; font-size: 11px; color: var(--muted); }
+.step-tool { font-weight: 700; }
+.step-args { color: var(--muted); overflow-wrap: anywhere; }
+.step-out { overflow-wrap: anywhere; }
+.step-new { animation: arrive .25s ease-out; }
+@keyframes arrive { from { background: var(--chip); } }
+
+.loading .bar { height: 12px; border-radius: 6px; margin-top: 12px;
+  background: linear-gradient(90deg, var(--soft) 25%, #ececec 50%, var(--soft) 75%);
+  background-size: 200% 100%; animation: shimmer 1.3s linear infinite; }
+.loading .bar:nth-child(3) { width: 80%; }
+.loading .bar:nth-child(4) { width: 55%; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+footer.meta { color: var(--muted); font-size: 12px; margin: 2px 2px 0; overflow-wrap: anywhere; }
+footer.meta span + span::before { content: " | "; color: var(--line); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before { animation: none !important; transition: none !important; }
+}
+@media (max-width: 560px) {
+  .answer, .section { padding: 16px; }
+  details.trace summary { padding: 14px 16px; }
+  ol.steps { padding: 0 16px 14px; }
+}
 </style>
 </head>
 <body>
+<div class="topbar"></div>
+<header>
+  <div class="brand">
+    <h1>happy_toad agent</h1>
+    <p>Ask about budget scenarios. A checker traces every number in the answer to a stored run.
+      All data is synthetic.</p>
+  </div>
+  <div class="status"><span class="dot" id="dot"></span><span id="status-text"></span></div>
+</header>
 <main>
-  <h1>happy_toad agent</h1>
-  <p class="sub">An agent answers questions about a budget-constrained optimizer by running
-    scenarios; a checker traces every number in its summary to a stored run. All data is synthetic.</p>
-  <div class="banner" id="banner"></div>
   <div id="controls"></div>
   <div id="view"></div>
 </main>
@@ -75,7 +156,7 @@ function el(tag, attrs = {}, ...children) {
     if (k === "class") node.className = v; else if (k.startsWith("on")) node[k] = v;
     else node.setAttribute(k, v);
   }
-  for (const c of children) if (c !== null && c !== undefined) node.append(c);
+  for (const c of children) if (c !== null && c !== undefined && c !== false) node.append(c);
   return node;
 }
 
@@ -85,8 +166,26 @@ function fmt(v) {
   return String(v);
 }
 
-function stepItem(s) {
-  return el("li", {}, el("code", {}, s.tool), " ", s.args, " → ", s.outcome);
+const label = name => name.replaceAll("_", " ");
+
+function stepItem(s, n, fresh) {
+  return el("li", { class: fresh ? "step-new" : "" }, el("span", { class: "step-n" }, String(n)),
+    el("div", {}, el("span", { class: "step-tool" }, s.tool), " ", el("span", { class: "step-args" }, s.args),
+      el("div", { class: "step-out" }, "↳ ", s.outcome)));
+}
+
+function trace(open) {
+  const list = el("ol", { class: "steps" });
+  const count = el("span", { class: "count" });
+  const box = el("details", { class: "card trace" },
+    el("summary", {}, "Execution trace", count), list);
+  box.open = open;
+  const add = (s, fresh) => {
+    list.append(stepItem(s, list.children.length + 1, fresh));
+    const n = list.children.length;
+    count.textContent = `${n} tool call${n === 1 ? "" : "s"}`;
+  };
+  return { box, add };
 }
 
 function table(headers, rows) {
@@ -95,80 +194,112 @@ function table(headers, rows) {
     el("tbody", {}, ...rows.map(r => el("tr", {}, ...r.map(c => el("td", {}, fmt(c))))))));
 }
 
-function renderView(v, stepsList) {
-  const root = el("div", { class: "panel" });
-  root.append(el("h2", {}, "Question"), el("div", {}, v.question));
-  const list = stepsList || el("ol", { class: "steps" });
-  if (!stepsList) v.steps.forEach(s => list.append(stepItem(s)));
-  root.append(el("h2", {}, "Tool calls"), list);
-
+function answerCard(v) {
   const ok = v.status === "CHECKED";
-  root.append(el("h2", {}, "Answer"),
-    el("span", { class: "badge " + (ok ? "ok" : "bad") }, v.status),
-    el("span", { class: "hint" }, ok
-      ? "  The checker traced every number in the summary to a stored run."
-      : "  Not every number could be traced to a stored run (" + v.detail + ")."));
-  if (v.summary) root.append(el("p", { class: "summary" }, v.summary));
-  if (v.correction.happened)
-    root.append(el("p", { class: "hint" }, v.correction.note || "The first report was refused and resubmitted."));
+  const card = el("section", { class: "card answer" },
+    el("div", { class: "answer-head" }, el("h2", {}, "Answer"),
+      el("span", { class: "badge " + (ok ? "ok" : "bad") }, v.status),
+      el("span", { class: "badge-note" }, ok
+        ? "Every number in the summary traces to a stored run."
+        : "Not every number could be traced to a stored run (" + v.detail + ").")),
+    v.summary ? el("p", { class: "summary" }, v.summary) : null,
+    v.correction.happened
+      ? el("p", { class: "note" }, v.correction.note || "The first report was refused and resubmitted.")
+      : null);
+  if (v.checks || v.claims.length) {
+    const nums = el("div", { class: "numbers" }, el("h3", {}, "Checked numbers"));
+    if (v.checks) {
+      const c = v.checks;
+      nums.append(el("p", { class: "checks-line" },
+        `${c.claims_ok} of ${c.claims} claims match the stored runs; ` +
+        `${c.numbers_matched} of ${c.numbers} summary numbers matched; ${c.mismatches.length} mismatches.`));
+    }
+    nums.append(el("div", { class: "grid" }, ...v.claims.map(c => el("div", { class: "num" },
+      el("div", { class: "k" }, label(c.metric)), el("div", { class: "v" }, fmt(c.value)),
+      el("div", { class: "r" }, c.run_id_b ? `${c.run_id} → ${c.run_id_b}` : c.run_id)))));
+    if (v.checks && v.checks.mismatches.length)
+      nums.append(el("ul", { class: "mismatch" }, ...v.checks.mismatches.map(m => el("li", {}, m))));
+    card.append(nums);
+  }
+  return card;
+}
 
-  if (v.checks) {
-    const c = v.checks;
-    root.append(el("h2", {}, "Checks"), el("div", {},
-      `${c.claims_ok}/${c.claims} claims match the stored runs, ` +
-      `${c.numbers_matched}/${c.numbers} summary numbers matched, ${c.mismatches.length} mismatches`));
-    if (c.mismatches.length) root.append(el("ul", { class: "mismatch" }, ...c.mismatches.map(m => el("li", {}, m))));
-  }
-  if (v.claims.length) {
-    root.append(el("h2", {}, "Claims"), table(["metric", "value", "run", "second run"],
-      v.claims.map(c => [c.metric, c.value, c.run_id, c.run_id_b])));
-  }
-  if (v.runs.length) {
-    const keys = [...new Set(v.runs.flatMap(r => Object.keys(r.values)))];
-    root.append(el("h2", {}, "Stored runs"), table(["run", "version", "outcome", ...keys],
+function runsCard(v) {
+  if (!v.runs.length) return null;
+  const keys = [...new Set(v.runs.flatMap(r => Object.keys(r.values)))];
+  return el("section", { class: "card section" }, el("h3", {}, "Stored runs"),
+    table(["run", "version", "outcome", ...keys.map(label)],
       v.runs.map(r => [r.run_id, r.input_version, r.outcome, ...keys.map(k => r.values[k])])));
-  }
+}
+
+function footer(v) {
   const f = v.footer;
   const cost = f.cost === null ? "cost not reported" : "$" + f.cost.toFixed(4);
-  root.append(el("footer", { class: "run" },
-    `${f.model} | ${f.provider} | ${f.turns} turns | ${cost} | ${f.seconds} s | transcript ${v.transcript_id}`));
-  return root;
+  return el("footer", { class: "meta" }, ...[f.model, f.provider, `${f.turns} turns`, cost,
+    `${f.seconds} s`, `transcript ${v.transcript_id}`].map(t => el("span", {}, t)));
+}
+
+function questionLine(q) {
+  return el("p", { class: "question" }, "Question: ", el("strong", {}, q));
+}
+
+function renderView(v, liveTrace) {
+  const t = liveTrace || trace(false);
+  if (!liveTrace) v.steps.forEach(s => t.add(s, false));
+  t.box.open = false;
+  return el("div", { class: "result" }, questionLine(v.question), answerCard(v), runsCard(v), t.box, footer(v));
 }
 
 function show(node) { document.getElementById("view").replaceChildren(node); }
+function setStatus(text, live) {
+  document.getElementById("status-text").textContent = text;
+  document.getElementById("dot").classList.toggle("live", !!live);
+}
 
 function startReplay() {
-  document.getElementById("banner").textContent = "Replay of real runs on synthetic data, not a live demo.";
-  const buttons = boot.views.map((v, i) => el("button", { onclick: () => pick(i) }, boot.labels[i]));
-  document.getElementById("controls").append(el("div", { class: "row" }, ...buttons));
+  setStatus("Replay of real runs on synthetic data, not a live demo.");
+  const chips = boot.views.map((v, i) => el("button", { class: "chip", onclick: () => pick(i) }, boot.labels[i]));
+  document.getElementById("controls").append(el("div", { class: "chips" }, ...chips));
   function pick(i) {
-    buttons.forEach((b, j) => b.classList.toggle("on", i === j));
+    chips.forEach((b, j) => b.classList.toggle("on", i === j));
     show(renderView(boot.views[i]));
   }
   pick(0);
 }
 
 function startLive() {
-  document.getElementById("banner").textContent = "Local demo, uses a live model on synthetic data.";
-  const box = el("textarea", { maxlength: String(boot.max_chars), placeholder: "Ask a question about the scenarios" });
-  const status = el("span", { class: "hint" });
-  const ask = el("button", { class: "primary", onclick: () => send(box.value) }, "Ask");
+  setStatus("Local demo, uses a live model on synthetic data.");
+  const max = boot.max_chars;
+  const box = el("textarea", { maxlength: String(max), "aria-label": "Question",
+    placeholder: "Ask about a budget scenario, for example: compare budgets 800 and 1500 on v1" });
+  const counter = el("span", { class: "counter" }, `0/${max}`);
+  const hint = el("p", { class: "hint" }, "One question at a time. Ctrl or Cmd + Enter to ask.");
+  const ask = el("button", { class: "ask", onclick: () => send(box.value) }, "Ask");
+  const sync = () => {
+    counter.textContent = `${box.value.length}/${max}`;
+    counter.classList.toggle("full", box.value.length >= max);
+  };
+  box.oninput = sync;
+  box.onkeydown = e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) send(box.value); };
   const examples = Object.entries(boot.examples).map(([key, q]) =>
-    el("button", { onclick: () => { box.value = q; } }, "Example " + key));
-  document.getElementById("controls").append(el("div", { class: "panel" }, box,
-    el("div", { class: "row", style: "margin-top:8px" }, ask, ...examples),
-    el("p", { class: "hint" }, `Up to ${boot.max_chars} characters. One question at a time. `, status)));
+    el("button", { class: "chip", title: q, onclick: () => { box.value = q; sync(); box.focus(); } }, "Example " + key));
+  document.getElementById("controls").append(el("div", { class: "card composer" }, box,
+    el("div", { class: "composer-row" }, ...examples, el("span", { class: "spacer" }), counter, ask)), hint);
 
   async function send(question) {
-    if (!question.trim()) return;
-    ask.disabled = true; status.textContent = "Running...";
-    const steps = el("ol", { class: "steps" });
-    show(el("div", { class: "panel" }, el("h2", {}, "Question"), el("div", {}, question),
-      el("h2", {}, "Tool calls"), steps));
+    if (!question.trim() || ask.disabled) return;
+    ask.disabled = true; ask.textContent = "Running";
+    hint.className = "hint"; hint.textContent = "The agent is running scenarios. Steps appear as they happen.";
+    setStatus("Running on a live model", true);
+    const t = trace(true);
+    const pending = el("section", { class: "card answer loading", "aria-busy": "true" },
+      el("div", { class: "answer-head" }, el("h2", {}, "Answer"), el("span", { class: "badge-note" }, "Working...")),
+      el("div", { class: "bar" }), el("div", { class: "bar" }), el("div", { class: "bar" }));
+    show(el("div", { class: "result" }, questionLine(question), pending, t.box));
     try {
       const res = await fetch("/api/ask", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question }) });
-      if (!res.ok) { status.textContent = (await res.json()).error; return; }
+      if (!res.ok) { fail((await res.json()).error); pending.remove(); return; }
       const reader = res.body.getReader(), dec = new TextDecoder();
       let buf = "";
       for (;;) {
@@ -178,17 +309,19 @@ function startLive() {
         let nl;
         while ((nl = buf.indexOf("\n")) >= 0) {
           const msg = JSON.parse(buf.slice(0, nl)); buf = buf.slice(nl + 1);
-          if (msg.type === "step") steps.append(stepItem(msg.step));
-          if (msg.type === "view") { show(renderView(msg.view, steps)); status.textContent = "Done."; }
-          if (msg.type === "error") status.textContent = msg.error;
+          if (msg.type === "step") t.add(msg.step, true);
+          if (msg.type === "view") { show(renderView(msg.view, t)); hint.textContent = "Done. Open the execution trace for each tool call."; }
+          if (msg.type === "error") fail(msg.error);
         }
       }
     } catch (err) {
-      status.textContent = "Request failed: " + err;
+      fail("The request failed: " + err.message + ". Check that the local server is still running.");
     } finally {
-      ask.disabled = false;
+      ask.disabled = false; ask.textContent = "Ask";
+      setStatus("Local demo, uses a live model on synthetic data.");
     }
   }
+  function fail(message) { hint.className = "hint error"; hint.textContent = message; }
 }
 
 boot.mode === "replay" ? startReplay() : startLive();
