@@ -953,3 +953,21 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   (only the CSS changed). 396 pass.
 - Not specified by the owner: fitting by wrapping headers and a smaller font rather than a
   visible scrollbar.
+
+## 2026-11-15 — Third replay example: a real run that failed the check
+- Owner asked: add the web session's failed-check transcript (20261115T144300-0c18a8bc) to the
+  replay, or, if gone, a real unverified run of question (a), preferring the demo model. It was
+  gone: `git worktree remove` deleted the worktree's gitignored transcripts/ and runs/; not
+  found by name anywhere on the volume, in Spotlight or in the Trash.
+- Chosen instead: 20261114T210844-a403d428 (DeepSeek V4 Flash 0731 on Baseten, the demo model,
+  same round as the other two replay runs). Its claims all matched; the summary numbers 15 and
+  2 did not match any stored figure, so it is NOT CHECKED after two refused reports.
+- Changed from the owner's wording: the owner's label said the number was one "no stored run
+  supports". That is not true of this run: 15 and 2 are the candidates added and dropped
+  between the two stored runs (14 - 2 + 15 = 27), correct but not a figure the checker can
+  match. The other two demo-model unverified runs of (a) fail the same way. The label used is
+  "Real run that failed the check: the model put numbers in its summary that the checker could
+  not match to a stored figure (DeepSeek V4 Flash 0731)".
+- Not specified by the owner: `scripts/export_replay.py --label N=TEXT` (tested in
+  `web/tests/test_export.py`); README's web line now says three runs; web/README fixed (web
+  tests are in the default run, schema_version 2, paths relative to the repo).

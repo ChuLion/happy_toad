@@ -2,13 +2,14 @@
 
 Everything here sits outside `src/happy_toad`. The page and the server only ever see the dict
 from `web.view.build_view(transcript, run_records)`; its shape is `web.schema.View`
-(`schema_version` 1).
+(`schema_version` 2).
 
 ## Static replay
 ```
-uv run python -m scripts.export_replay ../happy_toad/transcripts/<a>.json ../happy_toad/transcripts/<c>.json \
-    --runs-dir ../happy_toad/runs
+uv run python -m scripts.export_replay transcripts/<a>.json transcripts/<c>.json \
+    --runs-dir runs [--label N=TEXT]
 ```
+`--label 3=...` replaces the third button's label (default: the start of the question).
 Writes `web/replay.json` and `web/replay.html` (the JSON inlined, no external requests, no keys).
 Open `web/replay.html` directly in a browser. It is labelled "Replay of real runs on synthetic
 data, not a live demo."
@@ -31,4 +32,5 @@ Synthetic data. A run is "checked" when the checker traced every number in the s
 stored run; "not checked" otherwise. Never "guaranteed".
 
 ## Tests
-`uv run pytest web/tests` (not in the default `testpaths`, which is in pyproject).
+`web/tests` is in the default `testpaths`, so `uv run pytest` runs them; `uv run pytest web/tests`
+runs only these.
