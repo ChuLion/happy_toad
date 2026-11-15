@@ -273,6 +273,8 @@ function setStatus(text, live) {
 
 function startReplay() {
   setStatus("Replay of real runs on synthetic data, not a live demo.");
+  document.getElementById("controls").append(el("p", { class: "hint" }, "New to this? Read the ",
+    el("a", { href: "../docs/GUIDE.md" }, "Guide for planners"), "."));
   const chips = boot.views.map((v, i) => el("button", { class: "chip", onclick: () => pick(i) }, boot.labels[i]));
   document.getElementById("controls").append(el("div", { class: "chips" }, ...chips));
   function pick(i) {

@@ -75,6 +75,13 @@ def test_unknown_version_is_rejected_and_recorded(dirs) -> None:
     assert record.content_hash is None and (dirs[1] / f"{record.run_id}.json").exists()
 
 
+def test_the_change_list_is_not_a_version(dirs) -> None:
+    (dirs[0] / "changes_v1_to_v2.json").write_text("[]")
+    record = run(dirs, input_version="changes_v1_to_v2")
+    assert record.outcome == "rejected"
+    assert [r.code for r in record.reasons] == [ReasonCode.VERSION_NOT_FOUND]
+
+
 def test_version_that_is_a_path_is_not_found(dirs) -> None:
     record = run(dirs, input_version="../test")
     assert [r.code for r in record.reasons] == [ReasonCode.VERSION_NOT_FOUND]

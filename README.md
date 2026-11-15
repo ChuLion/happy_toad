@@ -4,6 +4,8 @@ A small synthetic reference build of a budget-constrained capital-allocation opt
 agent layer that answers plain-English questions by running scenarios and reporting checked
 numbers. All data is synthetic and generated from a seed. It is not a product.
 
+Plan capital budgets but don't program? Start with the [Guide for planners](docs/GUIDE.md).
+
 **Status:** M1 to M3 complete (tag v0.3.2); M2B and M4 to M6 planned.
 
 ## Why

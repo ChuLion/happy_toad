@@ -583,7 +583,7 @@ the section "M3 — approved changes and specification" at the end wins.
    beyond the SDK defaults.
 2. **Tools, five [owner]:** `list_input_versions`, `run_scenario`, `get_run`, `compare_runs`,
    `submit_report`. New deterministic services first, with their own tests: a version lister
-   (names of `data/inputs/*.json`), a run reader (`runs/<run_id>.json`, a name that is not a run id
+   (names of `data/inputs/*.json`, except change lists `changes_*.json`), a run reader (`runs/<run_id>.json`, a name that is not a run id
    is not opened as a path), and a run comparer. **[lead]** Comparer output: both run ids, then
    per field the two values and the difference for status, spend, weighted relief (`objective`),
    number selected, number resolved and percent resolved; the candidate ids only in A, only in B;

@@ -971,3 +971,24 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
 - Not specified by the owner: `scripts/export_replay.py --label N=TEXT` (tested in
   `web/tests/test_export.py`); README's web line now says three runs; web/README fixed (web
   tests are in the default run, schema_version 2, paths relative to the repo).
+
+## 2026-11-15 — Guide for planners; change list no longer offered as a version
+- Owner asked: `docs/GUIDE.md`, one page for planners who do not program (what it does, the
+  data with definitions and counts, one example question per tool option, the steps from
+  question to human decision, what it does not do, how to try it, with Download ZIP for the
+  replay), linked from the top of README.md and from the replay page. Owner edits: definitions
+  of sector, shortfall, trigger year, resolved and weighted relief; fair share as a share of
+  the budget left after must-fund; "so the plan doesn't spend money that adds no relief";
+  "Checked live with one model"; "(revision analysis is planned)".
+- Found while writing the guide: `list_input_versions` offered `changes_v1_to_v2` as a version
+  (the lister returned every `*.json` stem) and a run on it ended as an error ("malformed").
+  Fix, owner approved: `data/files.is_change_list` (prefix `changes_`, the name the generator
+  writes); the lister skips change lists and `load_version` treats one as no such version, so
+  the gate rejects it with VERSION_NOT_FOUND. Two tests; SPEC M3 decision 2 updated. Frozen
+  agent files unchanged; generator output byte-identical. 400 pass.
+- Not specified by the owner: the guide's counts come from the seed-42 files (checked
+  byte-identical with `generate --seed 42`); the replay link is shown in replay mode only (the
+  live server does not serve docs/), and from a local copy it opens the Markdown as plain text;
+  "Checked live with one model" keeps the five-model round with its caveat; `load_version`
+  also refuses change lists (the owner asked only for the list); example budgets and the
+  region size of 200 in the guide are made up.

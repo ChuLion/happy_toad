@@ -10,6 +10,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 from happy_toad.data.checks import InputError
+from happy_toad.data.files import is_change_list
 from happy_toad.data.loader import load_input_set
 from happy_toad.data.schemas import InputSet
 from happy_toad.engine.diagnose import required_minimum_budget
@@ -76,9 +77,9 @@ def write_record(record: RunRecord, runs_dir: Path) -> None:
 
 
 def load_version(version: str, inputs_dir: Path) -> InputSet | None:
-    """The input set for a version name, or None if there is no such file. Raises InputError."""
+    """The input set for a version name, or None if there is no such version. Raises InputError."""
     path = inputs_dir / f"{version}.json"
-    if not VERSION_NAME.fullmatch(version) or not path.exists():
+    if not VERSION_NAME.fullmatch(version) or is_change_list(version) or not path.exists():
         return None
     return load_input_set(path)
 

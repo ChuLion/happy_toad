@@ -13,6 +13,12 @@ def test_list_versions_returns_sorted_names(tmp_path) -> None:
     assert list_versions(tmp_path) == ["notes", "v1", "v2"]
 
 
+def test_the_change_list_is_not_offered_as_a_version(tmp_path) -> None:
+    for name in ("v1", "v2", "changes_v1_to_v2"):
+        (tmp_path / f"{name}.json").write_text("{}")
+    assert list_versions(tmp_path) == ["v1", "v2"]
+
+
 def test_list_versions_of_a_missing_folder_is_empty(tmp_path) -> None:
     assert list_versions(tmp_path / "nope") == []
 

@@ -6,6 +6,7 @@ from pathlib import Path
 from pydantic import BaseModel, ValidationError
 
 from happy_toad.data.checks import InputError
+from happy_toad.data.files import is_change_list
 from happy_toad.services.run import RunRecord
 
 RUN_ID = re.compile(r"\d{8}T\d{6}-[0-9a-f]{8}")
@@ -35,8 +36,8 @@ class RunComparison(BaseModel):
 
 
 def list_versions(inputs_dir: Path = Path("data/inputs")) -> list[str]:
-    """Sorted names of the input versions (the stems of the .json files)."""
-    return sorted(p.stem for p in inputs_dir.glob("*.json"))
+    """Sorted names of the input versions: the stems of the .json files, except change lists."""
+    return sorted(p.stem for p in inputs_dir.glob("*.json") if not is_change_list(p.stem))
 
 
 def read_run(run_id: str, runs_dir: Path = Path("runs")) -> RunRecord | None:
