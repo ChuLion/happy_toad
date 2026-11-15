@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 class Strict(BaseModel):
@@ -29,6 +29,8 @@ class Checks(Strict):
     claims_ok: int
     numbers: int
     numbers_matched: int
+    unmatched_numbers: list[str]
+    line: str  # the CLI's count line, or the no-figures line
     mismatches: list[str]
 
 
@@ -53,13 +55,13 @@ class Footer(Strict):
 
 
 class View(Strict):
-    schema_version: Literal[1]
+    schema_version: Literal[2]
     transcript_id: str
     question: str
     steps: list[Step]
     summary: str | None
-    status: Literal["CHECKED", "NOT CHECKED"]
-    detail: str
+    status: Literal["CHECKED", "NOT CHECKED", "NO NUMBERS TO CHECK"] | None  # None: no report
+    detail: str  # transcript status, or the CLI's "Status: ..." line when there is no report
     checks: Checks | None
     claims: list[Claim]
     correction: Correction

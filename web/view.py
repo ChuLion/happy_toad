@@ -5,9 +5,18 @@ from pathlib import Path
 
 from happy_toad.agent.tools import TOOLS
 from happy_toad.agent.transcript import Transcript
-from happy_toad.cli import _call_args, _call_outcome, _correction
 from happy_toad.services.run import RunRecord
 from happy_toad.services.runs import metrics, read_run
+from web.format import (
+    NO_FIGURES,
+    NO_FIGURES_LINE,
+    call_args,
+    call_outcome,
+    check_line,
+    correction,
+    no_report_line,
+    verdict,
+)
 from web.redact import redact_all
 from web.schema import SCHEMA_VERSION
 
@@ -19,14 +28,14 @@ def step(call: dict) -> dict:
     """One tool call as tool, short args, outcome; the CLI's wording for known tools."""
     name = call["name"]
     if name in KNOWN_TOOLS:
-        args, outcome = _call_args(name, call["arguments"]), _call_outcome(name, call["result"])
+        args, outcome = call_args(name, call["arguments"]), call_outcome(name, call["result"])
     else:
         args = call["arguments"][:OUTCOME_LIMIT]
         outcome = json.dumps(call["result"], default=str)[:OUTCOME_LIMIT]
     return redact_all({"tool": name, "args": args, "outcome": outcome})
 
 
-def _checks(t: Transcript) -> dict | None:
+def _checks(t: Transcript, label: str | None) -> dict | None:
     if not t.checks:
         return None
     last = t.checks[-1]
@@ -35,21 +44,15 @@ def _checks(t: Transcript) -> dict | None:
         "claims_ok": sum(c.ok for c in last.claims),
         "numbers": len(last.numbers),
         "numbers_matched": sum(n.ok for n in last.numbers),
+        "unmatched_numbers": [n.text for n in last.numbers if not n.ok],
+        "line": NO_FIGURES_LINE if label == NO_FIGURES else check_line(last),
         "mismatches": last.errors(),
     }
 
 
 def _correction_view(t: Transcript) -> dict:
     submits = [c for turn in t.turns for c in turn.tool_calls if c["name"] == "submit_report"]
-    return {"happened": len(submits) > 1, "note": _correction(t)}
-
-
-def _detail(t: Transcript) -> str:
-    if t.error:
-        return t.error
-    if t.api_error:
-        return f"provider error HTTP {t.api_error['status']}"
-    return t.status
+    return {"happened": len(submits) > 1, "note": correction(t)}
 
 
 def _run(record: RunRecord) -> dict:
@@ -68,7 +71,8 @@ def _claim(c) -> dict:
 def build_view(transcript: Transcript, run_records: list[RunRecord]) -> dict:
     """The view dict (web.schema.View), with keys and account ids redacted."""
     t = transcript
-    report = t.report if t.status in ("checked", "unverified") else None
+    label = verdict(t)
+    report = t.report if label else None
     providers = ", ".join(sorted({x.provider or "unknown" for x in t.turns})) or "no provider"
     view = {
         "schema_version": SCHEMA_VERSION,
@@ -76,9 +80,9 @@ def build_view(transcript: Transcript, run_records: list[RunRecord]) -> dict:
         "question": t.question,
         "steps": [step(c) for turn in t.turns for c in turn.tool_calls],
         "summary": report.summary if report else None,
-        "status": "CHECKED" if t.status == "checked" else "NOT CHECKED",
-        "detail": _detail(t),
-        "checks": _checks(t),
+        "status": label,
+        "detail": t.status if label else no_report_line(t),
+        "checks": _checks(t, label),
         "claims": [_claim(c) for c in report.claims] if report else [],
         "correction": _correction_view(t),
         "runs": [_run(r) for r in run_records],

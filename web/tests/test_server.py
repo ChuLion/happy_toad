@@ -79,7 +79,7 @@ def test_streams_steps_then_the_view(live):
     assert status == 200
     assert [m["type"] for m in lines] == ["step", "step", "view"]
     assert lines[0]["step"]["tool"] == "list_input_versions"
-    assert lines[-1]["view"]["schema_version"] == 1
+    assert lines[-1]["view"]["schema_version"] == 2
     assert KEY not in text
 
 
