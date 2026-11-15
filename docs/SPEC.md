@@ -336,6 +336,8 @@ determinism, rejection of a tampered input file.
 ### Synthetic data generator
 `happy-toad generate --seed N` (default 42) writes `v1.json`, `v2.json` and
 `changes_v1_to_v2.json` to `data/inputs/` (gitignored; regenerate with the same seed).
+**v1 is the plan of record** (the data the plan was built on); **v2 is the refreshed forecast**
+(a mid-year update with re-estimated costs, moved trigger years and new sectors).
 Seeded with `numpy.random.default_rng`; same seed -> byte-identical files. All parameters live in
 `GeneratorConfig` (`data/config.py`). Floats are rounded to 2 decimals. Defaults:
 
@@ -376,7 +378,7 @@ resolving row can exceed the shortfall (relief is capped at the shortfall), but 
 binds until about 88% of candidate cost (seed 42), since each candidate adds relief to its
 sectors until all of them are saturated.
 
-**v2** is derived from v1 (`make_v2`) with these deliberate changes, each recorded in
+**v2** (the refreshed forecast) is derived from v1 (`make_v2`) with these deliberate changes, each recorded in
 `changes_v1_to_v2.json` (one entry per change, with `kind`, ids, `old`, `new`):
 - `sector_added` x3: new sectors (market drawn by need rate), each relieved by one existing
   candidate through a single new offload row (so that candidate may exceed its type's reach by

@@ -1,4 +1,8 @@
-"""Derive v2 from v1 with deliberate changes, recording every change in a change list."""
+"""Derive v2, the refreshed forecast, from v1, the plan of record.
+
+A mid-year update: re-estimated costs, moved trigger years and new sectors (plus changed
+offloads), every change recorded in a change list.
+"""
 
 import numpy as np
 

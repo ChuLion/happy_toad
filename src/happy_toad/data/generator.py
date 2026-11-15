@@ -1,4 +1,4 @@
-"""Seeded generator for the base (v1) synthetic input set.
+"""Seeded generator for v1, the plan of record: the synthetic data the plan was built on.
 
 Structure first: sectors get a coverage count (how many candidates can relieve them), the coverage
 slots are dealt to candidates of three types, and the number of candidates falls out of that.

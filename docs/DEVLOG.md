@@ -1036,3 +1036,13 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   rather than in the page; `schema_version` 2 → 3 for the new field; single newlines become line
   breaks and blank lines new paragraphs (the old summary used `pre-wrap`); headings, italics and
   code stay literal.
+
+## 2026-11-15 — v1 "plan of record", v2 "refreshed forecast"
+- Owner asked: describe v1 as the plan of record (the data the plan was built on) and v2 as the
+  refreshed forecast (a mid-year update with re-estimated costs, moved trigger years and new
+  sectors) in the guide and the data descriptions; version ids unchanged.
+- Changed: `docs/GUIDE.md` (table header and section 2 paragraph), `docs/SPEC.md` (generator
+  section), docstrings of `data/generator.py` and `data/evolve.py`, the `generate` command help.
+- Not specified by the owner: which places count as "data descriptions" (the input JSON files
+  have no description field, and adding one would change their content hash, so they are
+  untouched); the evolve docstring also names the changed offloads, which v2 has.

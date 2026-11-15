@@ -23,7 +23,7 @@ candidate relieves if funded), and must-fund projects that are always paid for f
   that triggers in 2027 weighs 1, in 2028 one half, in 2029 one third, and so on. This weighting
   is a modelling assumption.
 
-| | v1 | v2 |
+| | v1 (plan of record) | v2 (refreshed forecast) |
 |---|---|---|
 | Sectors (in 8 markets) | 80 | 83 |
 | Candidate solutions | 51 | 51 |
@@ -31,9 +31,11 @@ candidate relieves if funded), and must-fund projects that are always paid for f
 | Must-fund projects | 5 (cost 311.44) | 5 (cost 311.44) |
 | Total candidate cost | 3,114.38 | 3,052.34 |
 
-v1 is the base data set. v2 is the same data after a revision. **changes_v1_to_v2 is a change
-list, not a version**: it lists the 27 edits that turn v1 into v2 (10 candidate costs changed,
-8 offloads changed, 6 trigger years moved, 3 sectors added). You cannot run a scenario on it.
+**v1 is the plan of record**: the data the plan was built on. **v2 is the refreshed forecast**: a
+mid-year update with re-estimated costs, moved trigger years and new sectors. The version ids
+stay v1 and v2. **changes_v1_to_v2 is a change list, not a version**: it lists the 27 edits
+that turn v1 into v2 (10 candidate costs re-estimated, 8 offloads changed, 6 trigger years
+moved, 3 sectors added). You cannot run a scenario on it.
 
 ## 3. What you can ask
 Budgets are always the total, including must-fund projects.

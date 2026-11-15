@@ -31,7 +31,7 @@ def generate(
     seed: Annotated[int, typer.Option(help="Random seed; same seed gives identical files.")] = 42,
     out_dir: Annotated[Path, typer.Option(help="Where to write the files.")] = Path("data/inputs"),
 ) -> None:
-    """Generate synthetic v1, v2 and the v1-to-v2 change list."""
+    """Generate synthetic v1 (plan of record), v2 (refreshed forecast) and the change list."""
     write_inputs(seed, out_dir)
     typer.echo(f"Wrote v1.json, v2.json and changes_v1_to_v2.json to {out_dir}")
 
