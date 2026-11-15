@@ -992,3 +992,30 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   "Checked live with one model" keeps the five-model round with its caveat; `load_version`
   also refuses change lists (the owner asked only for the list); example budgets and the
   region size of 200 in the guide are made up.
+
+## 2026-11-15 — "How an answer is made" panel on the web page
+- Owner asked: show the process flowchart on the page so a new user understands it; option 1
+  of 3 chosen (a static map with captions; per-run path highlight and live pulse deferred).
+- `web/page.html`: a panel that opens and closes, above the controls in both replay and live
+  mode, with eight numbered stops (Question, Agent, Gate, Optimizer, Run record, Report,
+  Checker, You), each with a one-line caption taken from `docs/GUIDE.md` section 4. A row on
+  desktop, a vertical line below 760px. `web/replay.html` rebuilt from `web/replay.json`. 400 pass.
+- Not specified by the owner: HTML/CSS instead of Mermaid (Mermaid needs a script from a CDN,
+  and the replay makes no external requests); the two branches (rejected at the gate, sent back
+  once by the checker) are red notes under their stops, not drawn arrows; the last stop is
+  "You" instead of "Summary to a human"; the panel starts open.
+
+## 2026-11-15 — The flow panel follows the run (option 2)
+- Owner asked: a gray-box highlight that moves through the stages, and in the replay the run
+  should play when its button is clicked ("play when you hit ask").
+- `web/page.html`: while a run is in progress, stages not yet reached are faded, passed stages
+  are black, and the current stage sits in a gray box. Each tool call moves it: `run_scenario`
+  rejected → Gate, Run record and the red "Rejected" note; any other `run_scenario` (not an
+  error) → Gate, Optimizer, Run record; `submit_report` → Report, Checker, and the red
+  "Mismatch" note when refused; other tools → Agent. The final view moves it to You. Live mode
+  follows the streamed steps; replay buttons play the stored steps 0.9 s apart, with the
+  trace filling in, then show the answer. No server or schema change. 400 pass.
+- Not specified by the owner: on page load the replay shows the first run's final path without
+  playing; clicking another button mid-play cancels the current one; reduced-motion users get
+  no delay; the step interval (0.9 s); a `run_scenario` error counts as Agent only. No JS tests
+  (the project has no JS test setup); checked with headless Chrome screenshots and DOM dumps.

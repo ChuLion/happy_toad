@@ -126,6 +126,27 @@ ol.steps li:last-child { border-bottom: 0; }
 .loading .bar:nth-child(4) { width: 55%; }
 @keyframes shimmer { to { background-position: -200% 0; } }
 
+.how { margin-bottom: 16px; }
+ol.flow { list-style: none; margin: 0; padding: 18px 22px 20px; border-top: 1px solid var(--line);
+  display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 0 10px; counter-reset: stop; }
+.flow li { position: relative; padding-top: 30px; min-width: 0; counter-increment: stop; }
+.flow li::before { content: counter(stop); position: absolute; top: 0; left: 0; width: 22px; height: 22px;
+  border-radius: 50%; background: var(--canvas); border: 1.5px solid var(--ink);
+  display: grid; place-items: center; font: 600 11px var(--sans); z-index: 1; }
+.flow li::after { content: ""; position: absolute; top: 11px; left: 22px; right: -10px;
+  border-top: 1.5px solid var(--ink); }
+.flow li:last-child::after { display: none; }
+.flow li:last-child::before { background: var(--ink); color: var(--canvas); }
+.flow b { display: block; font-size: 13px; font-weight: 700; line-height: 1.3; }
+.flow span { display: block; font-size: 12px; line-height: 1.4; color: var(--muted); margin-top: 3px; }
+.flow .branch { color: var(--accent); margin-top: 6px; }
+.flow li { border-radius: 10px; transition: opacity .3s, background-color .3s, box-shadow .3s; }
+.flow.tracking li { opacity: .3; }
+.flow.tracking li.passed { opacity: 1; }
+.flow.tracking .branch { visibility: hidden; }
+.flow.tracking .branch.hit { visibility: visible; }
+.flow li.here { background: var(--soft); box-shadow: 0 0 0 6px var(--soft); }
+
 footer.meta { color: var(--muted); font-size: 12px; margin: 2px 2px 0; overflow-wrap: anywhere; }
 footer.meta span + span::before { content: " | "; color: var(--line); }
 
@@ -136,6 +157,13 @@ footer.meta span + span::before { content: " | "; color: var(--line); }
   .answer, .section { padding: 16px; }
   details.trace summary { padding: 14px 16px; }
   ol.steps { padding: 0 16px 14px; }
+}
+@media (max-width: 760px) {
+  ol.flow { grid-template-columns: minmax(0, 1fr); padding: 16px; }
+  .flow li { padding: 1px 0 14px 34px; }
+  .flow li::after { top: 22px; bottom: 0; left: 10px; right: auto; border-top: 0;
+    border-left: 1.5px solid var(--ink); }
+  .flow li:last-child { padding-bottom: 0; }
 }
 </style>
 </head>
@@ -150,6 +178,21 @@ footer.meta span + span::before { content: " | "; color: var(--line); }
   <div class="status"><span class="dot" id="dot"></span><span id="status-text"></span></div>
 </header>
 <main>
+  <details class="card trace how" open>
+    <summary>How an answer is made</summary>
+    <ol class="flow">
+      <li data-stage="question"><b>Question</b><span>You ask in plain English.</span></li>
+      <li data-stage="agent"><b>Agent</b><span>Turns it into exact scenario requests.</span></li>
+      <li data-stage="gate"><b>Gate</b><span>Accepts or rejects each request, listing every problem.</span>
+        <span class="branch" data-branch="rejected">Rejected: stored with its reasons, not solved.</span></li>
+      <li data-stage="optimizer"><b>Optimizer</b><span>Most weighted relief first, then the lowest spend for it.</span></li>
+      <li data-stage="record"><b>Run record</b><span>Every attempt is stored with a run id.</span></li>
+      <li data-stage="report"><b>Report</b><span>A summary, with its numbers listed as claims.</span></li>
+      <li data-stage="checker"><b>Checker</b><span>Matches every number to a stored run.</span>
+        <span class="branch" data-branch="mismatch">Mismatch: sent back to the agent once.</span></li>
+      <li data-stage="you"><b>You</b><span>See the label and the numbers. A human decides.</span></li>
+    </ol>
+  </details>
   <div id="controls"></div>
   <div id="view"></div>
 </main>
@@ -265,6 +308,44 @@ function renderView(v, liveTrace) {
   return el("div", { class: "result" }, questionLine(v.question), warning(v), answerCard(v), runsCard(v), t.box, footer(v));
 }
 
+const flow = document.querySelector(".flow");
+
+function stagesOf(s) {
+  const o = s.outcome;
+  if (s.tool === "run_scenario" && o.startsWith("rejected")) return [["agent", "gate", "record"], "rejected"];
+  if (s.tool === "run_scenario" && !o.startsWith("error")) return [["agent", "gate", "optimizer", "record"]];
+  if (s.tool === "submit_report") return [["agent", "report", "checker"], o.startsWith("refused") ? "mismatch" : null];
+  return [["agent"]];
+}
+
+function markFlow(stages, branch) {
+  flow.querySelector(".here")?.classList.remove("here");
+  for (const name of stages) flow.querySelector(`[data-stage="${name}"]`).classList.add("passed");
+  flow.querySelector(`[data-stage="${stages.at(-1)}"]`).classList.add("here");
+  if (branch) flow.querySelector(`[data-branch="${branch}"]`).classList.add("hit");
+}
+
+function resetFlow() {
+  flow.classList.add("tracking");
+  flow.querySelectorAll(".passed, .here, .hit").forEach(n => n.classList.remove("passed", "here", "hit"));
+  markFlow(["question"]);
+}
+
+const flowStep = s => markFlow(...stagesOf(s));
+const flowDone = () => markFlow(["you"]);
+
+function finalFlow(v) {
+  resetFlow();
+  v.steps.forEach(flowStep);
+  flowDone();
+}
+
+function pendingCard() {
+  return el("section", { class: "card answer loading", "aria-busy": "true" },
+    el("div", { class: "answer-head" }, el("h2", {}, "Answer"), el("span", { class: "badge-note" }, "Working...")),
+    el("div", { class: "bar" }), el("div", { class: "bar" }), el("div", { class: "bar" }));
+}
+
 function show(node) { document.getElementById("view").replaceChildren(node); }
 function setStatus(text, live) {
   document.getElementById("status-text").textContent = text;
@@ -275,13 +356,31 @@ function startReplay() {
   setStatus("Replay of real runs on synthetic data, not a live demo.");
   document.getElementById("controls").append(el("p", { class: "hint" }, "New to this? Read the ",
     el("a", { href: "../docs/GUIDE.md" }, "Guide for planners"), "."));
-  const chips = boot.views.map((v, i) => el("button", { class: "chip", onclick: () => pick(i) }, boot.labels[i]));
+  const chips = boot.views.map((v, i) => el("button", { class: "chip", onclick: () => play(i) }, boot.labels[i]));
   document.getElementById("controls").append(el("div", { class: "chips" }, ...chips));
-  function pick(i) {
+  const stepMs = matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 900;
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  let current = 0;
+  async function play(i) {
+    const mine = ++current;
     chips.forEach((b, j) => b.classList.toggle("on", i === j));
-    show(renderView(boot.views[i]));
+    const v = boot.views[i], t = trace(true);
+    resetFlow();
+    show(el("div", { class: "result" }, questionLine(v.question), pendingCard(), t.box));
+    for (const s of v.steps) {
+      await wait(stepMs);
+      if (mine !== current) return;
+      t.add(s, true);
+      flowStep(s);
+    }
+    await wait(stepMs);
+    if (mine !== current) return;
+    flowDone();
+    show(renderView(v, t));
   }
-  pick(0);
+  chips[0].classList.add("on");
+  finalFlow(boot.views[0]);
+  show(renderView(boot.views[0]));
 }
 
 function startLive() {
@@ -309,10 +408,8 @@ function startLive() {
     hint.className = "hint"; hint.textContent = "The agent is running scenarios. Steps appear as they happen.";
     setStatus("Running on a live model", true);
     const t = trace(true);
-    const pending = el("section", { class: "card answer loading", "aria-busy": "true" },
-      el("div", { class: "answer-head" }, el("h2", {}, "Answer"), el("span", { class: "badge-note" }, "Working...")),
-      el("div", { class: "bar" }), el("div", { class: "bar" }), el("div", { class: "bar" }));
-    show(el("div", { class: "result" }, questionLine(question), pending, t.box));
+    resetFlow();
+    show(el("div", { class: "result" }, questionLine(question), pendingCard(), t.box));
     try {
       const res = await fetch("/api/ask", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question }) });
@@ -326,8 +423,8 @@ function startLive() {
         let nl;
         while ((nl = buf.indexOf("\n")) >= 0) {
           const msg = JSON.parse(buf.slice(0, nl)); buf = buf.slice(nl + 1);
-          if (msg.type === "step") t.add(msg.step, true);
-          if (msg.type === "view") { show(renderView(msg.view, t)); hint.textContent = "Done. Open the execution trace for each tool call."; }
+          if (msg.type === "step") { t.add(msg.step, true); flowStep(msg.step); }
+          if (msg.type === "view") { flowDone(); show(renderView(msg.view, t)); hint.textContent = "Done. Open the execution trace for each tool call."; }
           if (msg.type === "error") fail(msg.error);
         }
       }
