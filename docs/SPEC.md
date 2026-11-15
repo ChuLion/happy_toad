@@ -567,6 +567,177 @@ caps in requests and the sweep; B `FLOORS_EXCEED_BUDGET` and `CAP_BELOW_FLOOR` a
 C `region_total_sectors`; D `target_pct_resolved` (reported, no search); E `HORIZON_YEARS`; F the
 M3 interpretation rule. The remaining ones marked "(impl.)" are mine and are in the DEVLOG.
 
+## M2B — Target-budget search
+Answers "what budget reaches X% resolved?" with the **cheapest plan** that resolves at least the
+target: a separate optimization, not the normal optimizer. Owner decisions (2026-11-15): only this
+interpretation; no scan of the normal optimizer over budgets; no other diagnostics in M2B (moved to
+M7). Items marked **[lead]** are proposals not in the owner's list.
+
+### Why a separate optimization
+The normal optimizer maximizes weighted relief, and the number of resolved sectors is **not
+monotonic in budget**: on v1 (seed 42), a sweep from 311.44 to 5138.73 in steps of 1 found 148
+budgets where one more unit resolves fewer sectors (981.44 resolves 30, 982.44 resolves 26), and
+1356 of 4828 budgets resolve fewer than some smaller budget (DEVLOG 2026-11-15). "The smallest
+budget at which the optimizer reaches X%" therefore has no single answer. The cheapest plan does:
+it is exact, and a larger target never needs a smaller budget. On v1 the two readings differ by
+20-209 cost units (for 50%: cheapest plan 1145.21; the optimizer first reaches 50% at about 1329).
+
+### Request
+`TargetBudgetRequest` (pydantic, frozen, unknown fields refused):
+
+| Field | Rule |
+|---|---|
+| `input_version` | string, as in M2A |
+| `target_pct_resolved` | number, 0 to 100 |
+| `force_in`, `force_out` | candidate ids, sorted and de-duplicated as in M2A |
+| `label` | free text, not hashed |
+
+There is no `budget` (the search finds it) and no `region_total_sectors`. **No market multipliers:**
+floors and caps are multiples of the budget, which is what the search is looking for. A request
+with `market_floor_mult`, `market_cap_mult` or `budget` is `SCHEMA_INVALID` with a message that
+names the field and the reason, for example: "market_floor_mult is not supported in the
+target-budget search: market floors and caps scale with the budget being searched for; use
+run_scenario with a budget to apply them". The request hash is SHA-256 of the canonical JSON of
+every field except `label`, plus `"kind": "target_budget"`, so it never equals a scenario hash.
+
+### Gate
+The M2A gate checks that apply: `VERSION_NOT_FOUND`, `UNKNOWN_CANDIDATE`, `FORCE_CONFLICT`, every
+problem listed. A rejected request is stored as a run record (`outcome: rejected`), as in M2A. No
+new gate codes.
+
+### Method
+1. **Target count:** `k = ceil(target_pct_resolved * n_sectors / 100 - 1e-9)`; 50% of 80 sectors is 40.
+2. **Reachability:** `max_resolvable` = sectors resolved when every candidate not forced out is
+   funded (relief only grows with more candidates, and there are no caps). If `k > max_resolvable`,
+   the result is `Infeasible` with the new cause **`TARGET_UNREACHABLE`**: "at most N of M sectors
+   (P%) can be resolved with the candidates not forced out; the target needs k". No solver call,
+   no `target_budget`, no follow-up run.
+3. **Stage 1, cheapest plan:** minimize candidate spend `sum cost_c x_c`, with binary `x_c` and a
+   binary `z_s` per sector: `sum over offloads into s of amount * x_c >= (shortfall_s - 1e-6) * z_s`,
+   `sum z_s >= k`, forced-in `x_c = 1`, forced-out `x_c = 0`. The same tolerance as "resolved"
+   (`RESOLVED_TOLERANCE`).
+4. **Stage 2, tie-break:** among plans that cost at most C* + 1e-6 and still resolve at least k,
+   maximize weighted relief (same weights as M1), so the plan is unique and deterministic.
+5. **`target_budget` = must-fund total + C*, rounded up to the cent** (`ceil(round(x * 100, 6)) /
+   100`; the inner round removes float noise such as 1145.2100000001). It is a **total budget
+   including must-fund projects**, like every budget the user gives. Forced-in costs are inside
+   C*. The stored, claimed and follow-up value is this rounded one, so the cheapest plan's cost C*
+   always fits within `target_budget - must-fund total`.
+6. **Follow-up run:** the normal optimizer (M1 `solve`) runs at that same rounded `target_budget`
+   with the same force lists, stored as an ordinary scenario run. This shows what the usual plan does with that money.
+   Its run id is in the search record as `follow_up_run_id`.
+7. **Solver:** CBC with the pinned M1 settings (single thread, gaps 0); one 30 s limit for both
+   stages. `target_budget` is set only when stage 1 proves optimality. If a stage stops on time,
+   status is `TimeLimit`, the best plan found is shown, and there is no `target_budget` and no
+   follow-up run. A target of 0 needs no candidates: `target_budget` = must-fund + forced-in cost.
+
+### Run record
+`RunRecord` gains `kind: "scenario" | "target_budget"` (default `"scenario"`, so stored records
+still load) and `follow_up_run_id: str | None = None`. `RunResult` gains `target_budget`,
+`target_sectors` (k), `max_resolvable` and `max_pct_resolvable` (`100 * max_resolvable /
+n_sectors`), all `None` by default. `target_sectors` is set whenever the target is valid;
+`max_resolvable` and `max_pct_resolvable` are set on every search record (reachable or not). For a search record, `result`
+describes the cheapest plan: `status`, `cause`, `objective`, `spend`, `selected`, `resolved`,
+`total_sectors`, `pct_resolved`, `target_pct_resolved`, `target_met` (true when found),
+`unresolved`, timings and settings; `pct_of_region` and `required_minimum_budget` are `None`.
+`compare_runs` accepts a search record like any run with a plan (cheapest plan against the
+follow-up run is a useful comparison).
+
+### New report metrics (claimable, checked)
+| Metric | Unit | Stored value | Tolerance |
+|---|---|---|---|
+| `target_budget` | cost_units | `result.target_budget` | money (0.005) |
+| `target_sectors` | count | `result.target_sectors` (k) | exact |
+| `max_resolvable` | count | `result.max_resolvable` | exact |
+| `max_pct_resolvable` | percent | `result.max_pct_resolvable` | percent (0.05) |
+
+The existing plan metrics (`spend`, `weighted_relief`, `n_selected`, `n_resolved`, `pct_resolved`,
+`status`, `target_met`) apply to a search record's cheapest plan; the follow-up run is an ordinary
+run. `target_pct_resolved` is already an allowed request number.
+
+### Agent
+New tool **`find_target_budget`** (parameters: the request above). Its result is the record view
+as for `run_scenario`, plus `follow_up_run_id` and the follow-up run's view.
+
+**Provenance:** the loop records `follow_up_run_id` with the run ids it already tracks (`run_id`,
+`run_id_a`, `run_id_b`), so a claim citing the follow-up run counts as executed in the
+conversation.
+
+New system-prompt rule 12: "For a question like 'what budget reaches X% resolved?', call
+find_target_budget. State the target as a sector count: "at least k of N sectors" (target_sectors
+of n_sectors). Say that target_budget is the total budget, including must-fund projects, of
+the cheapest plan that resolves at least that many. Then give what the optimizer's usual plan resolves at
+that budget, from the follow-up run, and say that it maximizes weighted relief, so it can resolve
+fewer. Say that a higher budget does not guarantee more resolved sectors. Offer to run the
+optimizer at other budgets the user names. If the target is unreachable, say so and give
+max_resolvable and max_pct_resolvable."
+
+Expected answer shape: "The cheapest plan that resolves at least 40 of 80 sectors (50%) needs a
+total budget of 1145.21 (run …). At that budget the optimizer's usual plan, which maximizes weighted relief,
+resolves 33 of 80 (run …). A higher budget does not guarantee more resolved sectors. I can run
+the optimizer at other budgets you name."
+
+**[lead] Display:** the web page and the CLI trace show the tool as "target X%" →
+"target budget B [run id]; optimizer at B resolves m [run id]", with the wording in
+`web/format.py` and `cli.py` kept identical (existing test). **[lead] CLI:** `happy-toad
+target-budget <input> --target 50 [--force-in ...] [--force-out ...]` prints the result; cut if
+not wanted.
+
+### Glossary (docs/GUIDE.md section 7)
+- **`target_budget`:** the total budget, including must-fund projects, of the cheapest plan that
+  resolves at least the target percent of sectors. The optimizer's usual plan at that budget can
+  resolve fewer, because it maximizes weighted relief.
+- **`target_sectors`:** the target as a number of sectors: the target percent of all sectors,
+  rounded up (50% of 80 is 40).
+- **`max_resolvable`:** the most sectors any plan can resolve with the candidates that are not
+  forced out. Given with every target-budget search; when the target needs more, it is
+  unreachable.
+- **`max_pct_resolvable`:** `max_resolvable` as a percent of all sectors in the version.
+- **`TARGET_UNREACHABLE`:** no plan can resolve the target percent of sectors, even with every
+  candidate that is not forced out funded; the run gives `max_resolvable` and `max_pct_resolvable` instead of a budget.
+
+The guide's limitation "No reverse budget search yet" is replaced by the search and its caveat.
+
+### Tests (written before the code)
+- **Toy, brute force:** a toy set where the cheapest plan for the target differs from the
+  optimizer's plan at that budget; every subset is enumerated to confirm C* is the minimum, and
+  no subset costing C* - 0.01 reaches the target.
+- **Rounding:** `target_budget` has at most 2 decimals, is never below must-fund + C*, and
+  exceeds it by less than 0.01; the cheapest plan's cost fits within `target_budget` minus the
+  must-fund total; the follow-up run's budget equals `target_budget`.
+- **Toy, target 0:** `target_budget` = must-fund total; with force_in, plus the forced cost.
+- **Unreachable:** a target above `max_resolvable` gives `Infeasible`, `TARGET_UNREACHABLE`,
+  `max_resolvable`, no budget, no follow-up run; also a target made unreachable only by force_out.
+- **Force in:** forcing a candidate in adds its cost when it is not in the cheapest plan.
+- **v1 scale:** targets 5%, 10%, ..., 95%: `target_budget` never decreases as the target rises;
+  it is never above the sweep's first budget at which the optimizer reaches the target, read
+  from a committed fixture (`tests/fixtures/v1_first_budget_per_target.json`, with a note on how
+  it was produced); the plan's resolved count is at least k.
+- **Determinism:** the same request twice gives the same plan and budget.
+- **Run record:** search and follow-up records written; `kind`, `follow_up_run_id`, hash differs
+  from a scenario hash; old records without the new fields still load.
+- **Gate and schema:** `VERSION_NOT_FOUND`, `UNKNOWN_CANDIDATE`, `FORCE_CONFLICT` rejected with
+  all reasons; `market_floor_mult`, `market_cap_mult` and `budget` each give `SCHEMA_INVALID`
+  with the message naming the field; a target above 100 is refused.
+- **Checker:** `target_budget`, `target_sectors`, `max_resolvable` and `max_pct_resolvable`
+  claims pass when they match and fail when they do not; money tolerance on `target_budget`,
+  percent tolerance on `max_pct_resolvable`, exact counts.
+- **Provenance:** a claim citing `follow_up_run_id` passes the conversation-runs check; the same
+  claim fails when the follow-up run was not part of the conversation.
+- **Agent:** a scripted fake-client conversation for "what budget reaches 50%?" ends CHECKED with
+  claims from both runs.
+- **Glossary:** the existing test fails until the four metrics and the new cause have entries.
+- **Display:** the CLI and web trace wording are identical for the new tool.
+
+### Effects on frozen files
+`checker.py`, `report.py`, `tools.py`, `prompt.py` and `loop.py` change (the freeze is lifted,
+DEVLOG 2026-11-15); a future bake-off round records the new hashes.
+
+### Done when
+All tests above pass; CI green; a live `happy-toad ask --profile demo` for "On v1, what total
+budget reaches 50% of sectors resolved?" ends CHECKED with the wording above; README, guide and
+glossary updated; tag v0.4.
+
 ## M3 — Agent
 An agent layer that turns a plain-English question into calls of the M2A services and returns a
 report whose numbers are checked against stored runs. Items marked **[owner]** were in the owner's

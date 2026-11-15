@@ -1119,3 +1119,45 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   lists the region percent; the image sits under the M3 checker limitations with a one-line
   caption of what failed (the unclaimed "15"). The screenshot shows "refused (1 problems)", from
   before the singular fix.
+
+## 2026-11-15 — M2B design: resolved count is not monotonic in budget
+- Owner asked: which reading of "smallest budget that meets a target", whether resolved count is
+  monotonic in budget on v1, and a proposed method. The SPEC had no M2B section (only "M2B:
+  diagnostics, for example the smallest budget that meets a target").
+- **Finding: resolved count is not monotonic in budget.** v1 seed 42, normal optimizer, budgets
+  311.44 (must-fund) to 5138.73 (the gate's cap) in steps of 1, 4828 solves, all Optimal: **148
+  budgets where one more unit resolves fewer sectors**, for example **981.44 → 982.44: 30 → 26**
+  (also 434.44 → 435.44: 8 → 5); 1356 budgets resolve fewer than some smaller budget; the last
+  drop is at 3019.44, and from 3061.44 on it is always 76 (the maximum). Weighted relief never
+  decreases. Cause: the optimizer maximizes weighted relief and partial relief counts, so extra
+  money can go to partial relief in urgent sectors instead of finishing a sector.
+- A scratch minimum-cost model (not committed) gave the cheapest-plan budget per target; it is
+  20-209 cost units below the budget at which the optimizer first reaches the same target (for
+  50%: 1145.21 against about 1329.44), and at the cheapest-plan budget the optimizer resolves
+  fewer sectors (33 instead of 40).
+- **Owner decisions:** build only the cheapest-plan target-budget search, with the proposed
+  answer wording plus "a higher budget does not guarantee more resolved sectors"; no
+  optimizer-plan scan; no extra diagnostics. SPEC M2B section written for approval.
+- **Moved to M7:** the optimizer-plan scan (smallest budget at which the normal optimizer's plan
+  reaches a target); the whole-candidate floor cause (floors no combination of whole candidates
+  can meet, now `CAUSE_UNKNOWN`); the per-sector cheapest fix in the unresolved report; the CLI
+  table of target → cheapest budget.
+- Not specified by the owner (in the SPEC draft, marked or listed): the proposed answer ended by
+  offering the optimizer-plan scan, which is now out of scope, so it offers to run the optimizer
+  at budgets the user names instead; `TimeLimit` gives no `target_budget`; the stage-2 tie-break
+  (most weighted relief at the minimum cost); `compare_runs` accepts a search record; a
+  `happy-toad target-budget` CLI command and the trace wording (both marked [lead]).
+
+## 2026-11-15 — M2B SPEC approved with changes
+- Owner approved the M2B section with three changes: (1) `target_budget` is stored rounded up to
+  the cent, the follow-up run uses that same value, and a test checks that the cheapest plan's
+  cost fits within it minus must-fund; (2) new claimable metrics `target_sectors` (exact) and
+  `max_pct_resolvable` (percent tolerance), with glossary entries, and rule 12 states the target
+  as "at least k of N sectors"; (3) the sweep's reference values for the v1-scale test are a
+  committed fixture with a note on how they were produced.
+- Owner answers: the answer wording is approved; keep the trace wording and the
+  `happy-toad target-budget` command; the six unspecified behaviours are fine; CLAUDE.md now says
+  current milestone M2B; the milestone tag will be v0.4.
+- Not specified by the owner: rounding is `ceil(round(x * 100, 6)) / 100` (the inner round removes
+  float noise); `max_resolvable` and `max_pct_resolvable` are set on every search record, not only
+  unreachable ones.
