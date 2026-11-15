@@ -1,0 +1,756 @@
+{
+ "note": "Ground truth for the M4 cases. Computed by evals/truth.py from the input JSON files and cases.json with its own PuLP models (CBC, one thread, gaps 0), written from docs/SPEC.md without the engine's code; compared with the engine by tests/test_evals_truth.py. Values are unrounded; selected ids are in candidate order. Inputs: generated v1 and v2, seed 42.",
+ "inputs": {
+  "v1": "c53306104be69aef09b12c481c10739ca33d741e0be2e99e5706758974bd349c",
+  "v2": "a8ae789ce140d461d2d16655d0ffcd8ffcc187b941684bf06994f3273bd0900d"
+ },
+ "cases": {
+  "1": {
+   "runs": [
+    {
+     "outcome": "completed",
+     "reasons": [],
+     "selected": [
+      "C002",
+      "C004",
+      "C005",
+      "C006",
+      "C007",
+      "C013",
+      "C018",
+      "C020",
+      "C021",
+      "C028",
+      "C034",
+      "C043",
+      "C044",
+      "C046"
+     ],
+     "values": {
+      "status": "Optimal",
+      "spend": 485.59,
+      "weighted_relief": 1284.335,
+      "n_selected": 14,
+      "n_resolved": 21,
+      "pct_resolved": 26.25
+     }
+    },
+    {
+     "outcome": "completed",
+     "reasons": [],
+     "selected": [
+      "C002",
+      "C004",
+      "C005",
+      "C007",
+      "C008",
+      "C010",
+      "C013",
+      "C018",
+      "C019",
+      "C020",
+      "C021",
+      "C025",
+      "C026",
+      "C027",
+      "C028",
+      "C030",
+      "C034",
+      "C036",
+      "C037",
+      "C038",
+      "C040",
+      "C043",
+      "C045",
+      "C046",
+      "C048",
+      "C049",
+      "C051"
+     ],
+     "values": {
+      "status": "Optimal",
+      "spend": 1186.32,
+      "weighted_relief": 1979.1075,
+      "n_selected": 27,
+      "n_resolved": 45,
+      "pct_resolved": 56.25
+     }
+    }
+   ],
+   "diffs": {
+    "0,1": {
+     "diff_spend": 700.73,
+     "diff_weighted_relief": 694.7725,
+     "diff_n_selected": 13,
+     "diff_n_resolved": 24,
+     "diff_pct_resolved": 30.0
+    }
+   }
+  },
+  "2": {
+   "runs": [
+    {
+     "outcome": "completed",
+     "reasons": [],
+     "selected": [
+      "C002",
+      "C004",
+      "C005",
+      "C006",
+      "C007",
+      "C013",
+      "C018",
+      "C020",
+      "C021",
+      "C028",
+      "C034",
+      "C043",
+      "C044",
+      "C046"
+     ],
+     "values": {
+      "status": "Optimal",
+      "spend": 485.59,
+      "weighted_relief": 1284.335,
+      "n_selected": 14,
+      "n_resolved": 21,
+      "pct_resolved": 26.25
+     }
+    },
+    {
+     "outcome": "completed",
+     "reasons": [],
+     "selected": [
+      "C002",
+      "C004",
+      "C005",
+      "C007",
+      "C008",
+      "C010",
+      "C013",
+      "C018",
+      "C019",
+      "C020",
+      "C021",
+      "C025",
+      "C026",
+      "C027",
+      "C028",
+      "C030",
+      "C034",
+      "C036",
+      "C037",
+      "C038",
+      "C040",
+      "C043",
+      "C045",
+      "C046",
+      "C048",
+      "C049",
+      "C051"
+     ],
+     "values": {
+      "status": "Optimal",
+      "spend": 1186.32,
+      "weighted_relief": 1979.1075,
+      "n_selected": 27,
+      "n_resolved": 45,
+      "pct_resolved": 56.25
+     }
+    }
+   ],
+   "diffs": {
+    "0,1": {
+     "diff_spend": 700.73,
+     "diff_weighted_relief": 694.7725,
+     "diff_n_selected": 13,
+     "diff_n_resolved": 24,
+     "diff_pct_resolved": 30.0
+    }
+   }
+  },
+  "3": {
+   "runs": [
+    {
+     "outcome": "completed",
+     "reasons": [],
+     "selected": [
+      "C002",
+      "C004",
+      "C005",
+      "C006",
+      "C007",
+      "C008",
+      "C013",
+      "C018",
+      "C019",
+      "C020",
+      "C021",
+      "C025",
+      "C027",
+      "C028",
+      "C030",
+      "C034",
+      "C043",
+      "C044",
+      "C046",
+      "C049"
+     ],
+     "values": {
+      "status": "Optimal",
+      "spend": 688.1,
+      "weighted_relief": 1573.5674999999999,
+      "n_selected": 20,
+      "n_resolved": 27,
+      "pct_resolved": 33.75
+     }
+    },
+    {
+     "outcome": "completed",
+     "reasons": [],
+     "selected": [
+      "C002",
+      "C005",
+      "C006",
+      "C007",
+      "C008",
+      "C013",
+      "C016",
+      "C018",
+      "C019",
+      "C020",
+      "C021",
+      "C024",
+      "C028",
+      "C033",
+      "C043",
+      "C044",
+      "C046",
+      "C049"
+     ],
+     "values": {
+      "status": "Optimal",
+      "spend": 687.88,
+      "weighted_relief": 1329.8691666666666,
+      "n_selected": 18,
+      "n_resolved": 28,
+      "pct_resolved": 35.0
+     }
+    }
+   ],
+   "diffs": {
+    "0,1": {
+     "diff_spend": -0.22000000000002728,
+     "diff_weighted_relief": -243.69833333333327,
+     "diff_n_selected": -2,
+     "diff_n_resolved": 1,
+     "diff_pct_resolved": 1.25
+    }
+   }
+  },
+  "4": {
+   "runs": [
+    {
+     "outcome": "rejected",
+     "reasons": [
+      "FORCED_COST_EXCEEDS_BUDGET"
+     ],
+     "selected": null,
+     "values": {
+      "status": "rejected",
+      "required_minimum_budget": 697.01
+     }
+    }
+   ]
+  },
+  "5": {
+   "runs": [
+    {
+     "outcome": "completed",
+     "reasons": [],
+     "selected": [
+      "C002",
+      "C003",
+      "C005",
+      "C007",
+      "C008",
+      "C013",
+      "C016",
+      "C018",
+      "C019",
+      "C020",
+      "C021",
+      "C023",
+      "C026",
+      "C027",
+      "C036",
+      "C037",
+      "C040",
+      "C042",
+      "C043",
+      "C045",
+      "C046",
+      "C048",
+      "C051"
+     ],
+     "values": {
+      "target_sectors": 40,
+      "max_resolvable": 76,
+      "max_pct_resolvable": 95.0,
+      "status": "Optimal",
+      "target_budget": 1145.21,
+      "spend": 833.77,
+      "weighted_relief": 1372.46,
+      "n_selected": 23,
+      "n_resolved": 40,
+      "pct_resolved": 50.0,
+      "target_met": true
+     },
+     "follow_up": {
+      "outcome": "completed",
+      "reasons": [],
+      "selected": [
+       "C002",
+       "C004",
+       "C005",
+       "C007",
+       "C008",
+       "C013",
+       "C018",
+       "C019",
+       "C020",
+       "C021",
+       "C025",
+       "C027",
+       "C028",
+       "C030",
+       "C034",
+       "C037",
+       "C038",
+       "C040",
+       "C043",
+       "C046",
+       "C049"
+      ],
+      "values": {
+       "status": "Optimal",
+       "spend": 833.67,
+       "weighted_relief": 1717.4616666666666,
+       "n_selected": 21,
+       "n_resolved": 33,
+       "pct_resolved": 41.25
+      }
+     }
+    }
+   ]
+  },
+  "6": {
+   "runs": [
+    {
+     "outcome": "completed",
+     "reasons": [],
+     "selected": null,
+     "values": {
+      "target_sectors": 80,
+      "max_resolvable": 76,
+      "max_pct_resolvable": 95.0,
+      "status": "Infeasible",
+      "target_met": false
+     }
+    }
+   ]
+  },
+  "7": {
+   "runs": []
+  },
+  "8": {
+   "runs": [
+    {
+     "outcome": "rejected",
+     "reasons": [
+      "UNKNOWN_CANDIDATE"
+     ],
+     "selected": null,
+     "values": {
+      "status": "rejected"
+     }
+    }
+   ]
+  },
+  "9": {
+   "runs": []
+  },
+  "10": {
+   "runs": []
+  },
+  "11": {
+   "runs": [
+    {
+     "outcome": "completed",
+     "reasons": [],
+     "selected": [
+      "C002",
+      "C004",
+      "C005",
+      "C006",
+      "C007",
+      "C013",
+      "C018",
+      "C020",
+      "C021",
+      "C028",
+      "C034",
+      "C043",
+      "C044",
+      "C046"
+     ],
+     "values": {
+      "status": "Optimal",
+      "spend": 485.59,
+      "weighted_relief": 1284.335,
+      "n_selected": 14,
+      "n_resolved": 21,
+      "pct_resolved": 26.25
+     }
+    },
+    {
+     "outcome": "completed",
+     "reasons": [],
+     "selected": [
+      "C002",
+      "C004",
+      "C005",
+      "C006",
+      "C007",
+      "C008",
+      "C010",
+      "C013",
+      "C018",
+      "C019",
+      "C020",
+      "C021",
+      "C025",
+      "C026",
+      "C027",
+      "C028",
+      "C030",
+      "C034",
+      "C036",
+      "C037",
+      "C038",
+      "C040",
+      "C042",
+      "C043",
+      "C044",
+      "C046",
+      "C048",
+      "C049",
+      "C051"
+     ],
+     "values": {
+      "status": "Optimal",
+      "spend": 1186.26,
+      "weighted_relief": 1967.5975,
+      "n_selected": 29,
+      "n_resolved": 45,
+      "pct_resolved": 56.25
+     }
+    },
+    {
+     "outcome": "completed",
+     "reasons": [],
+     "selected": [
+      "C002",
+      "C004",
+      "C005",
+      "C007",
+      "C008",
+      "C010",
+      "C013",
+      "C018",
+      "C019",
+      "C020",
+      "C021",
+      "C025",
+      "C026",
+      "C027",
+      "C028",
+      "C030",
+      "C034",
+      "C036",
+      "C037",
+      "C038",
+      "C040",
+      "C043",
+      "C045",
+      "C046",
+      "C048",
+      "C049",
+      "C051"
+     ],
+     "values": {
+      "status": "Optimal",
+      "spend": 1186.32,
+      "weighted_relief": 1979.1075,
+      "n_selected": 27,
+      "n_resolved": 45,
+      "pct_resolved": 56.25
+     }
+    }
+   ],
+   "diffs": {
+    "0,1": {
+     "diff_spend": 700.6700000000001,
+     "diff_weighted_relief": 683.2625,
+     "diff_n_selected": 15,
+     "diff_n_resolved": 24,
+     "diff_pct_resolved": 30.0
+    },
+    "2,1": {
+     "diff_spend": -0.05999999999994543,
+     "diff_weighted_relief": -11.509999999999991,
+     "diff_n_selected": 2,
+     "diff_n_resolved": 0,
+     "diff_pct_resolved": 0.0
+    }
+   }
+  },
+  "12": {
+   "runs": [
+    {
+     "outcome": "completed",
+     "reasons": [],
+     "selected": [
+      "C002",
+      "C004",
+      "C005",
+      "C007",
+      "C013",
+      "C018",
+      "C019",
+      "C020",
+      "C021",
+      "C025",
+      "C027",
+      "C028",
+      "C029",
+      "C030",
+      "C034",
+      "C038",
+      "C042",
+      "C043",
+      "C044",
+      "C046",
+      "C049"
+     ],
+     "values": {
+      "status": "Optimal",
+      "spend": 687.22,
+      "weighted_relief": 1560.8191666666667,
+      "n_selected": 21,
+      "n_resolved": 26,
+      "pct_resolved": 31.325301204819276
+     }
+    }
+   ]
+  },
+  "13": {
+   "runs": [
+    {
+     "outcome": "completed",
+     "reasons": [],
+     "selected": [
+      "C002",
+      "C004",
+      "C005",
+      "C007",
+      "C008",
+      "C010",
+      "C013",
+      "C018",
+      "C019",
+      "C020",
+      "C021",
+      "C025",
+      "C026",
+      "C027",
+      "C028",
+      "C030",
+      "C034",
+      "C036",
+      "C038",
+      "C040",
+      "C043",
+      "C044",
+      "C046",
+      "C048",
+      "C049",
+      "C051"
+     ],
+     "values": {
+      "status": "Optimal",
+      "spend": 1087.93,
+      "weighted_relief": 1906.6008333333334,
+      "n_selected": 26,
+      "n_resolved": 42,
+      "pct_resolved": 52.5
+     }
+    }
+   ]
+  },
+  "14": {
+   "runs": [
+    {
+     "outcome": "completed",
+     "reasons": [],
+     "selected": null,
+     "values": {
+      "status": "Infeasible"
+     }
+    }
+   ]
+  },
+  "15": {
+   "runs": [
+    {
+     "outcome": "completed",
+     "reasons": [],
+     "selected": [
+      "C002",
+      "C004",
+      "C005",
+      "C007",
+      "C008",
+      "C010",
+      "C013",
+      "C018",
+      "C019",
+      "C020",
+      "C021",
+      "C025",
+      "C027",
+      "C028",
+      "C030",
+      "C034",
+      "C036",
+      "C037",
+      "C040",
+      "C043",
+      "C046",
+      "C049",
+      "C051"
+     ],
+     "values": {
+      "status": "Optimal",
+      "spend": 1081.8,
+      "weighted_relief": 1910.07,
+      "n_selected": 23,
+      "n_resolved": 42,
+      "pct_resolved": 52.5,
+      "target_met": true
+     }
+    }
+   ]
+  },
+  "16": {
+   "runs": [
+    {
+     "outcome": "completed",
+     "reasons": [],
+     "selected": [
+      "C002",
+      "C004",
+      "C005",
+      "C007",
+      "C008",
+      "C013",
+      "C018",
+      "C019",
+      "C020",
+      "C021",
+      "C025",
+      "C027",
+      "C028",
+      "C030",
+      "C034",
+      "C036",
+      "C037",
+      "C040",
+      "C043",
+      "C046",
+      "C049"
+     ],
+     "values": {
+      "status": "Optimal",
+      "spend": 885.48,
+      "weighted_relief": 1747.6008333333334,
+      "n_selected": 21,
+      "n_resolved": 35,
+      "pct_resolved": 42.16867469879518
+     }
+    }
+   ]
+  },
+  "17": {
+   "runs": [
+    {
+     "outcome": "rejected",
+     "reasons": [
+      "VERSION_NOT_FOUND"
+     ],
+     "selected": null,
+     "values": {
+      "status": "rejected"
+     }
+    }
+   ]
+  },
+  "18": {
+   "runs": [
+    {
+     "outcome": "rejected",
+     "reasons": [
+      "BUDGET_ABOVE_CAP"
+     ],
+     "selected": null,
+     "values": {
+      "status": "rejected"
+     }
+    }
+   ]
+  },
+  "19": {
+   "runs": [
+    {
+     "outcome": "completed",
+     "reasons": [],
+     "selected": [
+      "C002",
+      "C004",
+      "C005",
+      "C006",
+      "C007",
+      "C013",
+      "C018",
+      "C020",
+      "C021",
+      "C028",
+      "C034",
+      "C043",
+      "C044",
+      "C046"
+     ],
+     "values": {
+      "status": "Optimal",
+      "spend": 485.59,
+      "weighted_relief": 1284.335,
+      "n_selected": 14,
+      "n_resolved": 21,
+      "pct_resolved": 26.25
+     }
+    }
+   ]
+  }
+ },
+ "commit": "32e45570113bbc603aca76cbfcd4bc84ed0d5109"
+}

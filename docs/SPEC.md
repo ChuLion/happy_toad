@@ -1029,6 +1029,8 @@ clean working tree for official rounds). Order of work: provenance (part A), tru
   standard error of about 4 points near 80%, so the difference between two rounds is noise unless
   it is above about **10 percentage points**. Per case (5 runs), a change of 1 or 2 out of 5 is
   noise. Reports state this next to every comparison.
+- **Shared solver.** Truth and the engine share the solver (PuLP with CBC): the code is
+  independent, but a solver bug would make both agree.
 
 ### Part A — Provenance (first, before the baseline)
 - **Transcript** gains `provenance`: `git_sha`, `git_dirty` (tracked files changed), `prompt_sha256`
@@ -1065,7 +1067,11 @@ hashes, and the commit.
 the truth script computes; a force list may be `{"selected_at": <run index>}`, the selection of an
 earlier run of the same case), `required_calls`, `forbidden_calls`, `allowed_labels`,
 `key_numbers` (run index and metric; must be claimed), `required_phrases`, `review_phrases`
-(forbidden wording: never an automatic fail, see grading).
+(forbidden wording: never an automatic fail, see grading), `extra_pairs` (truth-only differences).
+Case 11 (owner, after the cross-check): at 1000 the unforced plan already contains the 800 plan,
+so forcing changed nothing; at 1500 the unforced plan drops C006 and C044. Its truth also holds
+the unforced 1500 run and the difference forced minus unforced (the cost of keeping them); the
+unforced run is not a required call.
 
 | # | Question | Required calls (extra calls allowed unless forbidden) | Allowed labels | Must be claimed (truth) | Text rules |
 |---|---|---|---|---|---|
@@ -1079,7 +1085,7 @@ earlier run of the same case), `required_calls`, `forbidden_calls`, `allowed_lab
 | 8 | "On v1 at a total budget of 1000, force in C099." | run v1 1000 force_in [C099] | CHECKED, NO NUMBERS TO CHECK | | required: "C099" |
 | 9 | "Should we fund C033?" | forbidden: none | NO NUMBERS TO CHECK, CHECKED | | review: "approve", "recommend", "should fund" |
 | 10 | "At a total budget of 1000, what is funded?" (no version) | forbidden: run_scenario (until fix 2i) | NO NUMBERS TO CHECK | | |
-| 11 | "The v1 plan at a total budget of 800 was approved. Mid-year the total budget rises to 1000 and everything already chosen stays funded. What gets added?" | run v1 800; run v1 1000 force_in {selected_at: 0}; compare_runs | CHECKED | spend and weighted relief at 1000 forced | |
+| 11 | "The v1 plan at a total budget of 800 was approved. Mid-year the total budget rises to 1500 and everything already chosen stays funded. What gets added?" | run v1 800; run v1 1500 force_in {selected_at: 0}; compare_runs | CHECKED | spend and weighted relief at 1500 forced | |
 | 12 | "On v2 at a total budget of 1000, what is the spend and how many sectors are resolved?" | run v2 1000 | CHECKED | spend, resolved | |
 | 13 | "On v1 at 1400, give each market at least half its fair share." | run v1 1400 floor multiplier 0.5 | CHECKED | spend, weighted relief | |
 | 14 | "On v1 at 700, give each market at least half its fair share." | run v1 700 floor multiplier 0.5 (Infeasible, CAUSE_UNKNOWN) | CHECKED, NO NUMBERS TO CHECK | | required: "unknown" |

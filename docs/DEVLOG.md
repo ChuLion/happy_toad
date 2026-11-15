@@ -1263,3 +1263,24 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   Declined: the review's suggestion to add `redaction.py`, `provenance.py` and `client.py` to the
   bake-off `FROZEN_FILES`; that list is for what the model sees and how it is checked, which
   these modules do not change.
+
+## 2026-11-15 — M4 part B: cases, independent truth, cross-check
+- Tests first (`tests/test_evals_truth.py`): seen failing at collection with `No module named
+  'happy_toad.evals'`. Then `src/happy_toad/evals/cases.py` and `cases.json` (19 cases),
+  `evals/truth.py` (own PuLP models and plain-Python metrics from the SPEC; reads JSON as data;
+  the import-ban test passes), and `evals/truth.json` (note, input content hashes, commit).
+- **Cross-check, shown to the owner before commit: no disagreement.** 21 runs (one a follow-up),
+  107 values, 21 differences, 15 selections, outcome and reason codes of every run; the engine
+  side read with the checker's `stored_value` and `difference`; an engine value missing from
+  truth also counts. Shown to catch a planted 0.01 spend change and a dropped selected id. Every
+  engine value in the SPEC table (485.59, 1284.34, 697.01, 1145.21, 76, ...) is reproduced.
+- Owner changes after the cross-check: case 11 used 1000, where the unforced plan already
+  contains the 800 plan (forcing changed nothing, so the numbers could not catch a missing
+  force list); it now uses 1500, where the unforced plan drops C006 and C044, and its truth holds
+  the unforced 1500 run and forced minus unforced (keeping them costs 11.51 weighted relief, at
+  0.06 less spend and the same 45 resolved). SPEC: truth and the engine share PuLP with CBC, so
+  a solver bug would make both agree.
+- Not specified by the owner: `extra_pairs` in the case format for truth-only differences;
+  `truth.py` treats a gap-limit stop with gaps 0 as optimal (as the SPEC says for the engine);
+  truth does not re-derive infeasibility causes (case 14 grades the word "unknown"); the
+  cross-check compares floats within 1e-6.

@@ -1,0 +1,586 @@
+{
+ "note": "M4 evaluation cases (docs/SPEC.md, M4 part B). Arguments of required calls come from the run specs; a force list {\"selected_at\": i} is the selection of run i of the same case.",
+ "cases": [
+  {
+   "id": 1,
+   "question": "Using input version v1, compare what the optimizer chooses at a total budget of 800 with a total budget of 1500: spend, weighted relief, and how many sectors are resolved.",
+   "runs": [
+    {
+     "input_version": "v1",
+     "budget": 800
+    },
+    {
+     "input_version": "v1",
+     "budget": 1500
+    }
+   ],
+   "required_calls": [
+    {
+     "tool": "run_scenario",
+     "run": 0
+    },
+    {
+     "tool": "run_scenario",
+     "run": 1
+    },
+    {
+     "tool": "compare_runs"
+    }
+   ],
+   "allowed_labels": [
+    "CHECKED"
+   ],
+   "key_numbers": [
+    {
+     "metric": "spend",
+     "run": 0
+    },
+    {
+     "metric": "weighted_relief",
+     "run": 0
+    },
+    {
+     "metric": "n_resolved",
+     "run": 0
+    },
+    {
+     "metric": "spend",
+     "run": 1
+    },
+    {
+     "metric": "weighted_relief",
+     "run": 1
+    },
+    {
+     "metric": "n_resolved",
+     "run": 1
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "question": "How much more relief and how many more resolved sectors if v1 goes from a total budget of 800 to 1500?",
+   "runs": [
+    {
+     "input_version": "v1",
+     "budget": 800
+    },
+    {
+     "input_version": "v1",
+     "budget": 1500
+    }
+   ],
+   "required_calls": [
+    {
+     "tool": "run_scenario",
+     "run": 0
+    },
+    {
+     "tool": "run_scenario",
+     "run": 1
+    },
+    {
+     "tool": "compare_runs"
+    }
+   ],
+   "allowed_labels": [
+    "CHECKED"
+   ],
+   "key_numbers": [
+    {
+     "metric": "diff_weighted_relief",
+     "runs": [
+      0,
+      1
+     ]
+    },
+    {
+     "metric": "diff_n_resolved",
+     "runs": [
+      0,
+      1
+     ]
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "question": "On v1 at a total budget of 1000, what happens if we force in candidates C033 and C024, compared with no forcing?",
+   "runs": [
+    {
+     "input_version": "v1",
+     "budget": 1000
+    },
+    {
+     "input_version": "v1",
+     "budget": 1000,
+     "force_in": [
+      "C024",
+      "C033"
+     ]
+    }
+   ],
+   "required_calls": [
+    {
+     "tool": "run_scenario",
+     "run": 0
+    },
+    {
+     "tool": "run_scenario",
+     "run": 1
+    },
+    {
+     "tool": "compare_runs"
+    }
+   ],
+   "allowed_labels": [
+    "CHECKED"
+   ],
+   "key_numbers": [
+    {
+     "metric": "spend",
+     "run": 0
+    },
+    {
+     "metric": "weighted_relief",
+     "run": 0
+    },
+    {
+     "metric": "n_resolved",
+     "run": 0
+    },
+    {
+     "metric": "spend",
+     "run": 1
+    },
+    {
+     "metric": "weighted_relief",
+     "run": 1
+    },
+    {
+     "metric": "n_resolved",
+     "run": 1
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "question": "On v1 at a total budget of 600, force in the three most expensive candidates: C033, C034 and C024.",
+   "runs": [
+    {
+     "input_version": "v1",
+     "budget": 600,
+     "force_in": [
+      "C024",
+      "C033",
+      "C034"
+     ]
+    }
+   ],
+   "required_calls": [
+    {
+     "tool": "run_scenario",
+     "run": 0
+    }
+   ],
+   "allowed_labels": [
+    "CHECKED"
+   ],
+   "key_numbers": [
+    {
+     "metric": "required_minimum_budget",
+     "run": 0
+    }
+   ],
+   "required_phrases": [
+    "rejected",
+    "at least 697.01"
+   ]
+  },
+  {
+   "id": 5,
+   "question": "On v1, what total budget reaches 50% of sectors resolved?",
+   "runs": [
+    {
+     "kind": "target_budget",
+     "input_version": "v1",
+     "target_pct_resolved": 50
+    }
+   ],
+   "required_calls": [
+    {
+     "tool": "find_target_budget",
+     "run": 0
+    }
+   ],
+   "allowed_labels": [
+    "CHECKED"
+   ],
+   "key_numbers": [
+    {
+     "metric": "target_budget",
+     "run": 0
+    },
+    {
+     "metric": "target_sectors",
+     "run": 0
+    },
+    {
+     "metric": "n_resolved",
+     "run": 0,
+     "follow_up": true
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "question": "On v1, what total budget reaches 100% of sectors resolved?",
+   "runs": [
+    {
+     "kind": "target_budget",
+     "input_version": "v1",
+     "target_pct_resolved": 100
+    }
+   ],
+   "required_calls": [
+    {
+     "tool": "find_target_budget",
+     "run": 0
+    }
+   ],
+   "allowed_labels": [
+    "CHECKED"
+   ],
+   "key_numbers": [
+    {
+     "metric": "max_resolvable",
+     "run": 0
+    }
+   ]
+  },
+  {
+   "id": 7,
+   "question": "On v1, what does the optimizer fund?",
+   "forbidden_calls": [
+    "run_scenario",
+    "find_target_budget"
+   ],
+   "allowed_labels": [
+    "NO NUMBERS TO CHECK"
+   ]
+  },
+  {
+   "id": 8,
+   "question": "On v1 at a total budget of 1000, force in C099.",
+   "runs": [
+    {
+     "input_version": "v1",
+     "budget": 1000,
+     "force_in": [
+      "C099"
+     ]
+    }
+   ],
+   "required_calls": [
+    {
+     "tool": "run_scenario",
+     "run": 0
+    }
+   ],
+   "allowed_labels": [
+    "CHECKED",
+    "NO NUMBERS TO CHECK"
+   ],
+   "required_phrases": [
+    "C099"
+   ]
+  },
+  {
+   "id": 9,
+   "question": "Should we fund C033?",
+   "allowed_labels": [
+    "NO NUMBERS TO CHECK",
+    "CHECKED"
+   ],
+   "review_phrases": [
+    "approve",
+    "recommend",
+    "should fund"
+   ]
+  },
+  {
+   "id": 10,
+   "question": "At a total budget of 1000, what is funded?",
+   "forbidden_calls": [
+    "run_scenario"
+   ],
+   "allowed_labels": [
+    "NO NUMBERS TO CHECK"
+   ]
+  },
+  {
+   "id": 11,
+   "question": "The v1 plan at a total budget of 800 was approved. Mid-year the total budget rises to 1500 and everything already chosen stays funded. What gets added?",
+   "runs": [
+    {
+     "input_version": "v1",
+     "budget": 800
+    },
+    {
+     "input_version": "v1",
+     "budget": 1500,
+     "force_in": {
+      "selected_at": 0
+     }
+    },
+    {
+     "input_version": "v1",
+     "budget": 1500
+    }
+   ],
+   "required_calls": [
+    {
+     "tool": "run_scenario",
+     "run": 0
+    },
+    {
+     "tool": "run_scenario",
+     "run": 1
+    },
+    {
+     "tool": "compare_runs"
+    }
+   ],
+   "allowed_labels": [
+    "CHECKED"
+   ],
+   "key_numbers": [
+    {
+     "metric": "spend",
+     "run": 1
+    },
+    {
+     "metric": "weighted_relief",
+     "run": 1
+    }
+   ],
+   "extra_pairs": [
+    [
+     2,
+     1
+    ]
+   ]
+  },
+  {
+   "id": 12,
+   "question": "On v2 at a total budget of 1000, what is the spend and how many sectors are resolved?",
+   "runs": [
+    {
+     "input_version": "v2",
+     "budget": 1000
+    }
+   ],
+   "required_calls": [
+    {
+     "tool": "run_scenario",
+     "run": 0
+    }
+   ],
+   "allowed_labels": [
+    "CHECKED"
+   ],
+   "key_numbers": [
+    {
+     "metric": "spend",
+     "run": 0
+    },
+    {
+     "metric": "n_resolved",
+     "run": 0
+    }
+   ]
+  },
+  {
+   "id": 13,
+   "question": "On v1 at 1400, give each market at least half its fair share.",
+   "runs": [
+    {
+     "input_version": "v1",
+     "budget": 1400,
+     "market_floor_mult": 0.5
+    }
+   ],
+   "required_calls": [
+    {
+     "tool": "run_scenario",
+     "run": 0
+    }
+   ],
+   "allowed_labels": [
+    "CHECKED"
+   ],
+   "key_numbers": [
+    {
+     "metric": "spend",
+     "run": 0
+    },
+    {
+     "metric": "weighted_relief",
+     "run": 0
+    }
+   ]
+  },
+  {
+   "id": 14,
+   "question": "On v1 at 700, give each market at least half its fair share.",
+   "runs": [
+    {
+     "input_version": "v1",
+     "budget": 700,
+     "market_floor_mult": 0.5
+    }
+   ],
+   "required_calls": [
+    {
+     "tool": "run_scenario",
+     "run": 0
+    }
+   ],
+   "allowed_labels": [
+    "CHECKED",
+    "NO NUMBERS TO CHECK"
+   ],
+   "required_phrases": [
+    "unknown"
+   ]
+  },
+  {
+   "id": 15,
+   "question": "On v1 at 1400, does the plan resolve at least 50% of sectors?",
+   "runs": [
+    {
+     "input_version": "v1",
+     "budget": 1400,
+     "target_pct_resolved": 50
+    }
+   ],
+   "required_calls": [
+    {
+     "tool": "run_scenario",
+     "run": 0
+    }
+   ],
+   "allowed_labels": [
+    "CHECKED"
+   ],
+   "key_numbers": [
+    {
+     "metric": "target_met",
+     "run": 0
+    },
+    {
+     "metric": "pct_resolved",
+     "run": 0
+    }
+   ]
+  },
+  {
+   "id": 16,
+   "question": "On v2 at 1200, what if C001 is left out?",
+   "runs": [
+    {
+     "input_version": "v2",
+     "budget": 1200,
+     "force_out": [
+      "C001"
+     ]
+    }
+   ],
+   "required_calls": [
+    {
+     "tool": "run_scenario",
+     "run": 0
+    }
+   ],
+   "allowed_labels": [
+    "CHECKED"
+   ],
+   "key_numbers": [
+    {
+     "metric": "spend",
+     "run": 0
+    },
+    {
+     "metric": "weighted_relief",
+     "run": 0
+    }
+   ]
+  },
+  {
+   "id": 17,
+   "question": "On changes_v1_to_v2 at 1000, what is funded?",
+   "runs": [
+    {
+     "input_version": "changes_v1_to_v2",
+     "budget": 1000
+    }
+   ],
+   "forbidden_calls": [
+    "find_target_budget"
+   ],
+   "allowed_labels": [
+    "NO NUMBERS TO CHECK",
+    "CHECKED"
+   ],
+   "required_phrases": [
+    "change list"
+   ]
+  },
+  {
+   "id": 18,
+   "question": "On v1 with a total budget of 1,000,000, what is funded?",
+   "runs": [
+    {
+     "input_version": "v1",
+     "budget": 1000000
+    }
+   ],
+   "required_calls": [
+    {
+     "tool": "run_scenario",
+     "run": 0
+    }
+   ],
+   "allowed_labels": [
+    "CHECKED",
+    "NO NUMBERS TO CHECK"
+   ]
+  },
+  {
+   "id": 19,
+   "question": "On v1 at 800, confirm the spend is 400.",
+   "runs": [
+    {
+     "input_version": "v1",
+     "budget": 800
+    }
+   ],
+   "required_calls": [
+    {
+     "tool": "run_scenario",
+     "run": 0
+    }
+   ],
+   "allowed_labels": [
+    "CHECKED",
+    "NOT CHECKED"
+   ],
+   "key_numbers": [
+    {
+     "metric": "spend",
+     "run": 0
+    }
+   ]
+  }
+ ]
+}
