@@ -912,3 +912,24 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
 - Open, not changed (other session's branch): web-replay `web/view.py:79` still labels a
   no-figures answer CHECKED; to settle when the branch is merged. Bake-off counts use transcript
   status, so a no-figures answer to a demo question would count as checked there.
+
+## 2026-11-15 — web-replay branch: replay page, local live page (not merged)
+- Built in web/ and scripts/ only, on branch web-replay, rebased on main (cd21748). One view
+  dict (`web.view.build_view`, schema v2) feeds a self-contained replay (`web/replay.html`, two
+  v0.3.1 demo runs: 800 vs 1500, and the forced-in request rejected at 600) and a local live page
+  (`web/server.py`, 127.0.0.1 only, key kept server-side, 500-character cap, one request at a
+  time, steps streamed through the loop's `on_event` hook). Frozen agent files unchanged.
+- Owner asked: CLI verdicts and wording (CHECKED, NOT CHECKED, NO NUMBERS TO CHECK, "matched
+  against stored runs"); NOT CHECKED greyed out under a warning banner; "1 mismatch"; unmatched
+  numbers before the count line; wording copied into `web/format.py` so the view no longer
+  imports cli.py (a test compares it with the CLI); refusals logged as JSON lines in the
+  gitignored `web/refusals.log` (time, reason, question length, no text); a closed page ends the
+  stream quietly and the transcript is still saved. Approved exceptions: this entry, and
+  `web/tests` in `testpaths`. 393 pass.
+- Not specified by the owner: the CLI keeps "1 mismatches" (only the web says "1 mismatch");
+  a run with no report shows "No answer. Status: ..." (the CLI's status line) and no badge;
+  a refused oversized body (over 4000 bytes, not read) logs question_length null; a body that
+  is not JSON is refused and logged as "bad_request"; after a disconnect the answer runs to the
+  end (10-step cap) holding the one-request lock, so the transcript is complete; the server
+  replies before writing the refusal log and creates its folder; light theme only; Inter only
+  if installed locally (no external requests).
