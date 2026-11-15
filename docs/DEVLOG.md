@@ -1195,3 +1195,23 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   the owner: `follow_up_run_id` is still recorded for a rejected follow-up (the run exists and
   can be cited) rather than dropped as the review suggested. Cannot happen on v1 (must-fund
   311.44).
+
+## 2026-11-15 — M2B live check; flow panel for find_target_budget; M4 fix list; v0.4
+- Live check, "On v1, what total budget reaches 50% of sectors resolved?" (demo model): the CLI
+  (`happy-toad ask`) and the local web page both ended **CHECKED** (9 claims, 11 numbers, 0
+  mismatches): target budget 1145.21 for at least 40 of 80 sectors; the optimizer at that budget
+  resolves 33; maximum resolvable 76 of 80.
+- Owner asked: the "How an answer is made" panel now lights Gate, Optimizer and Run record for
+  `find_target_budget` (found or stopped on time: all three; unreachable: Gate and Run record;
+  rejected: Gate, Run record and the red "Rejected" note). No automated test: the logic is
+  browser JavaScript and the project has no JS test setup (adding one is outside the approved
+  dependencies). Checked in a headless browser on a scratch replay of the live web transcript:
+  before, gate/optimizer/record were not marked passed; after, they are. Replay re-exported.
+- **Added to the open items for the M4 fix pass:** (4) rule 12 wording is not always followed:
+  on the web run the model attached "a higher budget does not guarantee more resolved sectors"
+  to a sentence it does not follow from ("spending 833.67 — showing that ...") and dropped the
+  offer to run other budgets (the checker verifies numbers, not wording); (5) the CLI run wrote
+  a percentage with two decimals ("41.25%") where rule 7 asks for one; the checker accepts it
+  within tolerance.
+- README status ("M1 to M3 and M2B complete (tag v0.4)") and the guide's section 3 example
+  ("Budget for a target") were already in the M2B commit (710a353).

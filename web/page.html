@@ -324,8 +324,10 @@ const flow = document.querySelector(".flow");
 
 function stagesOf(s) {
   const o = s.outcome;
-  if (s.tool === "run_scenario" && o.startsWith("rejected")) return [["agent", "gate", "record"], "rejected"];
-  if (s.tool === "run_scenario" && !o.startsWith("error")) return [["agent", "gate", "optimizer", "record"]];
+  const runs = s.tool === "run_scenario" || s.tool === "find_target_budget";
+  if (runs && o.startsWith("rejected")) return [["agent", "gate", "record"], "rejected"];
+  if (runs && o.startsWith("unreachable")) return [["agent", "gate", "record"]];
+  if (runs && !o.startsWith("error")) return [["agent", "gate", "optimizer", "record"]];
   if (s.tool === "submit_report") return [["agent", "report", "checker"], o.startsWith("refused") ? "mismatch" : null];
   return [["agent"]];
 }
