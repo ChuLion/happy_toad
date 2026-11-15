@@ -1,5 +1,6 @@
 """The local server with a scripted fake client: bind, caps, streaming, no key in responses."""
 
+import http.client
 import json
 import threading
 import urllib.error
@@ -27,7 +28,7 @@ class FakeClient:
         ]
 
     def complete(self, messages, tools) -> Completion:
-        if self.gate:
+        if self.gate and len(self.script) == 1:  # wait before the second turn
             self.gate.wait(5)
         return self.script.pop(0)
 
@@ -41,6 +42,7 @@ def live(tmp_path, monkeypatch):
         runs_dir=tmp_path / "runs",
         transcripts_dir=tmp_path / "transcripts",
         make_client=lambda profile: FakeClient(),
+        refusal_log=tmp_path / "refusals.log",
     )
     httpd = server.make_server(settings, port=0)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
@@ -103,3 +105,62 @@ def test_one_request_at_a_time(live):
     first.join()
     assert status == 429
     assert "one question at a time" in json.loads(text)["error"]
+
+
+def _refusals(settings) -> list[dict]:
+    return [json.loads(line) for line in settings.refusal_log.read_text().splitlines()]
+
+
+def test_refusals_are_logged_without_the_question(live, monkeypatch):
+    url, settings, _ = live
+    _post(url, "x" * (server.MAX_CHARS + 1))
+    _post(url, "   ")
+
+    def no_key(profile):
+        raise RuntimeError("OPENROUTER_API_KEY is not set")
+
+    settings.make_client = no_key
+    status, _ = _post(url, "secret question text")
+    assert status == 503
+    logged = _refusals(settings)
+    assert [r["reason"] for r in logged] == ["too_long", "empty", "no_key"]
+    assert [r["question_length"] for r in logged] == [server.MAX_CHARS + 1, 3, 20]
+    assert all(set(r) == {"time", "reason", "question_length"} for r in logged)
+    assert "secret" not in settings.refusal_log.read_text()
+
+
+def test_busy_refusal_is_logged(live):
+    url, settings, _ = live
+    gate = threading.Event()
+    settings.make_client = lambda profile: FakeClient(gate)
+    first = threading.Thread(target=_post, args=(url, "first"))
+    first.start()
+    while not server.BUSY.locked():
+        pass
+    _post(url, "second")
+    gate.set()
+    first.join()
+    assert _refusals(settings) == [
+        {"time": _refusals(settings)[0]["time"], "reason": "busy", "question_length": 6}
+    ]
+
+
+def test_closing_the_page_mid_answer_ends_quietly_and_saves(live, capfd):
+    url, settings, _ = live
+    gate = threading.Event()
+    settings.make_client = lambda profile: FakeClient(gate)
+    host, port = url.removeprefix("http://").split(":")
+    conn = http.client.HTTPConnection(host, int(port), timeout=5)
+    conn.request("POST", "/api/ask", json.dumps({"question": "Which versions exist?"}))
+    response = conn.getresponse()
+    assert json.loads(response.readline())["type"] == "step"
+    response.close()
+    conn.close()
+    gate.set()
+    for thread in threading.enumerate():
+        if "process_request" in thread.name:
+            thread.join(5)
+    saved = list(settings.transcripts_dir.glob("*.json"))
+    assert len(saved) == 1
+    assert json.loads(saved[0].read_text())["status"] == "checked"
+    assert "Traceback" not in capfd.readouterr().err

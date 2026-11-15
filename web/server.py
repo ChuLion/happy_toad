@@ -7,6 +7,7 @@ import json
 import threading
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -32,20 +33,43 @@ class Settings:
     runs_dir: Path = Path("runs")
     transcripts_dir: Path = Path("transcripts")
     make_client: Callable = cli.make_client
+    refusal_log: Path = Path("web/refusals.log")  # gitignored by *.log
+
+
+class Refused(Exception):
+    """A request the server turns away: HTTP status, log reason, message for the page."""
+
+    def __init__(self, status: int, reason: str, message: str, length: int | None) -> None:
+        super().__init__(message)
+        self.status, self.reason, self.length = status, reason, length
+
+
+def log_refusal(path: Path, refused: Refused) -> None:
+    """One JSON line: time, reason and question length, never the question text."""
+    entry = {"time": datetime.now(UTC).isoformat(timespec="seconds"), "reason": refused.reason}
+    entry["question_length"] = refused.length
+    with path.open("a") as log:
+        log.write(json.dumps(entry) + "\n")
 
 
 def _question(body: bytes) -> str:
-    """The question from a JSON body; ValueError with a message for the page if unusable."""
-    question = json.loads(body or b"{}").get("question")
+    """The question from a JSON body; Refused if it is missing, empty or too long."""
+    try:
+        question = json.loads(body or b"{}").get("question")
+    except (ValueError, AttributeError) as err:
+        raise Refused(400, "bad_request", "send JSON with a question", None) from err
+    length = len(question) if isinstance(question, str) else None
     if not isinstance(question, str) or not question.strip():
-        raise ValueError("send a non-empty question")
-    if len(question) > MAX_CHARS:
-        raise ValueError(TOO_LONG)
+        raise Refused(400, "empty", "send a non-empty question", length)
+    if length > MAX_CHARS:
+        raise Refused(400, "too_long", TOO_LONG, length)
     return question
 
 
 def make_handler(settings: Settings) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
+        page_closed = False
+
         def do_GET(self) -> None:
             if self.path != "/":
                 return self._json(404, {"error": "not found"})
@@ -55,17 +79,23 @@ def make_handler(settings: Settings) -> type[BaseHTTPRequestHandler]:
         def do_POST(self) -> None:
             if self.path != "/api/ask":
                 return self._json(404, {"error": "not found"})
-            length = int(self.headers.get("Content-Length", 0))
-            if length > MAX_CHARS * 8:
-                return self._json(
-                    400, {"error": f"questions are limited to {MAX_CHARS} characters"}
-                )
             try:
-                question = _question(self.rfile.read(length))
-            except ValueError as err:
-                return self._json(400, {"error": str(err)})
+                self._ask(self._body())
+            except Refused as refused:
+                log_refusal(settings.refusal_log, refused)
+                self._json(refused.status, {"error": redact_text(str(refused))})
+
+        def _body(self) -> bytes:
+            length = int(self.headers.get("Content-Length", 0))
+            if length > MAX_CHARS * 8:  # too big to be a capped question; not read
+                raise Refused(400, "too_long", TOO_LONG, None)
+            return self.rfile.read(length)
+
+        def _ask(self, body: bytes) -> None:
+            question = _question(body)
             if not BUSY.acquire(blocking=False):
-                return self._json(429, {"error": "busy: one question at a time, try again shortly"})
+                busy = "busy: one question at a time, try again shortly"
+                raise Refused(429, "busy", busy, len(question))
             try:
                 self._answer(question)
             finally:
@@ -76,7 +106,7 @@ def make_handler(settings: Settings) -> type[BaseHTTPRequestHandler]:
             try:
                 client = settings.make_client(profile)
             except RuntimeError as err:
-                return self._json(503, {"error": redact_text(str(err))})
+                raise Refused(503, "no_key", str(err), len(question)) from err
             self.send_response(200)
             self.send_header("Content-Type", "application/x-ndjson")
             self.end_headers()
@@ -94,8 +124,15 @@ def make_handler(settings: Settings) -> type[BaseHTTPRequestHandler]:
             )
 
         def _line(self, message: dict) -> None:
-            self.wfile.write(json.dumps(message).encode() + b"\n")
-            self.wfile.flush()
+            """Stream one message; once the page has gone, stop writing and let the answer
+            finish so the transcript is saved complete."""
+            if self.page_closed:
+                return
+            try:
+                self.wfile.write(json.dumps(message).encode() + b"\n")
+                self.wfile.flush()
+            except (BrokenPipeError, ConnectionResetError):
+                self.page_closed = True
 
         def _json(self, status: int, payload: dict) -> None:
             self._send(status, "application/json", json.dumps(payload).encode())
