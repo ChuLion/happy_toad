@@ -1070,3 +1070,17 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   region 200, "10.5%" unmatched). Recorded under `pct_resolved`. This conflicts with the guide's
   section 3 example "give the percent resolved out of 200 sectors"; raised with the owner, not
   changed.
+
+## 2026-11-15 — Refactor before M2B (S1, S2, S3, S7, S11 from CODE_REVIEW.md)
+- Owner asked: S1, S2, S3, S7 and S11, no behaviour change, one commit each, CI green after
+  each; time box 3 hours. Skipped: S5, S6, S9, S12, S14. Moved: S8 and S10 to the start of M4,
+  S4 and S13 to M5.
+- **The bake-off file freeze is lifted.** S2 and S3 edit `agent/tools.py` and
+  `agent/checker.py`, two of the `FROZEN_FILES` in `bakeoff.provenance()`, so their hashes
+  change. Bake-off rounds before and after this work are not comparable by hash; a future
+  comparison round records the new file hashes.
+- Baseline before any change: the five engine requests behind demo questions a, b and c on v1
+  (800; 1500; 1000; 1000 forcing C033, C024; 600 forcing C033, C034, C024), saved to compare
+  after the last refactor.
+- S1: `markets.market_spend(data, ids=None)` replaces `markets.market_costs` and
+  `diagnose._market_spend` (same summation order). 409 pass, tests unchanged.

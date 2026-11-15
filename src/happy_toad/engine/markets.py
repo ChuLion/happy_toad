@@ -1,6 +1,7 @@
 """Per-market spend floors and caps (docs/SPEC.md, "Market floors and caps")."""
 
 from collections import defaultdict
+from collections.abc import Collection
 from dataclasses import dataclass, field
 
 from happy_toad.data.schemas import InputSet
@@ -46,18 +47,21 @@ def fair_share_limits(
     return MarketLimits(floors, caps)
 
 
-def market_costs(data: InputSet) -> dict[str, float]:
-    """Total candidate cost per market (candidates with no offload row belong to none)."""
+def market_spend(data: InputSet, ids: Collection[str] | None = None) -> dict[str, float]:
+    """Cost per market of the given candidates, or of all of them when `ids` is None.
+
+    Candidates with no offload row belong to no market.
+    """
     market = candidate_markets(data)
     total: dict[str, float] = defaultdict(float)
     for c in data.candidates:
-        if c.id in market:
+        if c.id in market and (ids is None or c.id in ids):
             total[market[c.id]] += c.cost
     return dict(total)
 
 
 def clamp_floors(data: InputSet, limits: MarketLimits) -> MarketLimits:
     """Floors cannot exceed what the market's candidates cost in total."""
-    cost = market_costs(data)
+    cost = market_spend(data)
     floors = {m: min(f, cost.get(m, 0.0)) for m, f in limits.floors.items()}
     return MarketLimits(floors, limits.caps)
