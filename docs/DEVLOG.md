@@ -858,3 +858,23 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   print "Status: <status>"; all compact lines pass through `redact`; long lines soft-wrap. The
   existing CLI tests now pass `--verbose`. Demo output shown from the three saved transcripts,
   not rerun live.
+
+## 2026-11-15 — README honesty fixes, compact demo excerpt, Run it notes; tag v0.3.2
+- Owner asked for: the "Why" sentence (a checker compares each summary number to the stored runs;
+  an answer it cannot verify is shown as not checked); the headline softened to "suggestive, not
+  conclusive"; cost as "roughly 30 to 40 times cheaper" with the two-round wording fixed; the M1
+  sweep comment; the 1900-2199 year-skip limitation; the demo excerpt as compact output for
+  question c; Run it with a clone step, uv and Python 3.12+, `.env` not read by the CLI, and the
+  paid default with `--profile smoke` free; a made-up `region_total_sectors` in the README
+  example; tag v0.3.2 and the status line.
+- Year skip confirmed on the current checker: `find_numbers` drops "2000" and "2027" but keeps
+  "2000.00", "1899" and "2200".
+- Grep for 1500 in src, tests, scripts and docs: every hit is a budget (demo question a, SPEC
+  expected values, two tests); the README example was the only region count. Now 12345.
+- Correction to the earlier README report: the M1 sweep comment's range was right (defaults are
+  must-fund plus 5% to 100% of candidate cost); it only omitted "plus must-fund", now added.
+- Not specified by the owner: "cheaper" is attached to DeepSeek versus Sonnet (Sonnet is the
+  expensive one), with both ratios given (30.8x, 39x); M3 now says a failing report is shown as
+  NOT CHECKED (status `unverified` in the transcript and `--verbose`) to match the new Why; the
+  checkpoint line names v0.3.2 and says the live demo ran on v0.3.1; the clone URL is the current
+  repo and must change if the repo moves; not pushed (owner will push to a new repo).

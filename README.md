@@ -4,13 +4,13 @@ A small synthetic reference build of a budget-constrained capital-allocation opt
 agent layer that answers plain-English questions by running scenarios and reporting checked
 numbers. All data is synthetic and generated from a seed. It is not a product.
 
-**Status:** M1 to M3 complete (tag v0.3.1); M2B and M4 to M6 planned.
+**Status:** M1 to M3 complete (tag v0.3.2); M2B and M4 to M6 planned.
 
 ## Why
 Planners ask follow-up questions of an optimizer: what if the budget were larger, what if this
 candidate were forced in, why was this request rejected. An agent can run those scenarios and
-report only numbers that trace back to a stored run, with a checker refusing any number it cannot
-trace. A human decides; the agent approves nothing.
+report the results. A checker compares each number in the summary to the stored runs, and an
+answer it cannot verify is shown as not checked. A human decides; the agent approves nothing.
 
 ## Architecture
 ```mermaid
@@ -28,35 +28,46 @@ flowchart LR
 The agent approves nothing: it runs scenarios and reports; a human decides.
 
 ## Demo excerpt (live, question c)
-From the live transcript `20261114T210201-5276b834` (commit 78ba102, DeepSeek V4 Flash 0731 on
-Baseten; account id redaction applied, nothing to redact here), shortened:
+The live transcript `20261114T210201-5276b834` (run on v0.3.1, DeepSeek V4 Flash 0731 on
+Baseten), shown in the compact `ask` output; nothing shortened, no account id to redact:
 ```text
-Question: On v1 at a total budget of 600, force in the three most expensive candidates:
-          C033, C034 and C024.
-Tool call: run_scenario {"input_version": "v1", "budget": 600,
-                         "force_in": ["C033", "C034", "C024"]}
-Result:    outcome rejected, FORCED_COST_EXCEEDS_BUDGET: "must-fund 311.44 plus forced-in
-           385.57 exceeds the budget 600.0"; required_minimum_budget 697.01
-Report:    "... was rejected. The forced-in candidates combined with must-fund projects exceed
-           the budget. The budget must be at least 697.01 for this scenario to be feasible."
-           claims: status = rejected; required_minimum_budget = 697.01
-Checker:   ok=True, claims 2/2 valid, numbers 2/2 matched (after one refusal: 297.57 and
-           311.44 in the first summary had no claim)
+$ uv run happy-toad ask "On v1 at a total budget of 600, force in the three most expensive candidates: C033, C034 and C024."
+run_scenario v1, budget 600, force in C033, C034, C024 -> rejected FORCED_COST_EXCEEDS_BUDGET, minimum budget 697.01 [20261114T210203-96d94d4c]
+submit_report 2 claims -> refused (2 problems)
+submit_report 2 claims -> accepted
+╭─  CHECKED  ──────────────────────────────────────────────────────────────────────────────────╮
+│ The requested scenario on v1 at a total budget of 600 with C033, C034, and C024 forced in    │
+│ was rejected. The forced-in candidates combined with must-fund projects exceed the budget.   │
+│ The budget must be at least 697.01 for this scenario to be feasible. No results were         │
+│ produced because the run was not accepted.                                                   │
+╰──────────────────────────────────────────────────────────────────────────────────────────────╯
+First report refused, then corrected: unmatched numbers 297.57, 311.44
+2 claims, 2 numbers matched, 0 mismatches
+deepseek/deepseek-v4-flash-0731 | BaseTen | 3 turns | $0.0010 | 3.8 s
 ```
+`--verbose` shows every tool result and every check instead.
 
 ## How it was built
 Built with Claude Code. Working rule: spec first (docs/SPEC.md), tests written before code, and
 every decision logged in docs/DEVLOG.md, including the ones the owner did not specify.
 
 ## Run it
+Needs [uv](https://docs.astral.sh/uv/) and Python 3.12 or later (`uv python install 3.12` if you
+do not have it).
 ```
+git clone https://github.com/ChuLion/happy_toad.git && cd happy_toad
 uv sync
 uv run happy-toad generate --seed 42           # synthetic inputs in data/inputs/
 uv run happy-toad sweep data/inputs/v1.json    # budget sweep table
-export OPENROUTER_API_KEY=...                  # only for ask
+export OPENROUTER_API_KEY=...                  # only for ask; your key
 uv run happy-toad ask "Using input version v1, compare budget 800 with budget 1500"
 uv run pytest
 ```
+- The CLI does not read `.env`; it reads `OPENROUTER_API_KEY` from the environment, so export it
+  (or load a `.env` copied from `.env.example` with `set -a; . ./.env; set +a`).
+- The default `ask` profile is a paid model and needs OpenRouter credit (the demo questions cost
+  $0.0010 to $0.0019 each in the live runs). `--profile smoke` uses a free model, only to check
+  that the loop runs.
 
 ## Layout
 `src/happy_toad/{data,engine,services,agent}`, `cli.py`, `report.py`, `tests/`, `scripts/`, `docs/{SPEC,DECISIONS,DEVLOG}.md`.
@@ -75,7 +86,7 @@ known-answer tests and a CLI budget sweep. There is no agent layer yet.
 ```
 uv sync                                        # install (Python 3.12, locked)
 uv run happy-toad generate --seed 42           # writes data/inputs/v1.json, v2.json, changes_v1_to_v2.json
-uv run happy-toad sweep data/inputs/v1.json    # 20 budgets, 5% to 100% of candidate cost
+uv run happy-toad sweep data/inputs/v1.json    # 20 budgets: must-fund plus 5% to 100% of candidate cost
 uv run happy-toad sweep data/inputs/v1.json --budgets 700,1400,2100   # total budgets, incl. must-fund
 uv run pytest                                  # tests (5-15 s: the scale tests run real CBC solves)
 uv run ruff check . && uv run ruff format --check .
@@ -176,13 +187,14 @@ add up inside a market (for example floors that no combination of whole candidat
 the budget); `region_total_sectors` only changes the reported percentage.
 
 ## Milestone 3: the agent (`happy-toad ask`)
-Checkpoint version: tag v0.3.1.
+Checkpoint version: tag v0.3.2 (v0.3.1 plus the compact `ask` output and README fixes; the agent,
+tools, prompt and checker are the same as v0.3.1, where the live demo ran).
 
 A thin agent layer over the M2A services: it turns a plain-English question into tool calls
 (`list_input_versions`, `run_scenario`, `get_run`, `compare_runs`, `submit_report`), then submits a
 report of claims (metric, value, unit, run id) that a checker compares with the stored runs and
 with every number in the summary. Mismatches go back to the model once; a report that still fails
-is shown as UNVERIFIED. It reaches the model through OpenRouter's OpenAI-compatible API.
+is shown as NOT CHECKED (status `unverified` in the transcript and in `--verbose`). It reaches the model through OpenRouter's OpenAI-compatible API.
 - Set `OPENROUTER_API_KEY` in your environment (never stored, logged or put in a transcript).
 - `uv run happy-toad ask "Using input version v1, compare budget 800 with budget 1500" --profile smoke`
   uses a free model only to check the loop; `--profile demo` (default) uses the pinned paid model.
@@ -203,9 +215,10 @@ average under about 15 s per question; the Sonnet reference decides only if none
 passes. Cost is tokens times the per-token prices OpenRouter listed at run time, for all 15 runs of
 a model. Refusals count only refused reports that the model went on to correct.
 
-**The Sonnet reference was the most reliable (15 of 15 in both rounds) at about 30x the cost;
-DeepSeek was the cheapest model to pass the rule. Differences between the other models are within
-run-to-run noise at five runs per cell.**
+**The Sonnet reference checked 15 of 15 in each of the two rounds. DeepSeek was the cheapest model
+to pass the rule, roughly 30 to 40 times cheaper than Sonnet (30.8x in this round, 39x in the
+earlier one). With five runs per cell, the differences between the other models are suggestive,
+not conclusive.**
 
 | Model (host, precision as listed) | Checked a / b / c | Refusals | Cost, 15 runs | Mean s per question |
 |---|---|---|---|---|
@@ -237,6 +250,8 @@ failure reasons per model are in docs/DEVLOG.md.
 - Also not checked yet, logged for the M4 fix pass: candidate ids named in the summary are not
   checked against the runs, and a count claimed as a whole-valued float (2.0 instead of 2) is
   rejected.
+- The checker skips whole numbers from 1900 to 2199 in the summary as possible years, so a wrong
+  figure in that range (for example "a budget of 2000") would go unchecked.
 
 ## What is next (planned, not done)
 - M2B: diagnostics (for example the smallest budget that meets a target).
