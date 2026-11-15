@@ -2,7 +2,7 @@
   "mode": "replay",
   "views": [
     {
-      "schema_version": 2,
+      "schema_version": 3,
       "transcript_id": "20261114T210145-c04c55d4",
       "question": "Using input version v1, compare what the optimizer chooses at a total budget of 800 with a total budget of 1500: spend, weighted relief, and how many sectors are resolved.",
       "steps": [
@@ -33,6 +33,7 @@
         }
       ],
       "summary": "Compared input version v1 at a total budget of 800 versus 1500. Both runs returned Optimal status. At budget 800, the optimizer selected 14 candidates, spent 485.59 (candidate spend, excluding must-funds), achieved weighted relief of 1284.34, and resolved 21 of 80 sectors (26.25%). At budget 1500, it selected 27 candidates, spent 1186.32, achieved weighted relief of 1979.11, and resolved 45 of 80 sectors (56.25%). Moving from budget 800 to 1500 increased spend by 700.73, weighted relief by 694.77, resolved sectors by 24, and percentage resolved by 30.0 percentage points. Candidates C006 and C044 appear only in the 800-budget run; C008, C010, C019, C025, C026, C027, C030, C036, C037, C038, C040, C045, C048, C049, and C051 appear only in the 1500-budget run. These are model results under the modeled objective and constraints, not a funding recommendation.",
+      "summary_html": "<p>Compared input version v1 at a total budget of 800 versus 1500. Both runs returned Optimal status. At budget 800, the optimizer selected 14 candidates, spent 485.59 (candidate spend, excluding must-funds), achieved weighted relief of 1284.34, and resolved 21 of 80 sectors (26.25%). At budget 1500, it selected 27 candidates, spent 1186.32, achieved weighted relief of 1979.11, and resolved 45 of 80 sectors (56.25%). Moving from budget 800 to 1500 increased spend by 700.73, weighted relief by 694.77, resolved sectors by 24, and percentage resolved by 30.0 percentage points. Candidates C006 and C044 appear only in the 800-budget run; C008, C010, C019, C025, C026, C027, C030, C036, C037, C038, C040, C045, C048, C049, and C051 appear only in the 1500-budget run. These are model results under the modeled objective and constraints, not a funding recommendation.</p>",
       "status": "CHECKED",
       "detail": "checked",
       "checks": {
@@ -205,7 +206,7 @@
       }
     },
     {
-      "schema_version": 2,
+      "schema_version": 3,
       "transcript_id": "20261114T210201-5276b834",
       "question": "On v1 at a total budget of 600, force in the three most expensive candidates: C033, C034 and C024.",
       "steps": [
@@ -226,6 +227,7 @@
         }
       ],
       "summary": "The requested scenario on v1 at a total budget of 600 with C033, C034, and C024 forced in was rejected. The forced-in candidates combined with must-fund projects exceed the budget. The budget must be at least 697.01 for this scenario to be feasible. No results were produced because the run was not accepted.",
+      "summary_html": "<p>The requested scenario on v1 at a total budget of 600 with C033, C034, and C024 forced in was rejected. The forced-in candidates combined with must-fund projects exceed the budget. The budget must be at least 697.01 for this scenario to be feasible. No results were produced because the run was not accepted.</p>",
       "status": "CHECKED",
       "detail": "checked",
       "checks": {
@@ -275,7 +277,7 @@
       }
     },
     {
-      "schema_version": 2,
+      "schema_version": 3,
       "transcript_id": "20261114T210844-a403d428",
       "question": "Using input version v1, compare what the optimizer chooses at a total budget of 800 with a total budget of 1500: spend, weighted relief, and how many sectors are resolved.",
       "steps": [
@@ -311,6 +313,7 @@
         }
       ],
       "summary": "At a total budget of 800 on input version v1, the optimizer selected 14 candidates with a candidate spend of 485.59, delivering weighted relief of 1,284.335 and resolving 21 of 80 sectors (26.3%). At a total budget of 1500, the optimizer selected 27 candidates with a candidate spend of 1,186.32, delivering weighted relief of 1,979.1075 and resolving 45 of 80 sectors (56.3%). These are what the model selected under the modeled objective and constraints\u2014not recommendations. Comparing the two runs, the higher-budget run spends 700.73 more on candidates, delivers 694.7725 more weighted relief, and resolves 24 additional sectors (30.0 percentage points more). The higher-budget run includes 15 candidates not in the 800 run (e.g., C008, C010, C019, C025) while the 800 run includes 2 candidates not in the 1500 run (C006, C044).",
+      "summary_html": "<p>At a total budget of 800 on input version v1, the optimizer selected 14 candidates with a candidate spend of 485.59, delivering weighted relief of 1,284.335 and resolving 21 of 80 sectors (26.3%). At a total budget of 1500, the optimizer selected 27 candidates with a candidate spend of 1,186.32, delivering weighted relief of 1,979.1075 and resolving 45 of 80 sectors (56.3%). These are what the model selected under the modeled objective and constraints\u2014not recommendations. Comparing the two runs, the higher-budget run spends 700.73 more on candidates, delivers 694.7725 more weighted relief, and resolves 24 additional sectors (30.0 percentage points more). The higher-budget run includes 15 candidates not in the 800 run (e.g., C008, C010, C019, C025) while the 800 run includes 2 candidates not in the 1500 run (C006, C044).</p>",
       "status": "NOT CHECKED",
       "detail": "unverified",
       "checks": {

@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 class Strict(BaseModel):
@@ -55,11 +55,12 @@ class Footer(Strict):
 
 
 class View(Strict):
-    schema_version: Literal[2]
+    schema_version: Literal[3]
     transcript_id: str
     question: str
     steps: list[Step]
     summary: str | None
+    summary_html: str | None  # escaped, then bold and bullet lists only
     status: Literal["CHECKED", "NOT CHECKED", "NO NUMBERS TO CHECK"] | None  # None: no report
     detail: str  # transcript status, or the CLI's "Status: ..." line when there is no report
     checks: Checks | None

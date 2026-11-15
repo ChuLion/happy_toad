@@ -38,7 +38,7 @@ def _rejected_record() -> RunRecord:
 def test_saved_transcript_fits_the_schema():
     view = build_view(_transcript(), [_rejected_record()])
     View.model_validate(view)
-    assert view["schema_version"] == 2
+    assert view["schema_version"] == 3
     assert view["status"] == "CHECKED"
     assert view["checks"]["line"] == "2 claims, 2 numbers matched against stored runs, 0 mismatches"
     assert view["steps"][0]["tool"] == "run_scenario"
@@ -105,3 +105,15 @@ def test_keys_and_account_ids_are_redacted():
     assert "sk-or" not in view["question"]
     assert "user_B" not in view["question"]
     assert view["question"].count("[redacted]") == 2
+
+
+def test_summary_html_escapes_a_script_and_renders_bold():
+    t = _transcript()
+    summary = "**Spend** is 600.\n- <script>alert(1)</script>"
+    t = t.model_copy(update={"report": t.report.model_copy(update={"summary": summary})})
+    view = build_view(t, [_rejected_record()])
+    View.model_validate(view)
+    assert view["summary_html"] == (
+        "<p><strong>Spend</strong> is 600.</p>"
+        "<ul><li>&lt;script&gt;alert(1)&lt;/script&gt;</li></ul>"
+    )

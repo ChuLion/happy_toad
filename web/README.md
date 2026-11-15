@@ -2,7 +2,8 @@
 
 Everything here sits outside `src/happy_toad`. The page and the server only ever see the dict
 from `web.view.build_view(transcript, run_records)`; its shape is `web.schema.View`
-(`schema_version` 2).
+(`schema_version` 3). The summary reaches the page as `summary_html`: escaped by
+`web/markdown.py`, then bold and bullet lists only.
 
 ## Static replay
 ```

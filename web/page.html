@@ -77,7 +77,10 @@ button { font: inherit; cursor: pointer; }
 .answer.unchecked .num { background: var(--canvas); }
 .unmatched { color: var(--accent); font: 13px var(--mono); margin: -4px 0 6px; }
 .badge-note { color: var(--muted); font-size: 13px; }
-.summary { white-space: pre-wrap; font-size: 16px; line-height: 1.6; margin: 14px 0 0; max-width: 72ch; }
+.summary { font-size: 16px; line-height: 1.6; margin: 14px 0 0; max-width: 72ch; }
+.summary p, .summary ul { margin: 0 0 10px; }
+.summary ul { padding-left: 22px; }
+.summary > :last-child { margin-bottom: 0; }
 .note { margin: 12px 0 0; font-size: 13px; color: var(--muted); border-left: 2px solid var(--accent);
   padding-left: 10px; }
 
@@ -271,12 +274,18 @@ function checksBlock(v) {
   return box;
 }
 
+function summaryBlock(html) {
+  const node = el("div", { class: "summary" });
+  node.innerHTML = html;  // escaped server-side (web/markdown.py): bold and lists only
+  return node;
+}
+
 function answerCard(v) {
   if (v.status === null) return null;
   const card = el("section", { class: "card answer" + (v.status === "NOT CHECKED" ? " unchecked" : "") },
     el("div", { class: "answer-head" }, el("h2", {}, "Answer"),
       el("span", { class: "badge " + BADGE[v.status] }, v.status)),
-    v.summary ? el("p", { class: "summary" }, v.summary) : null,
+    v.summary_html ? summaryBlock(v.summary_html) : null,
     v.correction.note ? el("p", { class: "note" }, v.correction.note) : null);
   if (v.checks) card.append(checksBlock(v));
   return card;

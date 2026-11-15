@@ -1019,3 +1019,20 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   playing; clicking another button mid-play cancels the current one; reduced-motion users get
   no delay; the step interval (0.9 s); a `run_scenario` error counts as Agent only. No JS tests
   (the project has no JS test setup); checked with headless Chrome screenshots and DOM dumps.
+
+## 2026-11-15 — Flaky refusal-log test; summary markdown on the page
+- Owner asked: investigate the one-time failure of `test_refusals_are_logged_without_the_question`
+  (hypothesis: the server replies before writing the log). 50 plain runs: 0 failures. With a
+  50 ms delay put into `log_refusal` from a scratch plugin, it failed on order (`empty` logged
+  before `too_long`): each request has its own thread and the reply comes first, so the next
+  request could log first. `_settle` already covered a missing line. The test now polls for each
+  line (2 s limit) before the next request; passes with the delay and 50/50 plain. Server order
+  unchanged, as asked.
+- Owner asked: render bold and bullet lists in the model summary, after escaping HTML.
+  `web/markdown.py` escapes everything, then renders `**bold**` and `-`/`*` lists; the view
+  carries `summary_html` and the page inserts it. Tests with `<script>` in a summary (renderer
+  and `build_view`). Replay re-exported. Checked in headless Chrome.
+- Not specified by the owner: rendering in Python (testable with pytest; the page has no JS tests)
+  rather than in the page; `schema_version` 2 → 3 for the new field; single newlines become line
+  breaks and blank lines new paragraphs (the old summary used `pre-wrap`); headings, italics and
+  code stay literal.

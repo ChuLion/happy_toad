@@ -17,6 +17,7 @@ from web.format import (
     no_report_line,
     verdict,
 )
+from web.markdown import render
 from web.redact import redact_all
 from web.schema import SCHEMA_VERSION
 
@@ -80,6 +81,7 @@ def build_view(transcript: Transcript, run_records: list[RunRecord]) -> dict:
         "question": t.question,
         "steps": [step(c) for turn in t.turns for c in turn.tool_calls],
         "summary": report.summary if report else None,
+        "summary_html": render(report.summary) if report else None,
         "status": label,
         "detail": t.status if label else no_report_line(t),
         "checks": _checks(t, label),
