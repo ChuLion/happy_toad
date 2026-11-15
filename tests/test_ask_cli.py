@@ -12,12 +12,12 @@ def invoke(tmp_path, monkeypatch):
     inputs, runs = toy_dirs(tmp_path)
     monkeypatch.setenv("COLUMNS", "200")
 
-    def go(script, question="What does budget 12 give?"):
+    def go(script, question="What does budget 12 give?", verbose=True):
         monkeypatch.setattr(cli, "make_client", lambda profile: FakeClient(script))
         args = [
             "ask", question, "--inputs-dir", str(inputs), "--runs-dir", str(runs),
             "--transcripts-dir", str(tmp_path / "transcripts"),
-        ]  # fmt: skip
+        ] + (["--verbose"] if verbose else [])  # fmt: skip
         return CliRunner().invoke(cli.app, args), runs
 
     return go
@@ -61,3 +61,13 @@ def test_an_unknown_profile_lists_the_valid_names(invoke, monkeypatch) -> None:
     result = CliRunner().invoke(cli.app, ["ask", "q", "--profile", "nope"])
     assert result.exit_code == 2
     assert all(name in result.output for name in PROFILES)
+
+
+def test_default_output_is_compact(invoke) -> None:
+    first = turn(call("run_scenario", input_version="test", budget=12))
+    done = turn(call("submit_report", summary="Which budget?", claims=[]))
+    result, _ = invoke([first, done], verbose=False)
+    assert result.exit_code == 0, result.output
+    assert "run_scenario test, budget 12 -> Optimal" in result.output
+    assert "CHECKED" in result.output and "Which budget?" in result.output
+    assert "tokens" not in result.output and '"result"' not in result.output

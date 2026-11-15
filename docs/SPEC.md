@@ -633,6 +633,11 @@ the section "M3 — approved changes and specification" at the end wins.
 10. **CLI [owner].** `happy-toad ask "<question>"` prints each tool call and its result as it
     happens, then the report, then the check results (each claim pass/fail, the verdict). Needed
     for the video. **[lead]** Exit code 0 for a checked report, 1 for unverified or step cap.
+    **[owner, presentation only]** Default output is compact: one line per tool call (name, key
+    arguments, outcome; no JSON), a panel with the summary and a CHECKED / NOT CHECKED badge,
+    one check-count line (mismatches listed only when there are any), one line saying what was
+    unmatched when the first report was refused and then corrected, and a dim footer (model,
+    provider, turns, cost, seconds). `--verbose` keeps the full output described above.
 11. **Demo script [owner], three questions:** (a) a budget comparison, (b) a forced solution,
     (c) an infeasible request (force in three expensive candidates under a small budget).
     **[lead]** Exact question texts and budgets are fixed in the SPEC once the owner approves,

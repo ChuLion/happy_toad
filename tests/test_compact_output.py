@@ -1,0 +1,68 @@
+"""The compact `ask` renderer, on the saved live transcript of demo question (c)."""
+
+from pathlib import Path
+
+from rich.console import Console
+
+from happy_toad.agent.transcript import Transcript
+from happy_toad.cli import compact_outcome, compact_tool_call
+
+FIXTURE = Path(__file__).parent / "fixtures" / "transcript_demo_c.json"
+
+
+def render(t: Transcript) -> str:
+    console = Console(record=True, width=120, color_system=None)
+    for turn in t.turns:
+        for call in turn.tool_calls:
+            compact_tool_call(call, console)
+    compact_outcome(t, console)
+    return console.export_text()
+
+
+def demo_c() -> Transcript:
+    return Transcript.model_validate_json(FIXTURE.read_text())
+
+
+def test_each_tool_call_is_one_line_without_json() -> None:
+    out = render(demo_c())
+    assert "{" not in out and "}" not in out
+    run_lines = [line for line in out.splitlines() if line.startswith("run_scenario")]
+    assert run_lines == [
+        "run_scenario v1, budget 600, force in C033, C034, C024 -> rejected "
+        "FORCED_COST_EXCEEDS_BUDGET, minimum budget 697.01 [20261114T210203-96d94d4c]"
+    ]
+    submits = [line for line in out.splitlines() if line.startswith("submit_report")]
+    assert submits == [
+        "submit_report 2 claims -> refused (2 problems)",
+        "submit_report 2 claims -> accepted",
+    ]
+
+
+def test_accepted_report_is_a_checked_panel_with_counts_and_correction() -> None:
+    out = render(demo_c())
+    assert "CHECKED" in out and "NOT CHECKED" not in out
+    assert "at least 697.01" in out
+    assert "First report refused, then corrected: unmatched numbers 297.57, 311.44" in out
+    assert "2 claims, 2 numbers matched, 0 mismatches" in out
+
+
+def test_footer_has_model_provider_turns_cost_and_seconds() -> None:
+    last = render(demo_c()).strip().splitlines()[-1]
+    assert last == "deepseek/deepseek-v4-flash-0731 | BaseTen | 3 turns | $0.0010 | 3.8 s"
+
+
+def test_unverified_report_is_not_checked_and_lists_mismatches() -> None:
+    t = demo_c()
+    first = t.checks[0]
+    t = t.model_copy(update={"status": "unverified", "checks": [first, first]})
+    out = render(t)
+    assert "NOT CHECKED" in out
+    assert "2 claims, 3 numbers matched, 2 mismatches" in out
+    assert "number 297.57 in the summary: does not match" in out
+    assert "First report refused" not in out
+
+
+def test_a_run_without_a_report_prints_its_status() -> None:
+    t = demo_c().model_copy(update={"status": "step_cap", "report": None})
+    out = render(t)
+    assert "Status: step_cap" in out and "CHECKED" not in out

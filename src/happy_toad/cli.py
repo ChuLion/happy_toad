@@ -6,9 +6,12 @@ from typing import Annotated
 
 import typer
 from rich.console import Console
+from rich.panel import Panel
+from rich.text import Text
 
 from happy_toad.agent.config import PROFILES
 from happy_toad.agent.loop import ask as run_ask
+from happy_toad.agent.transcript import redact
 from happy_toad.data.checks import InputError
 from happy_toad.data.files import write_inputs
 from happy_toad.data.loader import load_input_set
@@ -112,6 +115,130 @@ def _show_outcome(t) -> None:
     )
 
 
+def _scenario_args(args: dict) -> str:
+    parts = [str(args.get("input_version", "?")), f"budget {args.get('budget')}"]
+    for key, value in args.items():
+        if key in ("input_version", "budget", "label") or value in (None, []):
+            continue
+        shown = ", ".join(map(str, value)) if isinstance(value, list) else value
+        parts.append(f"{key.replace('_', ' ')} {shown}")
+    return ", ".join(parts)
+
+
+def _call_args(name: str, raw: str) -> str:
+    try:
+        args = json.loads(raw or "{}")
+    except json.JSONDecodeError:
+        return "(unreadable arguments)"
+    if not isinstance(args, dict):
+        return "(unreadable arguments)"
+    if name == "run_scenario":
+        return _scenario_args(args)
+    if name == "submit_report":
+        return f"{len(args.get('claims') or [])} claims"
+    return " ".join(f"{v}" for v in args.values())
+
+
+def _run_outcome(result: dict) -> str:
+    r = result.get("result")
+    if result.get("outcome") == "completed" and r is not None and r.get("spend") is not None:
+        text = f"{r['status']}, spend {r['spend']:.2f}, weighted relief {r['objective']:.2f}"
+    else:
+        codes = " ".join(x["code"] for x in result.get("reasons") or [])
+        status = r["status"] if r else result.get("outcome")
+        text = " ".join(filter(None, [status, codes, result.get("error")]))
+    if result.get("required_minimum_budget") is not None:
+        text += f", minimum budget {result['required_minimum_budget']}"
+    return f"{text} [{result.get('run_id')}]"
+
+
+def _compare_outcome(result: dict) -> str:
+    fields = result.get("fields", {})
+    diffs = [
+        f"{name.replace('_', ' ')} {f['difference']:+.2f}"
+        for name, f in fields.items()
+        if name in ("spend", "weighted_relief") and f.get("difference") is not None
+    ]
+    return "compared: " + (", ".join(diffs) or "no plan differences")
+
+
+def _call_outcome(name: str, result: dict) -> str:
+    if name == "submit_report":
+        problems = len(result.get("errors") or []) or 1
+        return "accepted" if result.get("accepted") else f"refused ({problems} problems)"
+    if name in ("run_scenario", "get_run") and "run_id" in result:
+        return _run_outcome(result)
+    if result.get("error"):
+        return f"error: {result['error']}"
+    if name == "list_input_versions":
+        return ", ".join(result.get("versions", []))
+    if name == "compare_runs":
+        return _compare_outcome(result)
+    return "ok"
+
+
+def _say(console: Console, text: str, **style) -> None:
+    """Print plain text (no rich markup), with account ids redacted."""
+    console.print(redact(text), markup=False, highlight=False, soft_wrap=True, **style)
+
+
+def compact_tool_call(call: dict, console: Console) -> None:
+    """One line per tool call: name, key arguments, outcome."""
+    name = call["name"]
+    parts = [name, _call_args(name, call["arguments"]), "->", _call_outcome(name, call["result"])]
+    _say(console, " ".join(filter(None, parts)))
+
+
+def _correction(t) -> str | None:
+    """What the first submit_report got wrong, when it was refused and a later one accepted."""
+    submits = [c for turn in t.turns for c in turn.tool_calls if c["name"] == "submit_report"]
+    if t.status != "checked" or len(submits) < 2 or submits[0]["result"].get("accepted"):
+        return None
+    if "errors" not in submits[0]["result"]:
+        return "First report refused, then corrected: it did not fit the report schema"
+    first = t.checks[0]
+    parts = []
+    if numbers := [n.text for n in first.numbers if not n.ok]:
+        parts.append("unmatched numbers " + ", ".join(numbers))
+    if claims := [f"{c.claim.metric} {c.claim.value}" for c in first.claims if not c.ok]:
+        parts.append("mismatched claims " + ", ".join(claims))
+    if first.missing:
+        parts.append(f"{len(first.missing)} missing minimum-budget claims")
+    return "First report refused, then corrected: " + "; ".join(parts)
+
+
+def _counts(check) -> list[str]:
+    errors = check.errors()
+    matched = sum(n.ok for n in check.numbers)
+    head = f"{len(check.claims)} claims, {matched} numbers matched, {len(errors)} mismatches"
+    return [head] + [f"  {e}" for e in errors]
+
+
+def _footer(t) -> str:
+    providers = ", ".join(sorted({x.provider or "unknown" for x in t.turns})) or "no provider"
+    cost = "cost not configured" if t.cost is None else f"${t.cost:.4f}"
+    return f"{t.model} | {providers} | {len(t.turns)} turns | {cost} | {t.elapsed_seconds:.1f} s"
+
+
+def compact_outcome(t, console: Console) -> None:
+    """Summary panel with a CHECKED or NOT CHECKED badge, check counts, correction, footer."""
+    if t.report is not None and t.status in ("checked", "unverified"):
+        ok = t.status == "checked"
+        badge = Text(
+            " CHECKED " if ok else " NOT CHECKED ",
+            style="bold reverse green" if ok else "bold reverse red",
+        )
+        console.print(Panel(Text(redact(t.report.summary)), title=badge, title_align="left"))
+        if note := _correction(t):
+            _say(console, note)
+        for line in _counts(t.checks[-1]):
+            _say(console, line)
+    else:
+        detail = t.error or (f"HTTP {t.api_error['status']}" if t.api_error else None)
+        _say(console, f"Status: {t.status}" + (f" ({detail})" if detail else ""))
+    _say(console, _footer(t), style="dim")
+
+
 @app.command()
 def ask(
     question: Annotated[str, typer.Argument(help="A plain-English question about the scenarios.")],
@@ -121,6 +248,7 @@ def ask(
     inputs_dir: Annotated[Path, typer.Option()] = Path("data/inputs"),
     runs_dir: Annotated[Path, typer.Option()] = Path("runs"),
     transcripts_dir: Annotated[Path, typer.Option()] = Path("transcripts"),
+    verbose: Annotated[bool, typer.Option(help="Full tool results and every check.")] = False,
 ) -> None:
     """Ask the agent a question; shows its tool calls, the checked report and the check results."""
     if profile not in PROFILES:
@@ -128,6 +256,7 @@ def ask(
             f"unknown profile {profile!r}; valid: {', '.join(PROFILES)}", param_hint="--profile"
         )
     chosen = PROFILES[profile]
+    console = Console()
     try:
         client = make_client(chosen)
     except RuntimeError as err:
@@ -140,7 +269,10 @@ def ask(
         inputs_dir=inputs_dir,
         runs_dir=runs_dir,
         transcripts_dir=transcripts_dir,
-        on_event=_show_event,
+        on_event=_show_event if verbose else lambda _kind, call: compact_tool_call(call, console),
     )
-    _show_outcome(t)
+    if verbose:
+        _show_outcome(t)
+    else:
+        compact_outcome(t, console)
     raise typer.Exit(0 if t.status == "checked" else 1)

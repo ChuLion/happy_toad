@@ -838,3 +838,23 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   two edges that the code has (gate rejections also write a run record; the checker refuses back
   to the agent once); "Working rule:" phrasing for spec-first/tests-first; "about 30x" is the
   latest round (Sonnet $0.5238 vs DeepSeek $0.0170, 30.8x; the earlier round was 39x).
+
+## 2026-11-14 — Compact `ask` output (presentation only)
+- Owner asked for: a compact default renderer for `happy-toad ask` in cli.py only, the old output
+  behind `--verbose`, a renderer test on a saved transcript, and no change to checker.py,
+  report.py, tools.py, prompt.py or loop.py (frozen-file hashes unchanged; confirmed by git diff).
+- Compact output: one line per tool call (name, key arguments, outcome, no JSON); a panel with the
+  summary and a CHECKED / NOT CHECKED badge; "N claims, M numbers matched, K mismatches", with
+  mismatches listed only when K > 0; a "First report refused, then corrected" line naming what was
+  unmatched; a dim footer (model, provider, turns, cost, seconds). Exit codes unchanged.
+- Test fixture: tests/fixtures/transcript_demo_c.json, a copy of live transcript
+  20261114T210201-5276b834 (demo question c, 78ba102); it has no account id.
+- Not specified by the owner: argument shown per tool (run_scenario: version, budget and every
+  other set field except label; submit_report: claim count; others: argument values); run
+  outcome shows status, spend and weighted relief to 2 decimals, or the rejection codes, plus the
+  minimum budget and run id; compare_runs shows the spend and weighted-relief differences;
+  K counts every checker error line (bad claims, missing minimum budgets, unmatched numbers);
+  a schema-refused first report gets "did not fit the report schema"; runs without a report
+  print "Status: <status>"; all compact lines pass through `redact`; long lines soft-wrap. The
+  existing CLI tests now pass `--verbose`. Demo output shown from the three saved transcripts,
+  not rerun live.
