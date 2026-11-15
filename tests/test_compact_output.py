@@ -124,3 +124,10 @@ def test_one_mismatch_is_singular() -> None:
     one = first.model_copy(update={"numbers": one_bad})
     out = render(t.model_copy(update={"status": "unverified", "checks": [one, one]}))
     assert "0 numbers matched against stored runs, 1 mismatch\n" in out
+
+
+def test_one_refusal_problem_is_singular() -> None:
+    console = Console(record=True, width=120, color_system=None)
+    call = {"name": "submit_report", "arguments": "{}", "result": {"accepted": False}}
+    compact_tool_call(call, console)
+    assert console.export_text().strip() == "submit_report 0 claims -> refused (1 problem)"

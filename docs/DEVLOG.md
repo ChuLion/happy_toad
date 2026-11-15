@@ -942,3 +942,14 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   pushed. 394 pass; frozen agent files unchanged.
 - Not specified by the owner: a CLI test for the singular (`test_one_mismatch_is_singular`);
   SPEC M3 decision 10 notes "1 mismatch"; the README line sits under the demo excerpt.
+- Follow-up (owner corrected the request): "1 problem" singular for a refused report, in the CLI
+  and in `web/format.py`, with a test on each side (`test_one_refusal_problem_is_singular`,
+  `test_one_problem_is_singular`, plus a one-error case in the web/CLI comparison list).
+- Stored-runs table: measured at 1280 px it needed 1023 px in an 802 px box. It already had
+  `overflow-x: auto`, but macOS hides scrollbars until you scroll, so the right columns looked
+  cut off. Fix in `web/page.html`: header cells wrap, table font 12 px, cell padding 8 px. It
+  now fits exactly (802/802) at 1280 and 900 px; at 400 px it scrolls inside its box and the
+  page itself does not overflow. `web/replay.html` re-exported from the same two transcripts
+  (only the CSS changed). 396 pass.
+- Not specified by the owner: fitting by wrapping headers and a smaller font rather than a
+  visible scrollbar.

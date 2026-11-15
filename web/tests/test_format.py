@@ -20,6 +20,7 @@ def _transcript(**changes) -> Transcript:
 CALLS = [
     ("run_scenario", '{"input_version": "v1", "budget": 600, "force_in": ["C033"]}', {}),
     ("submit_report", '{"claims": [{}, {}]}', {"accepted": False, "errors": ["a", "b"]}),
+    ("submit_report", '{"claims": []}', {"accepted": False, "errors": ["a"]}),
     ("submit_report", "not json", {"accepted": True}),
     ("list_input_versions", "{}", {"versions": ["v1", "v2"]}),
     ("compare_runs", '{"run_id_a": "x", "run_id_b": "y"}', {"fields": {}}),
@@ -57,3 +58,8 @@ def test_view_module_does_not_import_the_cli():
     root = Path(__file__).parents[2]
     out = subprocess.run([sys.executable, "-c", code], cwd=root, capture_output=True, text=True)
     assert out.stdout.strip() == "False", out.stderr
+
+
+def test_one_problem_is_singular():
+    result = {"accepted": False, "errors": ["a"]}
+    assert fmt.call_outcome("submit_report", result) == "refused (1 problem)"

@@ -166,8 +166,9 @@ def _compare_outcome(result: dict) -> str:
 
 def _call_outcome(name: str, result: dict) -> str:
     if name == "submit_report":
-        problems = len(result.get("errors") or []) or 1
-        return "accepted" if result.get("accepted") else f"refused ({problems} problems)"
+        n = len(result.get("errors") or []) or 1
+        problems = "1 problem" if n == 1 else f"{n} problems"
+        return "accepted" if result.get("accepted") else f"refused ({problems})"
     if name in ("run_scenario", "get_run") and "run_id" in result:
         return _run_outcome(result)
     if result.get("error"):
