@@ -878,3 +878,18 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   NOT CHECKED (status `unverified` in the transcript and `--verbose`) to match the new Why; the
   checkpoint line names v0.3.2 and says the live demo ran on v0.3.1; the clone URL is the current
   repo and must change if the repo moves; not pushed (owner will push to a new repo).
+
+## 2026-11-15 — Compact output: check-line wording, NO NUMBERS TO CHECK badge; v0.3.2 moved
+- Owner asked for: the check line as "N claims, M numbers matched against stored runs, K
+  mismatches"; a neutral NO NUMBERS TO CHECK badge with "This answer contains no figures" for an
+  accepted report with zero claims and zero summary numbers (CHECKED only with at least one
+  verified claim or number); tests; SPEC and DEVLOG entries; the unpushed local tag v0.3.2 moved
+  to the new commit. checker.py, report.py, tools.py, prompt.py and loop.py unchanged.
+- Tests: two new renderer tests (no figures; one verified claim keeps CHECKED); the existing
+  compact CLI test (a clarifying question with no claims) now expects NO NUMBERS TO CHECK.
+  370 pass (368 + 2).
+- Not specified by the owner: the neutral badge is bold reverse with no colour; the no-figures
+  line replaces the count line (the correction line still shows when the first report was
+  refused); the badge decision reads only the last check (claims and numbers both empty) and the
+  status; "1 claims" is kept as the owner's "N claims" pattern; the README demo excerpt's check
+  line updated to the new wording (diffed against the renderer output).

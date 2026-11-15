@@ -4,6 +4,8 @@ from pathlib import Path
 
 from rich.console import Console
 
+from happy_toad.agent.checker import CheckResult, ClaimCheck
+from happy_toad.agent.report import Report
 from happy_toad.agent.transcript import Transcript
 from happy_toad.cli import compact_outcome, compact_tool_call
 
@@ -43,7 +45,7 @@ def test_accepted_report_is_a_checked_panel_with_counts_and_correction() -> None
     assert "CHECKED" in out and "NOT CHECKED" not in out
     assert "at least 697.01" in out
     assert "First report refused, then corrected: unmatched numbers 297.57, 311.44" in out
-    assert "2 claims, 2 numbers matched, 0 mismatches" in out
+    assert "2 claims, 2 numbers matched against stored runs, 0 mismatches" in out
 
 
 def test_footer_has_model_provider_turns_cost_and_seconds() -> None:
@@ -57,7 +59,7 @@ def test_unverified_report_is_not_checked_and_lists_mismatches() -> None:
     t = t.model_copy(update={"status": "unverified", "checks": [first, first]})
     out = render(t)
     assert "NOT CHECKED" in out
-    assert "2 claims, 3 numbers matched, 2 mismatches" in out
+    assert "2 claims, 3 numbers matched against stored runs, 2 mismatches" in out
     assert "number 297.57 in the summary: does not match" in out
     assert "First report refused" not in out
 
@@ -66,3 +68,37 @@ def test_a_run_without_a_report_prints_its_status() -> None:
     t = demo_c().model_copy(update={"status": "step_cap", "report": None})
     out = render(t)
     assert "Status: step_cap" in out and "CHECKED" not in out
+
+
+def no_figures(t: Transcript) -> Transcript:
+    """Demo (c) as if the final report had asked a clarifying question: no claims, no numbers."""
+    report = Report(summary="Which input version do you mean?", claims=[])
+    return t.model_copy(
+        update={"report": report, "checks": [t.checks[0], CheckResult(claims=[], numbers=[])]}
+    )
+
+
+def test_a_report_with_no_claims_and_no_numbers_is_not_shown_as_checked() -> None:
+    out = render(no_figures(demo_c()))
+    assert "NO NUMBERS TO CHECK" in out and "This answer contains no figures" in out
+    assert "CHECKED" not in out
+    assert "numbers matched" not in out
+
+
+def test_one_verified_claim_keeps_the_checked_badge() -> None:
+    t = demo_c()
+    claim = t.report.claims[0]
+    one = t.model_copy(
+        update={
+            "report": Report(summary="The run was rejected.", claims=[claim]),
+            "checks": [
+                t.checks[0],
+                CheckResult(
+                    claims=[ClaimCheck(claim=claim, ok=True, message="matches")], numbers=[]
+                ),
+            ],
+        }
+    )
+    out = render(one)
+    assert "CHECKED" in out and "NO NUMBERS TO CHECK" not in out
+    assert "1 claims, 0 numbers matched against stored runs, 0 mismatches" in out

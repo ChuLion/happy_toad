@@ -69,5 +69,5 @@ def test_default_output_is_compact(invoke) -> None:
     result, _ = invoke([first, done], verbose=False)
     assert result.exit_code == 0, result.output
     assert "run_scenario test, budget 12 -> Optimal" in result.output
-    assert "CHECKED" in result.output and "Which budget?" in result.output
+    assert "NO NUMBERS TO CHECK" in result.output and "Which budget?" in result.output
     assert "tokens" not in result.output and '"result"' not in result.output

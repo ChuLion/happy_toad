@@ -210,8 +210,21 @@ def _correction(t) -> str | None:
 def _counts(check) -> list[str]:
     errors = check.errors()
     matched = sum(n.ok for n in check.numbers)
-    head = f"{len(check.claims)} claims, {matched} numbers matched, {len(errors)} mismatches"
+    head = (
+        f"{len(check.claims)} claims, {matched} numbers matched against stored runs, "
+        f"{len(errors)} mismatches"
+    )
     return [head] + [f"  {e}" for e in errors]
+
+
+def _badge(t) -> tuple[str, str]:
+    """CHECKED needs a verified claim or number; an answer with neither gets a neutral badge."""
+    if t.status != "checked":
+        return " NOT CHECKED ", "bold reverse red"
+    last = t.checks[-1]
+    if not last.claims and not last.numbers:
+        return " NO NUMBERS TO CHECK ", "bold reverse"
+    return " CHECKED ", "bold reverse green"
 
 
 def _footer(t) -> str:
@@ -221,17 +234,16 @@ def _footer(t) -> str:
 
 
 def compact_outcome(t, console: Console) -> None:
-    """Summary panel with a CHECKED or NOT CHECKED badge, check counts, correction, footer."""
+    """Summary panel with a badge (CHECKED, NOT CHECKED or NO NUMBERS TO CHECK), counts, footer."""
     if t.report is not None and t.status in ("checked", "unverified"):
-        ok = t.status == "checked"
-        badge = Text(
-            " CHECKED " if ok else " NOT CHECKED ",
-            style="bold reverse green" if ok else "bold reverse red",
-        )
+        label, style = _badge(t)
+        badge = Text(label, style=style)
         console.print(Panel(Text(redact(t.report.summary)), title=badge, title_align="left"))
         if note := _correction(t):
             _say(console, note)
-        for line in _counts(t.checks[-1]):
+        no_figures = label == " NO NUMBERS TO CHECK "
+        lines = ["This answer contains no figures"] if no_figures else _counts(t.checks[-1])
+        for line in lines:
             _say(console, line)
     else:
         detail = t.error or (f"HTTP {t.api_error['status']}" if t.api_error else None)
