@@ -1084,3 +1084,7 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   after the last refactor.
 - S1: `markets.market_spend(data, ids=None)` replaces `markets.market_costs` and
   `diagnose._market_spend` (same summation order). 409 pass, tests unchanged.
+- S2: run records start from one `_base_fields` helper in `services/run.py`;
+  `record_invalid_request(raw, message, runs_dir)` replaces `tools.record_schema_invalid` and
+  keeps its sha256 of the sorted-key raw JSON (not `request_hash`), so stored hashes do not
+  change. Edits `agent/tools.py` (frozen list). 409 pass, tests unchanged.

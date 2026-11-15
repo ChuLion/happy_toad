@@ -1,5 +1,7 @@
 """Run service: one attempt end to end, always leaving one JSON record in runs/."""
 
+import hashlib
+import json
 import re
 import time
 import uuid
@@ -76,6 +78,44 @@ def write_record(record: RunRecord, runs_dir: Path) -> None:
     (runs_dir / f"{record.run_id}.json").write_text(record.model_dump_json(indent=2))
 
 
+def _base_fields(request: dict, hash_: str, input_version: str, settings: SolverSettings) -> dict:
+    """The fields every new run record starts with: a fresh run id and nothing found yet."""
+    created = datetime.now(UTC)
+    return dict(
+        run_id=new_run_id(created),
+        created_at=created.isoformat(),
+        request=request,
+        request_hash=hash_,
+        input_version=input_version,
+        content_hash=None,
+        settings=settings.as_dict(),
+        reasons=[],
+        error=None,
+        result=None,
+        timing={},
+        warnings=[],
+    )
+
+
+def record_invalid_request(raw: dict, message: str, runs_dir: Path) -> RunRecord:
+    """Write a rejected record for an agent input that does not fit the request schema.
+
+    The hash is over the raw input (sorted-key JSON), not `request_hash`, which needs a valid
+    request; stored hashes stay as they were.
+    """
+    version = raw.get("input_version")
+    fields = _base_fields(
+        raw,
+        hashlib.sha256(json.dumps(raw, sort_keys=True, default=str).encode()).hexdigest(),
+        version if isinstance(version, str) else "",
+        DEFAULT_SETTINGS,
+    )
+    fields["reasons"] = [Reason(code=ReasonCode.SCHEMA_INVALID, message=message)]
+    record = RunRecord(outcome="rejected", **fields)
+    write_record(record, runs_dir)
+    return record
+
+
 def load_version(version: str, inputs_dir: Path) -> InputSet | None:
     """The input set for a version name, or None if there is no such version. Raises InputError."""
     path = inputs_dir / f"{version}.json"
@@ -120,20 +160,8 @@ def run_request(
 ) -> RunRecord:
     """Gate, solve and record one request. Rejections and failures are recorded too."""
     started = time.perf_counter()
-    created = datetime.now(UTC)
-    fields = dict(
-        run_id=new_run_id(created),
-        created_at=created.isoformat(),
-        request=request.model_dump(),
-        request_hash=request_hash(request),
-        input_version=request.input_version,
-        content_hash=None,
-        settings=settings.as_dict(),
-        reasons=[],
-        error=None,
-        result=None,
-        timing={},
-        warnings=[],
+    fields = _base_fields(
+        request.model_dump(), request_hash(request), request.input_version, settings
     )
 
     def finish(outcome: str, **changes) -> RunRecord:

@@ -3,18 +3,14 @@
 `submit_report` is handled by the loop, because accepting it ends the conversation.
 """
 
-import hashlib
 import json
-from datetime import UTC, datetime
 from pathlib import Path
 
 from pydantic import ValidationError
 
 from happy_toad.agent.report import Report
-from happy_toad.engine.result import DEFAULT_SETTINGS
-from happy_toad.reasons import Reason, ReasonCode
 from happy_toad.services.request import SolveRequest
-from happy_toad.services.run import RunRecord, new_run_id, run_request, write_record
+from happy_toad.services.run import RunRecord, record_invalid_request, run_request
 from happy_toad.services.runs import CompareError, compare_runs, list_versions, read_run
 
 TOP_UNRESOLVED = 5
@@ -130,32 +126,8 @@ class ToolRunner:
         try:
             request = SolveRequest.model_validate(args)
         except ValidationError as err:
-            return run_view(self.record_schema_invalid(args, _fields_in(err)))
+            return run_view(record_invalid_request(args, _fields_in(err), self.runs_dir))
         return run_view(run_request(request, self.inputs_dir, self.runs_dir))
-
-    def record_schema_invalid(self, raw: dict, message: str) -> RunRecord:
-        """A rejected run record for an input that does not fit the request schema."""
-        created = datetime.now(UTC)
-        version = raw.get("input_version")
-        record = RunRecord(
-            run_id=new_run_id(created),
-            created_at=created.isoformat(),
-            outcome="rejected",
-            request=raw,
-            request_hash=hashlib.sha256(
-                json.dumps(raw, sort_keys=True, default=str).encode()
-            ).hexdigest(),
-            input_version=version if isinstance(version, str) else "",
-            content_hash=None,
-            settings=DEFAULT_SETTINGS.as_dict(),
-            reasons=[Reason(code=ReasonCode.SCHEMA_INVALID, message=message)],
-            error=None,
-            result=None,
-            timing={},
-            warnings=[],
-        )
-        write_record(record, self.runs_dir)
-        return record
 
     def get_run(self, run_id: str) -> dict:
         record = read_run(run_id, self.runs_dir)
