@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'">
+<title>happy_toad agent</title>
+<style>
+:root {
+  --bg: #f7f7f5; --panel: #ffffff; --text: #1d1d1b; --muted: #66665f; --line: #deded8;
+  --ok: #1f7a3d; --ok-bg: #e3f3e8; --bad: #a8321e; --bad-bg: #f8e4df; --accent: #2f5d8a;
+  --note-bg: #fff6d8; --note-line: #e5cf7a;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161615; --panel: #20201e; --text: #ecece6; --muted: #a3a39a; --line: #36362f;
+    --ok: #7fd39a; --ok-bg: #1c3324; --bad: #f09a87; --bad-bg: #3a221d; --accent: #8db8e3;
+    --note-bg: #332c14; --note-line: #6b5a1f;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; }
+h1 { font-size: 20px; margin: 0 0 4px; }
+h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
+  margin: 22px 0 8px; }
+.banner { background: var(--note-bg); border: 1px solid var(--note-line); border-radius: 6px;
+  padding: 8px 12px; margin: 12px 0 18px; font-weight: 600; }
+.sub { color: var(--muted); margin: 0; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 16px; margin-top: 14px; }
+button { font: inherit; border: 1px solid var(--line); background: var(--panel); color: var(--text);
+  border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+button.on, button.primary { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+button:disabled { opacity: .5; cursor: default; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; }
+textarea { width: 100%; min-height: 70px; font: inherit; padding: 8px; border-radius: 6px;
+  border: 1px solid var(--line); background: var(--panel); color: var(--text); }
+.hint { color: var(--muted); font-size: 13px; }
+ol.steps { margin: 0; padding-left: 22px; }
+ol.steps li { margin: 4px 0; overflow-wrap: anywhere; }
+code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+.badge { display: inline-block; font-weight: 700; letter-spacing: .04em; padding: 3px 10px;
+  border-radius: 4px; }
+.badge.ok { color: var(--ok); background: var(--ok-bg); }
+.badge.bad { color: var(--bad); background: var(--bad-bg); }
+.summary { white-space: pre-wrap; margin: 10px 0 0; }
+ul.mismatch { color: var(--bad); margin: 6px 0 0; }
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line);
+  vertical-align: top; }
+th { color: var(--muted); font-weight: 600; }
+footer.run { color: var(--muted); font-size: 13px; margin-top: 14px; overflow-wrap: anywhere; }
+</style>
+</head>
+<body>
+<main>
+  <h1>happy_toad agent</h1>
+  <p class="sub">An agent answers questions about a budget-constrained optimizer by running
+    scenarios; a checker traces every number in its summary to a stored run. All data is synthetic.</p>
+  <div class="banner" id="banner"></div>
+  <div id="controls"></div>
+  <div id="view"></div>
+</main>
+<script id="boot" type="application/json">__BOOT__</script>
+<script>
+"use strict";
+const boot = JSON.parse(document.getElementById("boot").textContent);
+
+function el(tag, attrs = {}, ...children) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") node.className = v; else if (k.startsWith("on")) node[k] = v;
+    else node.setAttribute(k, v);
+  }
+  for (const c of children) if (c !== null && c !== undefined) node.append(c);
+  return node;
+}
+
+function fmt(v) {
+  if (v === null || v === undefined) return "-";
+  if (typeof v === "number" && !Number.isInteger(v)) return String(Math.round(v * 100) / 100);
+  return String(v);
+}
+
+function stepItem(s) {
+  return el("li", {}, el("code", {}, s.tool), " ", s.args, " → ", s.outcome);
+}
+
+function table(headers, rows) {
+  return el("div", { class: "table-wrap" }, el("table", {},
+    el("thead", {}, el("tr", {}, ...headers.map(h => el("th", {}, h)))),
+    el("tbody", {}, ...rows.map(r => el("tr", {}, ...r.map(c => el("td", {}, fmt(c))))))));
+}
+
+function renderView(v, stepsList) {
+  const root = el("div", { class: "panel" });
+  root.append(el("h2", {}, "Question"), el("div", {}, v.question));
+  const list = stepsList || el("ol", { class: "steps" });
+  if (!stepsList) v.steps.forEach(s => list.append(stepItem(s)));
+  root.append(el("h2", {}, "Tool calls"), list);
+
+  const ok = v.status === "CHECKED";
+  root.append(el("h2", {}, "Answer"),
+    el("span", { class: "badge " + (ok ? "ok" : "bad") }, v.status),
+    el("span", { class: "hint" }, ok
+      ? "  The checker traced every number in the summary to a stored run."
+      : "  Not every number could be traced to a stored run (" + v.detail + ")."));
+  if (v.summary) root.append(el("p", { class: "summary" }, v.summary));
+  if (v.correction.happened)
+    root.append(el("p", { class: "hint" }, v.correction.note || "The first report was refused and resubmitted."));
+
+  if (v.checks) {
+    const c = v.checks;
+    root.append(el("h2", {}, "Checks"), el("div", {},
+      `${c.claims_ok}/${c.claims} claims match the stored runs, ` +
+      `${c.numbers_matched}/${c.numbers} summary numbers matched, ${c.mismatches.length} mismatches`));
+    if (c.mismatches.length) root.append(el("ul", { class: "mismatch" }, ...c.mismatches.map(m => el("li", {}, m))));
+  }
+  if (v.claims.length) {
+    root.append(el("h2", {}, "Claims"), table(["metric", "value", "run", "second run"],
+      v.claims.map(c => [c.metric, c.value, c.run_id, c.run_id_b])));
+  }
+  if (v.runs.length) {
+    const keys = [...new Set(v.runs.flatMap(r => Object.keys(r.values)))];
+    root.append(el("h2", {}, "Stored runs"), table(["run", "version", "outcome", ...keys],
+      v.runs.map(r => [r.run_id, r.input_version, r.outcome, ...keys.map(k => r.values[k])])));
+  }
+  const f = v.footer;
+  const cost = f.cost === null ? "cost not reported" : "$" + f.cost.toFixed(4);
+  root.append(el("footer", { class: "run" },
+    `${f.model} | ${f.provider} | ${f.turns} turns | ${cost} | ${f.seconds} s | transcript ${v.transcript_id}`));
+  return root;
+}
+
+function show(node) { document.getElementById("view").replaceChildren(node); }
+
+function startReplay() {
+  document.getElementById("banner").textContent = "Replay of real runs on synthetic data, not a live demo.";
+  const buttons = boot.views.map((v, i) => el("button", { onclick: () => pick(i) }, boot.labels[i]));
+  document.getElementById("controls").append(el("div", { class: "row" }, ...buttons));
+  function pick(i) {
+    buttons.forEach((b, j) => b.classList.toggle("on", i === j));
+    show(renderView(boot.views[i]));
+  }
+  pick(0);
+}
+
+function startLive() {
+  document.getElementById("banner").textContent = "Local demo, uses a live model on synthetic data.";
+  const box = el("textarea", { maxlength: String(boot.max_chars), placeholder: "Ask a question about the scenarios" });
+  const status = el("span", { class: "hint" });
+  const ask = el("button", { class: "primary", onclick: () => send(box.value) }, "Ask");
+  const examples = Object.entries(boot.examples).map(([key, q]) =>
+    el("button", { onclick: () => { box.value = q; } }, "Example " + key));
+  document.getElementById("controls").append(el("div", { class: "panel" }, box,
+    el("div", { class: "row", style: "margin-top:8px" }, ask, ...examples),
+    el("p", { class: "hint" }, `Up to ${boot.max_chars} characters. One question at a time. `, status)));
+
+  async function send(question) {
+    if (!question.trim()) return;
+    ask.disabled = true; status.textContent = "Running...";
+    const steps = el("ol", { class: "steps" });
+    show(el("div", { class: "panel" }, el("h2", {}, "Question"), el("div", {}, question),
+      el("h2", {}, "Tool calls"), steps));
+    try {
+      const res = await fetch("/api/ask", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question }) });
+      if (!res.ok) { status.textContent = (await res.json()).error; return; }
+      const reader = res.body.getReader(), dec = new TextDecoder();
+      let buf = "";
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        let nl;
+        while ((nl = buf.indexOf("\n")) >= 0) {
+          const msg = JSON.parse(buf.slice(0, nl)); buf = buf.slice(nl + 1);
+          if (msg.type === "step") steps.append(stepItem(msg.step));
+          if (msg.type === "view") { show(renderView(msg.view, steps)); status.textContent = "Done."; }
+          if (msg.type === "error") status.textContent = msg.error;
+        }
+      }
+    } catch (err) {
+      status.textContent = "Request failed: " + err;
+    } finally {
+      ask.disabled = false;
+    }
+  }
+}
+
+boot.mode === "replay" ? startReplay() : startLive();
+</script>
+</body>
+</html>
