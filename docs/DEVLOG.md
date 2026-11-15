@@ -1046,3 +1046,27 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
 - Not specified by the owner: which places count as "data descriptions" (the input JSON files
   have no description field, and adding one would change their content hash, so they are
   untouched); the evolve docstring also names the changed offloads, which v2 has.
+
+## 2026-11-15 — Glossary in the guide; definitions as claim-card tooltips
+- Owner asked: a plain-English glossary at the end of `docs/GUIDE.md` (every report metric with
+  the `diff_` direction, run outcomes, solver statuses, gate codes, infeasible causes, the three
+  labels, the data terms, run id, transcript, claim); a test that fails when a metric or code in
+  the code has no entry; if quick, definitions as hover tooltips on the claim cards.
+- `docs/GUIDE.md` section 7. `web/glossary.py` reads the backtick entries from it;
+  `render_page` adds them to the boot data and each claim card gets a `title` (dotted
+  underline on the metric name). `web/tests/test_glossary.py` compares `Metric` and
+  `ReasonCode` with the entries (checked to fail by name when an entry is removed). Replay
+  re-exported.
+- Not specified by the owner: each `diff_` metric has its own entry as well as the prefix entry
+  (so each card has a tooltip); the guide is the single source (no copy in code), so the page
+  reads it at render time; the test sits in `web/tests` to share the parser; tooltips use the
+  native `title` attribute (no tap equivalent on phones).
+- Owner review of the glossary: CHECKED now says words, candidate ids and year-like numbers
+  are not checked; Optimal is "proved no better plan exists under the modeled objective and
+  constraints"; Floor says floors above 1x fair share cannot all be met (the shares add up to
+  the whole available budget). Asked to check region size: `pct_resolved` is always out of the
+  version's sectors; `pct_of_region` is stored separately, is not a report metric and is not an
+  allowed number, so a summary stating it fails the check (shown on a scratch run: v1, 800,
+  region 200, "10.5%" unmatched). Recorded under `pct_resolved`. This conflicts with the guide's
+  section 3 example "give the percent resolved out of 200 sectors"; raised with the owner, not
+  changed.

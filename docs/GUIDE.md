@@ -101,3 +101,121 @@ uv run happy-toad generate --seed 42
 OPENROUTER_API_KEY=your-key uv run python -m web.server
 ```
 Then open http://127.0.0.1:8765 and ask one question at a time.
+
+## 7. Glossary
+
+### Report metrics
+A claim in a report names one of these metrics, its value and the run it comes from.
+- **`spend`:** what the plan spends on candidate solutions, in cost units. Must-fund projects
+  are not included, though the budget you give does include them.
+- **`weighted_relief`:** the shortfall the plan relieves, with each sector's relief multiplied
+  by its weight, in need units. Relief in a sector counts only up to its shortfall. The
+  optimizer makes this as large as the budget allows.
+- **`n_selected`:** how many candidate solutions the plan funds.
+- **`n_resolved`:** how many sectors the plan resolves (whole shortfall relieved).
+- **`pct_resolved`:** resolved sectors as a percent of all sectors in the version. A region
+  size does not change it: the run stores the percent of the region separately, and that
+  percent is not a report metric, so a summary that states it fails the check.
+- **`n_sectors`:** how many sectors the run's version has. Read from the data, not the plan.
+- **`status`:** the solver status of a run with a plan (Optimal, Infeasible, TimeLimit, Error),
+  or the run outcome (rejected, error) when the run has none.
+- **`target_met`:** true when `pct_resolved` reaches the target percent you asked for, false
+  when it does not. Present only when a target was asked.
+- **`required_minimum_budget`:** for a rejected or infeasible run with a known cause, the total
+  budget below which the scenario cannot work: must-fund cost plus forced-in cost plus market
+  floors. A budget this size is necessary, not a promise that the scenario then works.
+- **`must_fund_cost`:** the total cost of the must-fund projects in the run's version.
+- **`forced_cost`:** the total cost of the candidates the run forced in.
+- **`diff_` prefix:** a difference between two runs: the value in the second run (`run_id_b`)
+  minus the value in the first (`run_id`), in the same unit as the metric without the prefix.
+  Positive means the second run is higher, negative means it is lower.
+- **`diff_spend`:** the second run's `spend` minus the first run's.
+- **`diff_weighted_relief`:** the second run's `weighted_relief` minus the first run's.
+- **`diff_n_selected`:** the second run's `n_selected` minus the first run's.
+- **`diff_n_resolved`:** the second run's `n_resolved` minus the first run's.
+- **`diff_pct_resolved`:** the second run's `pct_resolved` minus the first run's, in
+  percentage points.
+
+### Run outcomes
+- **completed:** the gate accepted the request and the optimizer ran; the run has a solver
+  status.
+- **rejected:** the gate refused the request, so nothing was solved. The run lists every
+  reason (gate codes below).
+- **error:** something failed while running, for example an input file that fails its checks.
+  The run stores the error message.
+
+### Solver statuses
+- **Optimal:** the solver proved no better plan exists under the modeled objective and
+  constraints: the most weighted relief, then the lowest spend that keeps it.
+- **Infeasible:** no plan can meet the scenario's rules. The run names the cause when it can
+  (infeasible causes below).
+- **TimeLimit:** the solver ran out of time. Any plan shown is the best found so far, not a
+  proven best.
+- **Error:** the solver stopped for another reason. Any plan shown is not a proven best.
+
+### Gate codes
+The gate checks a request before anything is solved and lists every problem it finds.
+- **`VERSION_NOT_FOUND`:** there is no input version with that id.
+- **`BUDGET_NOT_POSITIVE`:** the budget is zero or less.
+- **`BUDGET_ABOVE_CAP`:** the budget is more than 1.5 times the cost of all candidates and
+  must-fund projects together; usually a units mistake.
+- **`UNKNOWN_CANDIDATE`:** a candidate id to force in or out does not exist in the version.
+- **`FORCE_CONFLICT`:** the same candidate is both forced in and forced out.
+- **`FORCED_COST_EXCEEDS_BUDGET`:** must-fund cost plus forced-in cost is more than the budget.
+- **`SCHEMA_INVALID`:** the agent's request did not fit the request format (a missing or
+  misspelled field, or a value of the wrong type).
+
+### Infeasible causes
+Checked before solving, in this order; the first one found is reported.
+- **`FLOORS_EXCEED_BUDGET`:** the market floors add up to more than the budget left after
+  must-fund projects.
+- **`CAP_BELOW_FLOOR`:** a market's cap is lower than its floor.
+- **`FORCED_IN_EXCEEDS_CAP`:** the forced-in candidates in a market cost more than that
+  market's cap.
+- **`FLOOR_UNREACHABLE`:** a market's floor is more than its candidates that are not forced out
+  cost together.
+- **`CAUSE_UNKNOWN`:** the solver proved no plan exists, but none of the checks above found why.
+
+`FORCED_COST_EXCEEDS_BUDGET` is checked here too, but the gate normally catches it first.
+
+### Labels
+- **CHECKED:** every claim and every number in the summary matched a stored run, and there was
+  at least one. Words, candidate ids and numbers that look like years (1900 to 2199) are not
+  checked.
+- **NOT CHECKED:** some number could not be matched, even after the agent was sent back once
+  to correct it. Do not rely on the numbers.
+- **NO NUMBERS TO CHECK:** the answer was accepted but contains no claims or numbers, so there
+  was nothing to verify.
+
+### Data terms
+- **Version:** one complete data set you can run scenarios on, named by an id: v1 (plan of
+  record) or v2 (refreshed forecast).
+- **Change list:** the list of edits that turns one version into the next
+  (`changes_v1_to_v2`). It is not a version and cannot be run.
+- **Sector:** an area with an unmet need. Each belongs to one market.
+- **Shortfall:** how much need a sector has that is not yet covered, in need units.
+- **Trigger year:** the year a sector's shortfall starts to bite, from 2027 to 2031.
+- **Candidate:** a candidate solution: something that can be funded, whole or not at all, for
+  its cost. Funding it relieves one or more sectors through its offloads.
+- **Offload:** how much of one sector's shortfall one candidate relieves if it is funded.
+- **Must-fund project:** a project that is always paid for first, out of the budget. The
+  optimizer does not choose it.
+- **Market:** a group of sectors. A candidate belongs to the market of its largest offload.
+- **Fair share:** a market's share of the budget left after must-fund projects: half by its
+  share of total shortfall, half split equally across markets.
+- **Floor:** the least the plan must spend in a market, as a multiple of its fair share. Only
+  when you ask for one. Floors above 1 times fair share can't all be met at once: the fair
+  shares already add up to the whole budget left after must-fund projects.
+- **Cap:** the most the plan may spend in a market, as a multiple of its fair share. Only when
+  you ask for one.
+- **Weight:** how much a sector's relief counts: 1 for trigger year 2027, one half for 2028,
+  one third for 2029, and so on.
+
+### Records
+- **Run id:** the id of one stored run, such as `20261114T210148-4c3b03e4`: the UTC time it was
+  made, plus 8 random characters.
+- **Transcript:** the full record of one question: every model turn, every tool call and its
+  result, the report and the checker's results.
+- **Claim:** one number from a report, given as data: a metric, its value and the run id it
+  comes from (two run ids for a `diff_` metric). The checker compares each claim with the
+  stored run.
