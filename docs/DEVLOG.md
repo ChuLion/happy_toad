@@ -1104,3 +1104,18 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   web/tests` is empty), 409 pass, and the engine results for the five demo requests (outcome,
   status, spend, weighted relief, resolved, percent, selected ids, minimum budget) are
   byte-identical to the baseline. Time used: about 15 minutes of the 3-hour box.
+
+## 2026-11-15 — Region percent example replaced; failed-check image in the README
+- Owner asked: replace the guide's "percent resolved out of 200 sectors" example with one that
+  passes the checker; list the region percent as reported but not yet checkable (planned for
+  M4); add it to the M4 fix list; move `docs/NotChecked.png` to `docs/images/not_checked.png` and
+  show it in the README limitations as "what a failed check looks like".
+- **Added to the open items for the M4 fix pass:** (3) the region percent (`pct_of_region`) is
+  stored in the run but is not a report metric or an allowed number, so a summary that states
+  it fails the check.
+- Guide example is now "what percent of all sectors does the plan resolve?" (`pct_resolved`,
+  checkable). Limitation added to guide section 5.
+- Not specified by the owner: the README's existing "logged for the M4 fix pass" sentence also
+  lists the region percent; the image sits under the M3 checker limitations with a one-line
+  caption of what failed (the unclaimed "15"). The screenshot shows "refused (1 problems)", from
+  before the singular fix.

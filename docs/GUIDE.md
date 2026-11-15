@@ -46,7 +46,7 @@ Budgets are always the total, including must-fund projects.
 - Spend floor per market: "On v1 at 1400, make each market get at least half its fair share."
 - Spend cap per market: "On v1 at 1400, cap each market at 1.5 times its fair share."
 - Report a target: "On v1 at 1400, does the plan resolve at least 50% of sectors?"
-- Report against a region size: "On v1 at 800, give the percent resolved out of 200 sectors."
+- Percent resolved: "On v1 at 800, what percent of all sectors does the plan resolve?"
 - Compare two runs: "On v1, compare a total budget of 800 with a total budget of 1500."
 - Look up an earlier run: "Show me run <run id from an earlier answer> again."
 
@@ -83,6 +83,9 @@ A target or region size changes only what is reported, not the plan.
 - **Checked live with one model.** The demo answers were checked live with one model (DeepSeek V4
   Flash 0731). One small round compared five models; with five runs per cell the differences
   are suggestive, not conclusive.
+- **The region percent is not checkable yet.** With a region size, the run reports the percent
+  of the region resolved, but it is not a report metric, so an answer that states it is shown
+  as NOT CHECKED (planned for M4). The percent of all sectors in the version is checked.
 - **It cannot read the change list** (revision analysis is planned). Ask about v1 or v2, not
   about what changed between them.
 

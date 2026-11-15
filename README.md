@@ -252,10 +252,16 @@ failure reasons per model are in docs/DEVLOG.md.
   behaviour and is not a quality signal. Claims are about whole plans only; differences are
   allowed only as `compare_runs` reports them, never computed by the agent.
 - Also not checked yet, logged for the M4 fix pass: candidate ids named in the summary are not
-  checked against the runs, and a count claimed as a whole-valued float (2.0 instead of 2) is
-  rejected.
+  checked against the runs, a count claimed as a whole-valued float (2.0 instead of 2) is
+  rejected, and the percent of a region (`region_total_sectors`) is reported in the run but is
+  not a report metric, so an answer that states it is NOT CHECKED.
 - The checker skips whole numbers from 1900 to 2199 in the summary as possible years, so a wrong
   figure in that range (for example "a budget of 2000") would go unchecked.
+
+What a failed check looks like (a real run: the summary said 15 candidates appear only in the
+1500 run, a number no claim backs, so the answer is shown as NOT CHECKED):
+
+![What a failed check looks like](docs/images/not_checked.png)
 
 ## What is next (planned, not done)
 - M2B: diagnostics (for example the smallest budget that meets a target).
