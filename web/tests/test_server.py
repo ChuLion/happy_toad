@@ -107,7 +107,15 @@ def test_one_request_at_a_time(live):
     assert "one question at a time" in json.loads(text)["error"]
 
 
+def _settle() -> None:
+    """Wait for request threads: the server replies before it writes the log."""
+    for thread in threading.enumerate():
+        if "process_request" in thread.name:
+            thread.join(5)
+
+
 def _refusals(settings) -> list[dict]:
+    _settle()
     return [json.loads(line) for line in settings.refusal_log.read_text().splitlines()]
 
 
@@ -157,10 +165,16 @@ def test_closing_the_page_mid_answer_ends_quietly_and_saves(live, capfd):
     response.close()
     conn.close()
     gate.set()
-    for thread in threading.enumerate():
-        if "process_request" in thread.name:
-            thread.join(5)
+    _settle()
     saved = list(settings.transcripts_dir.glob("*.json"))
     assert len(saved) == 1
     assert json.loads(saved[0].read_text())["status"] == "checked"
     assert "Traceback" not in capfd.readouterr().err
+
+
+def test_refusal_log_folder_is_created(live):
+    url, settings, _ = live
+    settings.refusal_log = settings.refusal_log.parent / "new" / "refusals.log"
+    status, _ = _post(url, "   ")
+    assert status == 400
+    assert _refusals(settings)[0]["reason"] == "empty"

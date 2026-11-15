@@ -2,7 +2,7 @@
   "mode": "replay",
   "views": [
     {
-      "schema_version": 1,
+      "schema_version": 2,
       "transcript_id": "20261114T210145-c04c55d4",
       "question": "Using input version v1, compare what the optimizer chooses at a total budget of 800 with a total budget of 1500: spend, weighted relief, and how many sectors are resolved.",
       "steps": [
@@ -40,6 +40,8 @@
         "claims_ok": 19,
         "numbers": 24,
         "numbers_matched": 24,
+        "unmatched_numbers": [],
+        "line": "19 claims, 24 numbers matched against stored runs, 0 mismatches",
         "mismatches": []
       },
       "claims": [
@@ -203,7 +205,7 @@
       }
     },
     {
-      "schema_version": 1,
+      "schema_version": 2,
       "transcript_id": "20261114T210201-5276b834",
       "question": "On v1 at a total budget of 600, force in the three most expensive candidates: C033, C034 and C024.",
       "steps": [
@@ -231,6 +233,8 @@
         "claims_ok": 2,
         "numbers": 2,
         "numbers_matched": 2,
+        "unmatched_numbers": [],
+        "line": "2 claims, 2 numbers matched against stored runs, 0 mismatches",
         "mismatches": []
       },
       "claims": [

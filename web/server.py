@@ -48,6 +48,7 @@ def log_refusal(path: Path, refused: Refused) -> None:
     """One JSON line: time, reason and question length, never the question text."""
     entry = {"time": datetime.now(UTC).isoformat(timespec="seconds"), "reason": refused.reason}
     entry["question_length"] = refused.length
+    path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a") as log:
         log.write(json.dumps(entry) + "\n")
 
@@ -82,8 +83,8 @@ def make_handler(settings: Settings) -> type[BaseHTTPRequestHandler]:
             try:
                 self._ask(self._body())
             except Refused as refused:
-                log_refusal(settings.refusal_log, refused)
                 self._json(refused.status, {"error": redact_text(str(refused))})
+                log_refusal(settings.refusal_log, refused)
 
         def _body(self) -> bytes:
             length = int(self.headers.get("Content-Length", 0))
