@@ -31,16 +31,22 @@ def _budget_reasons(request: SolveRequest, data: InputSet | None) -> list[Reason
     return reasons
 
 
-def _force_reasons(request: SolveRequest, data: InputSet) -> list[Reason]:
-    known = {c.id: c.cost for c in data.candidates}
-    asked = sorted(set(request.force_in) | set(request.force_out))
+def _force_id_reasons(force_in: list[str], force_out: list[str], data: InputSet) -> list[Reason]:
+    """Unknown candidate ids and ids in both force lists."""
+    known = {c.id for c in data.candidates}
     reasons = []
-    unknown = [i for i in asked if i not in known]
+    unknown = [i for i in sorted(set(force_in) | set(force_out)) if i not in known]
     if unknown:
         reasons.append(_reason(ReasonCode.UNKNOWN_CANDIDATE, f"unknown candidate ids: {unknown}"))
-    both = sorted(set(request.force_in) & set(request.force_out))
+    both = sorted(set(force_in) & set(force_out))
     if both:
         reasons.append(_reason(ReasonCode.FORCE_CONFLICT, f"in both force lists: {both}"))
+    return reasons
+
+
+def _force_reasons(request: SolveRequest, data: InputSet) -> list[Reason]:
+    known = {c.id: c.cost for c in data.candidates}
+    reasons = _force_id_reasons(request.force_in, request.force_out, data)
     forced = sum(known[i] for i in request.force_in if i in known)
     must_fund = data.must_fund_total
     if not math.isnan(request.budget) and must_fund + forced > request.budget:
@@ -52,6 +58,15 @@ def _force_reasons(request: SolveRequest, data: InputSet) -> list[Reason]:
             )
         )
     return reasons
+
+
+def check_target_request(
+    input_version: str, force_in: list[str], force_out: list[str], data: InputSet | None
+) -> list[Reason]:
+    """All reasons a target-budget search cannot run (M2B): version and force-list ids only."""
+    if data is None:
+        return [_reason(ReasonCode.VERSION_NOT_FOUND, f"no input version {input_version!r}")]
+    return _force_id_reasons(force_in, force_out, data)
 
 
 def check_request(request: SolveRequest, data: InputSet | None) -> list[Reason]:

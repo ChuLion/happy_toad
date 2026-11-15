@@ -27,6 +27,31 @@ CALLS = [
     ("get_run", '{"run_id": "x"}', {"error": "no such run"}),
     ("new_tool", '{"x": 1}', {"y": 2}),
 ]
+TARGET_ARGS = '{"input_version": "v1", "target_pct_resolved": 50, "force_in": ["C033"]}'
+FOUND = {
+    "run_id": "r1", "outcome": "completed", "follow_up_run_id": "r2",
+    "result": {"status": "Optimal", "target_budget": 1145.21, "total_sectors": 80},
+    "follow_up": {"run_id": "r2", "result": {"resolved": 33, "total_sectors": 80}},
+}  # fmt: skip
+UNREACHABLE = {
+    "run_id": "r1", "outcome": "completed", "follow_up_run_id": None,
+    "result": {"status": "Infeasible", "target_budget": None, "max_resolvable": 76,
+               "max_pct_resolvable": 95.0, "total_sectors": 80},
+}  # fmt: skip
+REFUSED = {"run_id": "r1", "outcome": "rejected", "result": None,
+           "reasons": [{"code": "VERSION_NOT_FOUND", "message": "x"}]}  # fmt: skip
+CALLS += [("find_target_budget", TARGET_ARGS, r) for r in (FOUND, UNREACHABLE, REFUSED)]
+
+
+def test_target_budget_wording():
+    assert fmt.call_args("find_target_budget", TARGET_ARGS) == "v1, target 50%, force in C033"
+    assert fmt.call_outcome("find_target_budget", FOUND) == (
+        "target budget 1145.21 [r1]; optimizer at 1145.21 resolves 33 of 80 [r2]"
+    )
+    assert fmt.call_outcome("find_target_budget", UNREACHABLE) == (
+        "unreachable: at most 76 of 80 sectors (95.0%) [r1]"
+    )
+    assert fmt.call_outcome("find_target_budget", REFUSED) == "rejected VERSION_NOT_FOUND [r1]"
 
 
 def test_tool_call_wording_matches_the_cli():

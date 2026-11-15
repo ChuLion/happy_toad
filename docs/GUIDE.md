@@ -46,6 +46,7 @@ Budgets are always the total, including must-fund projects.
 - Spend floor per market: "On v1 at 1400, make each market get at least half its fair share."
 - Spend cap per market: "On v1 at 1400, cap each market at 1.5 times its fair share."
 - Report a target: "On v1 at 1400, does the plan resolve at least 50% of sectors?"
+- Budget for a target: "On v1, what total budget reaches 50% of sectors resolved?"
 - Percent resolved: "On v1 at 800, what percent of all sectors does the plan resolve?"
 - Compare two runs: "On v1, compare a total budget of 800 with a total budget of 1500."
 - Look up an earlier run: "Show me run <run id from an earlier answer> again."
@@ -76,8 +77,11 @@ A target or region size changes only what is reported, not the plan.
   are a fair reading of them. It does not check direction words such as "more" or "less", or
   wording such as "rejected" versus "infeasible". Candidate ids named in the summary are not
   checked, and whole numbers from 1900 to 2199 are skipped as possible years.
-- **No reverse budget search yet.** It cannot find the smallest budget that meets a target
-  (planned). It reports whether a target is met at the budget you give.
+- **A target budget is for the cheapest plan, not the optimizer's plan.** "What budget reaches
+  50%?" gives the total budget of the cheapest plan that resolves at least that many sectors. The
+  optimizer's usual plan at that budget maximizes weighted relief and can resolve fewer, and a
+  higher budget does not guarantee more resolved sectors (on v1 there are 148 budgets where one
+  more unit resolves fewer). Market floors and caps cannot be combined with this search.
 - **Synthetic data only.** 80 sectors is small; the weights by trigger year are a modelling
   assumption, not a calibrated value.
 - **Checked live with one model.** The demo answers were checked live with one model (DeepSeek V4
@@ -129,6 +133,15 @@ A claim in a report names one of these metrics, its value and the run it comes f
   floors. A budget this size is necessary, not a promise that the scenario then works.
 - **`must_fund_cost`:** the total cost of the must-fund projects in the run's version.
 - **`forced_cost`:** the total cost of the candidates the run forced in.
+- **`target_budget`:** the total budget, including must-fund projects, of the cheapest plan that
+  resolves at least the target percent of sectors, rounded up to the cent. The optimizer's usual
+  plan at that budget can resolve fewer, because it maximizes weighted relief.
+- **`target_sectors`:** the target as a number of sectors: the target percent of all sectors,
+  rounded up (50% of 80 is 40).
+- **`max_resolvable`:** the most sectors any plan can resolve with the candidates that are not
+  forced out. Given with every target-budget search; when the target needs more, it is
+  unreachable.
+- **`max_pct_resolvable`:** `max_resolvable` as a percent of all sectors in the version.
 - **`diff_` prefix:** a difference between two runs: the value in the second run (`run_id_b`)
   minus the value in the first (`run_id`), in the same unit as the metric without the prefix.
   Positive means the second run is higher, negative means it is lower.
@@ -177,6 +190,9 @@ Checked before solving, in this order; the first one found is reported.
   market's cap.
 - **`FLOOR_UNREACHABLE`:** a market's floor is more than its candidates that are not forced out
   cost together.
+- **`TARGET_UNREACHABLE`:** (target-budget search) no plan can resolve the target number of
+  sectors, even with every candidate that is not forced out funded; the run gives
+  `max_resolvable` and `max_pct_resolvable` instead of a budget.
 - **`CAUSE_UNKNOWN`:** the solver proved no plan exists, but none of the checks above found why.
 
 `FORCED_COST_EXCEEDS_BUDGET` is checked here too, but the gate normally catches it first.

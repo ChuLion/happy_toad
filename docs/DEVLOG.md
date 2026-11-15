@@ -1161,3 +1161,29 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
 - Not specified by the owner: rounding is `ceil(round(x * 100, 6)) / 100` (the inner round removes
   float noise); `max_resolvable` and `max_pct_resolvable` are set on every search record, not only
   unreachable ones.
+
+## 2026-11-15 — M2B target-budget search: tests first, then code
+- **Tests were written first and confirmed failing for the right reason before any code:** the
+  three new test files stopped at collection with `No module named 'happy_toad.engine.target'`;
+  `test_target_budget_wording` got the generic wording `"v1 50 ['C033']"`; the tool-list test
+  lacked `find_target_budget`; everything else in the touched files passed. The fixture
+  `tests/fixtures/v1_first_budget_per_target.json` comes from the step-1 sweep (its note says
+  how; same content hash as `make_v1(seed=42)`).
+- Code: `engine/target.py` (two-stage cheapest-plan model, `target_sectors`, `round_up_cent`,
+  `max_resolvable`), `services/target.py` (request with the multiplier and budget messages,
+  hash with the kind, gate, search record, follow-up run), `TARGET_UNREACHABLE`, record fields
+  `kind`, `follow_up_run_id` and four result fields, four claimable metrics in the report and
+  checker, the `find_target_budget` tool, follow-up tracking in the loop, rule 12, trace wording
+  in the CLI and the web page, the `happy-toad target-budget` command, glossary, guide and README.
+- Owner set the CLI exit codes after the tests were written (0 found or unreachable, 1 rejected,
+  2 invalid request, 3 time limit), now in the SPEC. **Their four tests were written after the
+  code**, so they were not seen failing first.
+- Checks before commit: 457 pass, ruff clean, and the engine results of the five demo requests
+  are byte-identical to the baseline taken before the refactor (so before M2B as well).
+- Not specified by the owner: module and function names; the tool sits after `run_scenario`;
+  scenario run views hide the four search fields (what the model sees of a scenario run does not
+  change); the search record is written once and rewritten with `follow_up_run_id` after the
+  follow-up run; a stage-1 optimum with no time left for stage 2 is `TimeLimit` with no budget;
+  the web runs table gets a `target_budget` column for search runs; the CLI prints the cheapest
+  plan's size, spend and resolved count as well; the guide's "no reverse budget search" limitation
+  is replaced by the cheapest-plan caveat, and the guide gains a "budget for a target" example.

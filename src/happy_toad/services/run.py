@@ -46,6 +46,10 @@ class RunResult(BaseModel):
     solve_time: float
     stage_times: dict[str, float]
     solver_settings: dict
+    target_budget: float | None = None  # M2B search only, from here down
+    target_sectors: int | None = None
+    max_resolvable: int | None = None
+    max_pct_resolvable: float | None = None
 
 
 class RunRecord(BaseModel):
@@ -53,6 +57,7 @@ class RunRecord(BaseModel):
 
     run_id: str
     created_at: str
+    kind: Literal["scenario", "target_budget"] = "scenario"
     outcome: Literal["rejected", "completed", "error"]
     request: dict
     request_hash: str
@@ -65,6 +70,7 @@ class RunRecord(BaseModel):
     result: RunResult | None
     timing: dict[str, float]
     warnings: list[str]
+    follow_up_run_id: str | None = None  # M2B: the optimizer run at target_budget
 
 
 def new_run_id(created: datetime) -> str:
@@ -78,7 +84,7 @@ def write_record(record: RunRecord, runs_dir: Path) -> None:
     (runs_dir / f"{record.run_id}.json").write_text(record.model_dump_json(indent=2))
 
 
-def _base_fields(request: dict, hash_: str, input_version: str, settings: SolverSettings) -> dict:
+def base_fields(request: dict, hash_: str, input_version: str, settings: SolverSettings) -> dict:
     """The fields every new run record starts with: a fresh run id and nothing found yet."""
     created = datetime.now(UTC)
     return dict(
@@ -97,21 +103,31 @@ def _base_fields(request: dict, hash_: str, input_version: str, settings: Solver
     )
 
 
-def record_invalid_request(raw: dict, message: str, runs_dir: Path) -> RunRecord:
+def save_record(fields: dict, outcome: str, started: float, runs_dir: Path) -> RunRecord:
+    """Build the record from its fields, add the total time and write it."""
+    fields["timing"] = {**fields["timing"], "total": time.perf_counter() - started}
+    record = RunRecord(outcome=outcome, **fields)
+    write_record(record, runs_dir)
+    return record
+
+
+def record_invalid_request(
+    raw: dict, message: str, runs_dir: Path, kind: str = "scenario"
+) -> RunRecord:
     """Write a rejected record for an agent input that does not fit the request schema.
 
     The hash is over the raw input (sorted-key JSON), not `request_hash`, which needs a valid
     request; stored hashes stay as they were.
     """
     version = raw.get("input_version")
-    fields = _base_fields(
+    fields = base_fields(
         raw,
         hashlib.sha256(json.dumps(raw, sort_keys=True, default=str).encode()).hexdigest(),
         version if isinstance(version, str) else "",
         DEFAULT_SETTINGS,
     )
     fields["reasons"] = [Reason(code=ReasonCode.SCHEMA_INVALID, message=message)]
-    record = RunRecord(outcome="rejected", **fields)
+    record = RunRecord(outcome="rejected", kind=kind, **fields)
     write_record(record, runs_dir)
     return record
 
@@ -160,16 +176,12 @@ def run_request(
 ) -> RunRecord:
     """Gate, solve and record one request. Rejections and failures are recorded too."""
     started = time.perf_counter()
-    fields = _base_fields(
+    fields = base_fields(
         request.model_dump(), request_hash(request), request.input_version, settings
     )
 
     def finish(outcome: str, **changes) -> RunRecord:
-        fields.update(changes)
-        fields["timing"] = {**fields["timing"], "total": time.perf_counter() - started}
-        record = RunRecord(outcome=outcome, **fields)
-        write_record(record, runs_dir)
-        return record
+        return save_record(fields | changes, outcome, started, runs_dir)
 
     try:
         data = load_version(request.input_version, inputs_dir)

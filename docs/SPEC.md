@@ -680,8 +680,11 @@ the optimizer at other budgets you name."
 **[lead] Display:** the web page and the CLI trace show the tool as "target X%" →
 "target budget B [run id]; optimizer at B resolves m [run id]", with the wording in
 `web/format.py` and `cli.py` kept identical (existing test). **[lead] CLI:** `happy-toad
-target-budget <input> --target 50 [--force-in ...] [--force-out ...]` prints the result; cut if
-not wanted.
+target-budget <input> --target 50 [--force-in ...] [--force-out ...]` prints the result.
+**Exit codes (owner, 2026-11-15):** 0 when a budget is found and when the target is unreachable
+(both are answers); 1 for a gate rejection (or an input file that fails its checks); 2 for an
+invalid request (schema error, for example a target above 100); 3 for a time limit (or another
+solver stop) before a proven cheapest plan.
 
 ### Glossary (docs/GUIDE.md section 7)
 - **`target_budget`:** the total budget, including must-fund projects, of the cheapest plan that

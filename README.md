@@ -6,7 +6,7 @@ numbers. All data is synthetic and generated from a seed. It is not a product.
 
 Plan capital budgets but don't program? Start with the [Guide for planners](docs/GUIDE.md).
 
-**Status:** M1 to M3 complete (tag v0.3.2); M2B and M4 to M6 planned.
+**Status:** M1 to M3 and M2B complete (tag v0.4); M4 to M7 planned.
 
 ## Why
 Planners ask follow-up questions of an optimizer: what if the budget were larger, what if this
@@ -190,6 +190,27 @@ for M2B); the "cause unknown" label also covers infeasibility that comes from ho
 add up inside a market (for example floors that no combination of whole candidates can meet within
 the budget); `region_total_sectors` only changes the reported percentage.
 
+## Milestone 2B: target-budget search
+"What total budget reaches 50% of sectors resolved?" is answered with the **cheapest plan** that
+resolves at least that many sectors (50% of 80 is 40): a separate optimization that minimizes
+candidate spend subject to the target, with ties going to the most weighted relief. The answer is
+a total budget including must-fund projects, rounded up to the cent. The normal optimizer then
+runs at that budget, so the answer also shows what the usual plan does with the money.
+
+Why not "the smallest budget at which the optimizer reaches 50%": the number of resolved sectors
+is not monotonic in budget. On v1, one more unit of budget resolves fewer sectors at 148 budgets
+(981.44 resolves 30, 982.44 resolves 26), because the optimizer maximizes weighted relief and
+partial relief counts. On v1 the cheapest plan for 50% needs 1145.21; the optimizer first reaches
+50% at about 1329.
+
+```
+uv run happy-toad target-budget data/inputs/v1.json --target 50
+```
+Exit codes: 0 found or unreachable, 1 rejected, 2 invalid request, 3 time limit. The agent's tool is
+`find_target_budget`; its new metrics (`target_budget`, `target_sectors`, `max_resolvable`,
+`max_pct_resolvable`) are checked like the others. A target above what any plan can reach gives
+`TARGET_UNREACHABLE` with the maximum. Market floors and caps are not supported in the search.
+
 ## Milestone 3: the agent (`happy-toad ask`)
 Checkpoint version: tag v0.3.2 (v0.3.1 plus the compact `ask` output and README fixes; the agent,
 tools, prompt and checker are the same as v0.3.1, where the live demo ran).
@@ -264,7 +285,9 @@ What a failed check looks like (a real run: the summary said 15 candidates appea
 ![What a failed check looks like](docs/images/not_checked.png)
 
 ## What is next (planned, not done)
-- M2B: diagnostics (for example the smallest budget that meets a target).
 - M4: evaluations.
 - M5: revision analysis.
 - M6: an MCP server.
+- M7: deferred diagnostics: the smallest budget at which the optimizer's own plan reaches a
+  target, a cause for floors that no combination of whole candidates can meet, the cheapest way
+  to resolve each still-short sector, and a CLI table of target against cheapest budget.

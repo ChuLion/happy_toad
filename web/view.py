@@ -58,6 +58,8 @@ def _correction_view(t: Transcript) -> dict:
 
 def _run(record: RunRecord) -> dict:
     values = {"budget": record.request.get("budget")}
+    if record.kind == "target_budget":
+        values["target_budget"] = record.result.target_budget if record.result else None
     values["required_minimum_budget"] = record.required_minimum_budget
     if record.result is not None and record.result.spend is not None:
         values |= metrics(record)
@@ -104,7 +106,7 @@ def referenced_runs(t: Transcript, runs_dir: Path) -> list[RunRecord]:
     ids: list[str] = []
     for turn in t.turns:
         for call in turn.tool_calls:
-            for key in ("run_id", "run_id_a", "run_id_b"):
+            for key in ("run_id", "run_id_a", "run_id_b", "follow_up_run_id"):
                 value = call["result"].get(key)
                 if isinstance(value, str) and value not in ids:
                     ids.append(value)

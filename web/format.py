@@ -20,6 +20,32 @@ def _scenario_args(args: dict) -> str:
     return ", ".join(parts)
 
 
+def _target_args(args: dict) -> str:
+    pct = args.get("target_pct_resolved")
+    shown = f"{pct:g}" if isinstance(pct, int | float) else pct
+    parts = [str(args.get("input_version", "?")), f"target {shown}%"]
+    for key in ("force_in", "force_out"):
+        if args.get(key):
+            parts.append(f"{key.replace('_', ' ')} {', '.join(map(str, args[key]))}")
+    return ", ".join(parts)
+
+
+def _target_outcome(result: dict) -> str:
+    r, run_id = result.get("result") or {}, result.get("run_id")
+    if result.get("follow_up_run_id"):
+        budget, follow = r["target_budget"], result["follow_up"]["result"]
+        return (
+            f"target budget {budget:.2f} [{run_id}]; optimizer at {budget:.2f} resolves "
+            f"{follow['resolved']} of {follow['total_sectors']} [{result['follow_up_run_id']}]"
+        )
+    if r.get("status") == "Infeasible" and r.get("max_resolvable") is not None:
+        return (
+            f"unreachable: at most {r['max_resolvable']} of {r['total_sectors']} sectors "
+            f"({r['max_pct_resolvable']:.1f}%) [{run_id}]"
+        )
+    return _run_outcome(result)
+
+
 def call_args(name: str, raw: str) -> str:
     try:
         args = json.loads(raw or "{}")
@@ -29,6 +55,8 @@ def call_args(name: str, raw: str) -> str:
         return "(unreadable arguments)"
     if name == "run_scenario":
         return _scenario_args(args)
+    if name == "find_target_budget":
+        return _target_args(args)
     if name == "submit_report":
         return f"{len(args.get('claims') or [])} claims"
     return " ".join(f"{v}" for v in args.values())
@@ -62,6 +90,8 @@ def call_outcome(name: str, result: dict) -> str:
         n = len(result.get("errors") or []) or 1
         problems = "1 problem" if n == 1 else f"{n} problems"
         return "accepted" if result.get("accepted") else f"refused ({problems})"
+    if name == "find_target_budget" and "run_id" in result:
+        return _target_outcome(result)
     if name in ("run_scenario", "get_run") and "run_id" in result:
         return _run_outcome(result)
     if result.get("error"):

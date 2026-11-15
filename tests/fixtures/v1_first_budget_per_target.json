@@ -1,0 +1,33 @@
+{
+  "note": "First total budget at which the normal optimizer's plan resolves at least k = ceil(p * 80 / 100) sectors, for target percents p = 5, 10, ..., 95. Produced 2026-11-15 on generated v1 (seed 42, content_hash below) by solving with happy_toad.engine.model.solve (default settings, no force lists, no market limits) at every budget from the must-fund total 311.44 up to the gate cap 5138.73 in steps of 1 (4828 solves, all Optimal; budgets rounded to 2 decimals) and counting resolved sectors with happy_toad.engine.relief.resolved_count. A budget between grid points could reach the target up to 1 lower; the M2B test only uses these as upper bounds for target_budget. See docs/DEVLOG.md 2026-11-15 (resolved count is not monotonic).",
+  "input_version": "v1",
+  "seed": 42,
+  "content_hash": "c53306104be69aef09b12c481c10739ca33d741e0be2e99e5706758974bd349c",
+  "n_sectors": 80,
+  "grid": {
+    "start": 311.44,
+    "stop": 5138.73,
+    "step": 1
+  },
+  "first_budget_by_target_pct": {
+    "5": 358.44,
+    "10": 401.44,
+    "15": 497.44,
+    "20": 599.44,
+    "25": 684.44,
+    "30": 841.44,
+    "35": 931.44,
+    "40": 1084.44,
+    "45": 1218.44,
+    "50": 1329.44,
+    "55": 1421.44,
+    "60": 1570.44,
+    "65": 1696.44,
+    "70": 1901.44,
+    "75": 2063.44,
+    "80": 2263.44,
+    "85": 2510.44,
+    "90": 2770.44,
+    "95": 3061.44
+  }
+}

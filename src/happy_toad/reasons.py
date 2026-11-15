@@ -19,6 +19,7 @@ class ReasonCode(StrEnum):
     FORCED_IN_EXCEEDS_CAP = "FORCED_IN_EXCEEDS_CAP"
     FLOOR_UNREACHABLE = "FLOOR_UNREACHABLE"
     CAUSE_UNKNOWN = "CAUSE_UNKNOWN"
+    TARGET_UNREACHABLE = "TARGET_UNREACHABLE"  # M2B: no plan resolves the target sectors
     SCHEMA_INVALID = "SCHEMA_INVALID"  # an agent tool input that does not fit the request schema
 
 

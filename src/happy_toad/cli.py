@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+from pydantic import ValidationError
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
@@ -16,6 +17,9 @@ from happy_toad.data.checks import InputError
 from happy_toad.data.files import write_inputs
 from happy_toad.data.loader import load_input_set
 from happy_toad.engine.sweep import default_budgets, parse_budgets, run_sweep
+from happy_toad.reasons import ReasonCode
+from happy_toad.services.runs import read_run
+from happy_toad.services.target import TargetBudgetRequest, run_target
 from happy_toad.tables import cause_lines, sweep_table
 
 app = typer.Typer(help="happy_toad: budget-constrained capital-allocation optimizer.")
@@ -127,6 +131,32 @@ def _scenario_args(args: dict) -> str:
     return ", ".join(parts)
 
 
+def _target_args(args: dict) -> str:
+    pct = args.get("target_pct_resolved")
+    shown = f"{pct:g}" if isinstance(pct, int | float) else pct
+    parts = [str(args.get("input_version", "?")), f"target {shown}%"]
+    for key in ("force_in", "force_out"):
+        if args.get(key):
+            parts.append(f"{key.replace('_', ' ')} {', '.join(map(str, args[key]))}")
+    return ", ".join(parts)
+
+
+def _target_outcome(result: dict) -> str:
+    r, run_id = result.get("result") or {}, result.get("run_id")
+    if result.get("follow_up_run_id"):
+        budget, follow = r["target_budget"], result["follow_up"]["result"]
+        return (
+            f"target budget {budget:.2f} [{run_id}]; optimizer at {budget:.2f} resolves "
+            f"{follow['resolved']} of {follow['total_sectors']} [{result['follow_up_run_id']}]"
+        )
+    if r.get("status") == "Infeasible" and r.get("max_resolvable") is not None:
+        return (
+            f"unreachable: at most {r['max_resolvable']} of {r['total_sectors']} sectors "
+            f"({r['max_pct_resolvable']:.1f}%) [{run_id}]"
+        )
+    return _run_outcome(result)
+
+
 def _call_args(name: str, raw: str) -> str:
     try:
         args = json.loads(raw or "{}")
@@ -136,6 +166,8 @@ def _call_args(name: str, raw: str) -> str:
         return "(unreadable arguments)"
     if name == "run_scenario":
         return _scenario_args(args)
+    if name == "find_target_budget":
+        return _target_args(args)
     if name == "submit_report":
         return f"{len(args.get('claims') or [])} claims"
     return " ".join(f"{v}" for v in args.values())
@@ -169,6 +201,8 @@ def _call_outcome(name: str, result: dict) -> str:
         n = len(result.get("errors") or []) or 1
         problems = "1 problem" if n == 1 else f"{n} problems"
         return "accepted" if result.get("accepted") else f"refused ({problems})"
+    if name == "find_target_budget" and "run_id" in result:
+        return _target_outcome(result)
     if name in ("run_scenario", "get_run") and "run_id" in result:
         return _run_outcome(result)
     if result.get("error"):
@@ -268,6 +302,84 @@ def compact_outcome(t, console: Console) -> None:
         detail = t.error or (f"HTTP {t.api_error['status']}" if t.api_error else None)
         _say(console, f"Status: {t.status}" + (f" ({detail})" if detail else ""))
     _say(console, _footer(t), style="dim")
+
+
+EXIT_REJECTED, EXIT_SCHEMA, EXIT_TIME_LIMIT = 1, 2, 3  # docs/SPEC.md, M2B
+
+
+def _show_search(record, runs_dir: Path) -> None:
+    """Print a target-budget search: the cheapest plan and the optimizer at its budget."""
+    r = record.result
+    n = r.total_sectors
+    typer.echo(f"target {r.target_pct_resolved:g}% = at least {r.target_sectors} of {n} sectors")
+    if r.target_budget is None:
+        if r.cause is not None and r.cause.code == ReasonCode.TARGET_UNREACHABLE:
+            typer.echo(
+                f"unreachable: at most {r.max_resolvable} of {n} sectors "
+                f"({r.max_pct_resolvable:.1f}%) can be resolved [{record.run_id}]"
+            )
+        else:
+            typer.echo(f"{r.status}: no proven cheapest plan [{record.run_id}]")
+        return
+    typer.echo(
+        f"target budget {r.target_budget:.2f} (total, including must-fund) [{record.run_id}]"
+    )
+    typer.echo(
+        f"cheapest plan: {len(r.selected)} candidates, spend {r.spend:.2f}, "
+        f"resolves {r.resolved} of {n}"
+    )
+    follow = read_run(record.follow_up_run_id, runs_dir).result
+    typer.echo(
+        f"optimizer at {r.target_budget:.2f} resolves {follow.resolved} of {n} "
+        f"[{record.follow_up_run_id}]; it maximizes weighted relief, so it can resolve fewer"
+    )
+    typer.echo("a higher budget does not guarantee more resolved sectors")
+
+
+def _exit_code(record) -> int:
+    if record.outcome != "completed":
+        return EXIT_REJECTED
+    found = record.result.target_budget is not None
+    unreachable = record.result.cause is not None and not found
+    return 0 if found or unreachable else EXIT_TIME_LIMIT
+
+
+@app.command("target-budget")
+def target_budget(
+    input_path: Annotated[
+        Path, typer.Argument(help="An input version file, e.g. data/inputs/v1.json")
+    ],
+    target: Annotated[float, typer.Option(help="Target percent of sectors resolved, 0-100.")],
+    force_in: Annotated[
+        list[str] | None, typer.Option(help="Candidate id to fund (repeat).")
+    ] = None,
+    force_out: Annotated[
+        list[str] | None, typer.Option(help="Candidate id not to fund (repeat).")
+    ] = None,
+    runs_dir: Annotated[Path, typer.Option(help="Where run records are written.")] = Path("runs"),
+) -> None:
+    """Cheapest plan that resolves at least the target percent of sectors, and its total budget.
+
+    Exit codes: 0 found or unreachable; 1 rejected by the gate (or an input error); 2 invalid
+    request; 3 time limit (or solver error) before a proven cheapest plan.
+    """
+    try:
+        request = TargetBudgetRequest(
+            input_version=input_path.stem,
+            target_pct_resolved=target,
+            force_in=force_in or [],
+            force_out=force_out or [],
+        )
+    except ValidationError as err:
+        typer.echo(f"Invalid request: {err}", err=True)
+        raise typer.Exit(EXIT_SCHEMA) from err
+    record = run_target(request, input_path.parent, runs_dir)
+    if record.outcome != "completed":
+        problems = [f"{x.code}: {x.message}" for x in record.reasons] or [record.error]
+        typer.echo(f"{record.outcome} [{record.run_id}]: " + "; ".join(problems))
+    else:
+        _show_search(record, runs_dir)
+    raise typer.Exit(_exit_code(record))
 
 
 @app.command()

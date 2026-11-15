@@ -18,6 +18,10 @@ Metric = Literal[
     "target_met",
     "must_fund_cost",
     "forced_cost",
+    "target_budget",
+    "target_sectors",
+    "max_resolvable",
+    "max_pct_resolvable",
     "diff_spend",
     "diff_weighted_relief",
     "diff_n_selected",
@@ -45,11 +49,16 @@ METRIC_UNITS: dict[str, str] = {
     "target_met": "none",
     "must_fund_cost": "cost_units",
     "forced_cost": "cost_units",
+    "target_budget": "cost_units",
+    "target_sectors": "count",
+    "max_resolvable": "count",
+    "max_pct_resolvable": "percent",
 }
 METRIC_UNITS |= {diff: METRIC_UNITS[base] for diff, base in DIFF_BASE.items()}
 
 SIGNED_COUNTS = {"diff_n_selected", "diff_n_resolved"}
-COUNT_METRICS = {"n_selected", "n_resolved", "n_sectors"} | SIGNED_COUNTS
+COUNT_METRICS = {"n_selected", "n_resolved", "n_sectors", "target_sectors", "max_resolvable"}
+COUNT_METRICS |= SIGNED_COUNTS
 TEXT_METRICS = {"status", "target_met"}
 PLAIN_DECIMAL = re.compile(r"-?\d+(\.\d+)?", re.ASCII)
 WHOLE_NUMBER = re.compile(r"\d+", re.ASCII)

@@ -93,7 +93,7 @@ class Conversation:
         if call.name == "submit_report":
             return self.submit(call)
         result = self.runner.call(call.name, call.arguments)
-        for key in ("run_id", "run_id_a", "run_id_b"):
+        for key in ("run_id", "run_id_a", "run_id_b", "follow_up_run_id"):
             if isinstance(result.get(key), str) and result[key] not in self.runs:
                 self.runs.append(result[key])
         return result

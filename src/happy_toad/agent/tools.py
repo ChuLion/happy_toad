@@ -1,4 +1,4 @@
-"""The five tools: their descriptions (SPEC, M3) and the code behind four of them.
+"""The six tools: their descriptions (SPEC, M3 and M2B) and the code behind five of them.
 
 `submit_report` is handled by the loop, because accepting it ends the conversation.
 """
@@ -12,8 +12,10 @@ from happy_toad.agent.report import Report
 from happy_toad.services.request import SolveRequest
 from happy_toad.services.run import RunRecord, record_invalid_request, run_request
 from happy_toad.services.runs import CompareError, compare_runs, list_versions, read_run
+from happy_toad.services.target import TargetBudgetRequest, run_target
 
 TOP_UNRESOLVED = 5
+SEARCH_FIELDS = {"target_budget", "target_sectors", "max_resolvable", "max_pct_resolvable"}
 CLARIFY_SENTENCE = (
     "To ask a clarifying question or decline, call submit_report with claims as an empty list "
     "and a summary that contains no numbers."
@@ -49,6 +51,16 @@ TOOLS = [
         SolveRequest.model_json_schema(),
     ),
     _tool(
+        "find_target_budget",
+        "Find the cheapest plan that resolves at least `target_pct_resolved` percent of sectors "
+        "and the total budget it needs, including must-fund projects (`target_budget`). Also runs "
+        "the optimizer at that budget (`follow_up_run_id`, `follow_up`): its usual plan maximizes "
+        "weighted relief and can resolve fewer sectors. Returns `target_sectors` (the target as a "
+        "sector count) and `max_resolvable`; an unreachable target has no budget. No budget and "
+        "no market multipliers in the request.",
+        TargetBudgetRequest.model_json_schema(),
+    ),
+    _tool(
         "get_run",
         "Return the stored summary of an earlier run by its run id.",
         _object({"run_id": _RUN_ID}, ["run_id"]),
@@ -79,8 +91,11 @@ def run_view(record: RunRecord) -> dict:
     r = record.result
     if r is not None:
         gaps = r.unresolved or []
+        hidden = {"solver_settings", "stage_times", "unresolved"}
+        if record.kind == "scenario":
+            hidden |= SEARCH_FIELDS
         view["result"] = {
-            **r.model_dump(mode="json", exclude={"solver_settings", "stage_times", "unresolved"}),
+            **r.model_dump(mode="json", exclude=hidden),
             "unresolved_count": len(gaps),
             "top_unresolved": [g.model_dump(mode="json") for g in gaps[:TOP_UNRESOLVED]],
         }
@@ -96,7 +111,7 @@ def _fields_in(error: ValidationError) -> str:
 
 
 class ToolRunner:
-    """Runs the four deterministic tools against the inputs and runs folders."""
+    """Runs the five deterministic tools against the inputs and runs folders."""
 
     def __init__(self, inputs_dir: Path, runs_dir: Path) -> None:
         self.inputs_dir = inputs_dir
@@ -108,10 +123,9 @@ class ToolRunner:
             args = json.loads(arguments or "{}")
         except json.JSONDecodeError:
             args = None
-        if name == "run_scenario":
-            return self.run_scenario(
-                args if isinstance(args, dict) else {"_raw_arguments": arguments}
-            )
+        if name in ("run_scenario", "find_target_budget"):
+            run = self.run_scenario if name == "run_scenario" else self.find_target_budget
+            return run(args if isinstance(args, dict) else {"_raw_arguments": arguments})
         if not isinstance(args, dict):
             return {"error": "arguments are not a JSON object"}
         if name == "list_input_versions":
@@ -128,6 +142,18 @@ class ToolRunner:
         except ValidationError as err:
             return run_view(record_invalid_request(args, _fields_in(err), self.runs_dir))
         return run_view(run_request(request, self.inputs_dir, self.runs_dir))
+
+    def find_target_budget(self, args: dict) -> dict:
+        try:
+            request = TargetBudgetRequest.model_validate(args)
+        except ValidationError as err:
+            record = record_invalid_request(args, _fields_in(err), self.runs_dir, "target_budget")
+            return run_view(record) | {"follow_up_run_id": None}
+        record = run_target(request, self.inputs_dir, self.runs_dir)
+        view = run_view(record) | {"follow_up_run_id": record.follow_up_run_id}
+        if record.follow_up_run_id:
+            view["follow_up"] = run_view(read_run(record.follow_up_run_id, self.runs_dir))
+        return view
 
     def get_run(self, run_id: str) -> dict:
         record = read_run(run_id, self.runs_dir)
