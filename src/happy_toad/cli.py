@@ -16,7 +16,7 @@ from happy_toad.data.checks import InputError
 from happy_toad.data.files import write_inputs
 from happy_toad.data.loader import load_input_set
 from happy_toad.engine.sweep import default_budgets, parse_budgets, run_sweep
-from happy_toad.report import cause_lines, sweep_table
+from happy_toad.tables import cause_lines, sweep_table
 
 app = typer.Typer(help="happy_toad: budget-constrained capital-allocation optimizer.")
 

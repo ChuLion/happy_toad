@@ -1097,3 +1097,6 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
 - S7: `engine/model.py`: `make_result` typed, with `cause` and `minimum` keyword-only; the
   meta/settings dict moved to `_run_meta(...)`; `solve` 96 → 80 lines. Not split further (the
   review asked only for this). 409 pass, tests unchanged.
+- S11: `happy_toad/report.py` (the Rich tables for the CLI) renamed to `happy_toad/tables.py`;
+  only `cli.py` imported it. `agent/report.py` and the `FROZEN_FILES` entry "report.py" (which
+  means the agent's) are untouched. 409 pass, tests unchanged; `sweep` output checked.
