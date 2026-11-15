@@ -38,8 +38,8 @@ def greedy(data: InputSet, avail: float) -> tuple[set[str], float]:
 
 def main(seed: int) -> None:
     data = make_v1(seed)
-    total_cost = sum(c.cost for c in data.candidates)
-    must_fund = sum(m.cost for m in data.must_fund)
+    total_cost = data.candidate_total
+    must_fund = data.must_fund_total
     table = Table(title=f"Optimizer vs greedy (v1, seed {seed})")
     for col in ("share", "budget", "status", "opt relief", "greedy relief", "gap %", "opt time s"):
         table.add_column(col, justify="right")

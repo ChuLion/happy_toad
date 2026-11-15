@@ -1088,3 +1088,9 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   `record_invalid_request(raw, message, runs_dir)` replaces `tools.record_schema_invalid` and
   keeps its sha256 of the sorted-key raw JSON (not `request_hash`), so stored hashes do not
   change. Edits `agent/tools.py` (frozen list). 409 pass, tests unchanged.
+- S3: `InputSet.must_fund_total` and `InputSet.candidate_total` properties replace the 7
+  must-fund and 4 candidate-cost sums (cli, model, diagnose, gate, checker, both scripts);
+  properties are not dumped, so content hashes are unchanged (checked). `diagnose.forced_cost`
+  replaces its two forced-in sums. The checker's forced-cost lookup (request order) is left as
+  is, so its float sum cannot shift. `scripts/fair_share_table` output identical before/after.
+  Edits `agent/checker.py` (frozen list). 409 pass, tests unchanged.

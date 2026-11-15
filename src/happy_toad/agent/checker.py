@@ -136,7 +136,7 @@ def input_value(record: RunRecord, metric: str, inputs_dir: Path):
     if metric == "n_sectors":
         return len(data.sectors)
     if metric == "must_fund_cost":
-        return sum(m.cost for m in data.must_fund)
+        return data.must_fund_total
     costs = {c.id: c.cost for c in data.candidates}
     return sum(costs[i] for i in record.request.get("force_in") or [] if i in costs)
 

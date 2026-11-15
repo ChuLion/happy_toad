@@ -66,7 +66,7 @@ def solve(
     explicit `limits` (spend per market) are passed, which replace the computed ones. Candidates
     in `force_in` are fixed to funded and those in `force_out` to not funded, in both stages.
     """
-    must_fund_total = sum(m.cost for m in data.must_fund)
+    must_fund_total = data.must_fund_total
     avail = budget - must_fund_total
     from_multipliers = limits is None and (
         market_floor_mult is not None or market_cap_mult is not None

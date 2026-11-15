@@ -19,9 +19,7 @@ def _budget_reasons(request: SolveRequest, data: InputSet | None) -> list[Reason
             _reason(ReasonCode.BUDGET_NOT_POSITIVE, f"budget {request.budget} is not > 0")
         )
     if data is not None and request.budget > 0:
-        cap = BUDGET_CAP_FACTOR * (
-            sum(c.cost for c in data.candidates) + sum(m.cost for m in data.must_fund)
-        )
+        cap = BUDGET_CAP_FACTOR * (data.candidate_total + data.must_fund_total)
         if request.budget > cap:
             reasons.append(
                 _reason(
@@ -44,7 +42,7 @@ def _force_reasons(request: SolveRequest, data: InputSet) -> list[Reason]:
     if both:
         reasons.append(_reason(ReasonCode.FORCE_CONFLICT, f"in both force lists: {both}"))
     forced = sum(known[i] for i in request.force_in if i in known)
-    must_fund = sum(m.cost for m in data.must_fund)
+    must_fund = data.must_fund_total
     if not math.isnan(request.budget) and must_fund + forced > request.budget:
         reasons.append(
             _reason(

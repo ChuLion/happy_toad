@@ -62,8 +62,8 @@ def sweep(
     except InputError as err:
         typer.echo(f"Invalid input: {err}", err=True)
         raise typer.Exit(1) from err
-    total_cost = sum(c.cost for c in data.candidates)
-    must_fund = sum(m.cost for m in data.must_fund)
+    total_cost = data.candidate_total
+    must_fund = data.must_fund_total
     try:
         budget_list = parse_budgets(budgets) if budgets else default_budgets(total_cost, must_fund)
     except ValueError as err:

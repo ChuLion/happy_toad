@@ -11,6 +11,11 @@ def _reason(code: ReasonCode, message: str) -> Reason:
     return Reason(code=code, message=message)
 
 
+def forced_cost(data: InputSet, force_in: Collection[str]) -> float:
+    """Total cost of the forced-in candidates."""
+    return sum(c.cost for c in data.candidates if c.id in force_in)
+
+
 def diagnose(
     data: InputSet,
     avail: float,
@@ -22,7 +27,7 @@ def diagnose(
 
     `limits` must already have its floors clamped. Checks run in the order of the SPEC table.
     """
-    forced = sum(c.cost for c in data.candidates if c.id in force_in)
+    forced = forced_cost(data, force_in)
     if forced > avail + FEASIBILITY_TOLERANCE:
         return _reason(
             ReasonCode.FORCED_COST_EXCEEDS_BUDGET,
@@ -69,8 +74,8 @@ def required_minimum_budget(
     Forced-in spend inside a floored market counts toward that floor, so each market contributes
     max(floor, forced spend) and is not counted twice. `limits` must already have clamped floors.
     """
-    must_fund = sum(m.cost for m in data.must_fund)
-    forced = sum(c.cost for c in data.candidates if c.id in force_in)
+    must_fund = data.must_fund_total
+    forced = forced_cost(data, force_in)
     if limits is None:
         return must_fund + forced
     in_market = market_spend(data, force_in)

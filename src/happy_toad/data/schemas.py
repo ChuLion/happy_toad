@@ -50,3 +50,13 @@ class InputSet(_Frozen):
     candidates: list[Candidate]
     offloads: list[Offload]
     must_fund: list[MustFundProject]
+
+    @property
+    def must_fund_total(self) -> float:
+        """Total cost of the must-fund projects (a property, so not serialized or hashed)."""
+        return sum(m.cost for m in self.must_fund)
+
+    @property
+    def candidate_total(self) -> float:
+        """Total cost of all candidate solutions."""
+        return sum(c.cost for c in self.candidates)

@@ -19,7 +19,7 @@ def main(seed: int) -> None:
         shortfall[s.market] += s.shortfall
     markets = sorted(shortfall)
     total = sum(shortfall.values())
-    avail = SHARE * sum(c.cost for c in data.candidates)
+    avail = SHARE * data.candidate_total
     print(f"seed {seed}: avail at {SHARE:.0%} budget = {avail:.2f} cost units")
     print(
         "| market | total shortfall | share | fair share | floor % avail | cap % avail "
