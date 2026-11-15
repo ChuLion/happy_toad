@@ -1100,3 +1100,7 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
 - S11: `happy_toad/report.py` (the Rich tables for the CLI) renamed to `happy_toad/tables.py`;
   only `cli.py` imported it. `agent/report.py` and the `FROZEN_FILES` entry "report.py" (which
   means the agent's) are untouched. 409 pass, tests unchanged; `sweep` output checked.
+- Verified after S11: no test file changed since before S1 (`git diff 52bb8e0..HEAD -- tests
+  web/tests` is empty), 409 pass, and the engine results for the five demo requests (outcome,
+  status, spend, weighted relief, resolved, percent, selected ids, minimum budget) are
+  byte-identical to the baseline. Time used: about 15 minutes of the 3-hour box.
