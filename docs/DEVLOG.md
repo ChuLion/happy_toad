@@ -933,3 +933,12 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   end (10-step cap) holding the one-request lock, so the transcript is complete; the server
   replies before writing the refusal log and creates its folder; light theme only; Inter only
   if installed locally (no external requests).
+
+## 2026-11-15 — web-replay merged into main; "1 mismatch" in the CLI; v0.3.2 moved
+- Owner asked: fast-forward main to web-replay (bb7cab7); the CLI now says "1 mismatch" too, so
+  the web wording test no longer has an exception (it asserts the two lines are equal for one
+  mismatch); one README line pointing to `web/replay.html` and the local live page; tag v0.3.2
+  moved to this commit; worktree `../happy_toad_web` removed, branch `web-replay` kept. Not
+  pushed. 394 pass; frozen agent files unchanged.
+- Not specified by the owner: a CLI test for the singular (`test_one_mismatch_is_singular`);
+  SPEC M3 decision 10 notes "1 mismatch"; the README line sits under the demo excerpt.

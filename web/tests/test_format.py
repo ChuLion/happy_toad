@@ -1,4 +1,4 @@
-"""web/format.py says exactly what the CLI says (only "1 mismatch" differs), and the view
+"""web/format.py says exactly what the CLI says, and the view
 module no longer imports the CLI."""
 
 import json
@@ -43,13 +43,13 @@ def test_verdict_correction_and_status_lines_match_the_cli():
     assert fmt.NO_FIGURES == cli.NO_FIGURES
 
 
-def test_check_line_matches_the_cli_except_one_mismatch():
+def test_check_line_matches_the_cli():
     check = _transcript().checks[0]
     assert fmt.check_line(check) == cli._counts(check)[0]
     one_bad = [n for n in check.numbers if not n.ok][:1]
     one = check.model_copy(update={"numbers": one_bad})
+    assert fmt.check_line(one) == cli._counts(one)[0]
     assert fmt.check_line(one).endswith(", 1 mismatch")
-    assert cli._counts(one)[0].endswith(", 1 mismatches")
 
 
 def test_view_module_does_not_import_the_cli():

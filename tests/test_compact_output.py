@@ -115,3 +115,12 @@ def test_one_verdict_per_transcript_and_its_exit_code() -> None:
     }
     for name, (case, label, code) in cases.items():
         assert (verdict(case), exit_code(case)) == (label, code), name
+
+
+def test_one_mismatch_is_singular() -> None:
+    t = demo_c()
+    first = t.checks[0]
+    one_bad = [n for n in first.numbers if not n.ok][:1]
+    one = first.model_copy(update={"numbers": one_bad})
+    out = render(t.model_copy(update={"status": "unverified", "checks": [one, one]}))
+    assert "0 numbers matched against stored runs, 1 mismatch\n" in out

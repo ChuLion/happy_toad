@@ -638,7 +638,8 @@ the section "M3 — approved changes and specification" at the end wins.
     one check-count line (mismatches listed only when there are any), one line saying what was
     unmatched when the first report was refused and then corrected, and a dim footer (model,
     provider, turns, cost, seconds). `--verbose` keeps the full output described above.
-    The check line reads "N claims, M numbers matched against stored runs, K mismatches". An
+    The check line reads "N claims, M numbers matched against stored runs, K mismatches"
+    ("1 mismatch" when K is 1). An
     accepted report with zero claims and zero summary numbers gets the neutral badge NO NUMBERS
     TO CHECK and the line "No checkable figures in this answer", never CHECKED; CHECKED needs at
     least one verified claim or number. The verdict is worked out once and drives the compact

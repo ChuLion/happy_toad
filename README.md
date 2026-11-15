@@ -47,6 +47,8 @@ deepseek/deepseek-v4-flash-0731 | BaseTen | 3 turns | $0.0010 | 3.8 s
 ```
 `--verbose` shows every tool result and every check instead.
 
+Web: open `web/replay.html` in a browser for a replay of two of these live runs (no key, no network), or run `OPENROUTER_API_KEY=... uv run python -m web.server` for the local live page at http://127.0.0.1:8765 (details in `web/README.md`).
+
 ## How it was built
 Built with Claude Code. Working rule: spec first (docs/SPEC.md), tests written before code, and
 every decision logged in docs/DEVLOG.md, including the ones the owner did not specify.

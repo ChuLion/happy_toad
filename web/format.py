@@ -1,6 +1,6 @@
 """Display wording copied from happy_toad/cli.py so the view does not import the CLI.
 
-Wording is identical to the CLI, except that the check line says "1 mismatch" (CLI: "1 mismatches").
+Wording is identical to the CLI.
 web/tests/test_format.py compares these functions with the CLI's.
 """
 
@@ -91,7 +91,7 @@ def correction(t) -> str | None:
 
 
 def check_line(check) -> str:
-    """The CLI's count line, with "mismatch" singular for one."""
+    """The CLI's count line."""
     errors = len(check.errors())
     matched = sum(n.ok for n in check.numbers)
     mismatches = "1 mismatch" if errors == 1 else f"{errors} mismatches"
