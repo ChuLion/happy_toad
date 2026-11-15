@@ -1256,3 +1256,10 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   M4 (unknown) rather than guessed from `status`; `ask()` takes `source` as an optional argument
   (`None` in tests); the string-claims script now prints "unknown" instead of "?" for a turn with
   no provider.
+- Fix after commit (automated security review, then reproduced): `provenance()` ran git before
+  `ask()`'s save guard, so without git (`FileNotFoundError`) or outside a checkout
+  (`CalledProcessError`) `ask()` raised and saved no transcript. Tests first (seen failing with
+  those errors); now commit and dirty flag are `None` (unknown) and the transcript is saved.
+  Declined: the review's suggestion to add `redaction.py`, `provenance.py` and `client.py` to the
+  bake-off `FROZEN_FILES`; that list is for what the model sees and how it is checked, which
+  these modules do not change.

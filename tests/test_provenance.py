@@ -190,3 +190,22 @@ def test_transcript_providers_are_sorted_unique_with_unknown_for_missing():
     t = Transcript(transcript_id="t", question="q", profile="p", model="m")
     t.turns = [record(1, "B"), record(2, None), record(3, "A"), record(4, "B")]
     assert t.providers == ["A", "B", "unknown"]
+
+
+def test_without_git_the_transcript_is_still_saved_with_unknown_commit(dirs, monkeypatch):
+    import happy_toad.agent.provenance as module
+
+    def no_git(*args, **kwargs):
+        raise FileNotFoundError("git")
+
+    monkeypatch.setattr(module.subprocess, "run", no_git)
+    t = ask("q", FakeClient(run_then_report()), SMOKE, **dirs)
+    assert t.status == "checked"
+    assert t.provenance["git_sha"] is None and t.provenance["git_dirty"] is None
+    assert t.provenance["prompt_sha256"] == provenance()["prompt_sha256"]
+    assert list(dirs["transcripts_dir"].glob("*.json"))
+
+
+def test_outside_a_git_checkout_the_commit_is_unknown(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    assert provenance()["git_sha"] is None

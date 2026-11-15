@@ -21,9 +21,18 @@ def prompt_sha256(tools: list[dict]) -> str:
 
 
 def provenance(tools: list[dict] | None = None) -> dict:
-    """Commit, whether tracked files have uncommitted changes, and the prompt hash."""
+    """Commit, whether tracked files have uncommitted changes, and the prompt hash.
+
+    Without git or outside a checkout, commit and dirty flag are None (unknown): a transcript
+    must be saved whatever the environment.
+    """
+    try:
+        sha = _git("rev-parse", "HEAD")
+        dirty = bool(_git("status", "--porcelain", "--untracked-files=no"))
+    except (OSError, subprocess.CalledProcessError):
+        sha = dirty = None
     return {
-        "git_sha": _git("rev-parse", "HEAD"),
-        "git_dirty": bool(_git("status", "--porcelain", "--untracked-files=no")),
+        "git_sha": sha,
+        "git_dirty": dirty,
         "prompt_sha256": prompt_sha256(TOOLS if tools is None else tools),
     }
