@@ -68,6 +68,14 @@ button { font: inherit; cursor: pointer; }
   font-size: 12px; font-weight: 700; letter-spacing: .02em; border: 1px solid currentColor; }
 .badge.ok { color: var(--ok); }
 .badge.bad { color: var(--accent); }
+.badge.neutral { color: var(--ink); }
+.warning { border: 1px solid var(--accent); border-left-width: 4px; border-radius: 12px;
+  padding: 12px 16px; font-size: 14px; background: #fff5f6; }
+.warning strong { color: var(--accent); }
+.answer.unchecked { background: var(--soft); }
+.answer.unchecked .summary, .answer.unchecked .num .v, .answer.unchecked h2 { color: var(--muted); }
+.answer.unchecked .num { background: var(--canvas); }
+.unmatched { color: var(--accent); font: 13px var(--mono); margin: -4px 0 6px; }
 .badge-note { color: var(--muted); font-size: 13px; }
 .summary { white-space: pre-wrap; font-size: 16px; line-height: 1.6; margin: 14px 0 0; max-width: 72ch; }
 .note { margin: 12px 0 0; font-size: 13px; color: var(--muted); border-left: 2px solid var(--accent);
@@ -194,33 +202,40 @@ function table(headers, rows) {
     el("tbody", {}, ...rows.map(r => el("tr", {}, ...r.map(c => el("td", {}, fmt(c))))))));
 }
 
+const BADGE = { "CHECKED": "ok", "NOT CHECKED": "bad", "NO NUMBERS TO CHECK": "neutral" };
+
+function warning(v) {
+  if (v.status === null)
+    return el("div", { class: "warning", role: "alert" }, el("strong", {}, "No answer. "), v.detail);
+  if (v.status === "NOT CHECKED")
+    return el("div", { class: "warning", role: "alert" }, el("strong", {}, "NOT CHECKED. "),
+      "The numbers in this answer did not all match the stored runs. Do not rely on them.");
+  return null;
+}
+
+function checksBlock(v) {
+  const c = v.checks;
+  const box = el("div", { class: "numbers" }, el("h3", {}, "Claims"));
+  if (c.unmatched_numbers.length)
+    box.append(el("p", { class: "unmatched" }, "Unmatched numbers: " + c.unmatched_numbers.join(", ")));
+  box.append(el("p", { class: "checks-line" }, c.line));
+  if (v.claims.length)
+    box.append(el("div", { class: "grid" }, ...v.claims.map(x => el("div", { class: "num" },
+      el("div", { class: "k" }, label(x.metric)), el("div", { class: "v" }, fmt(x.value)),
+      el("div", { class: "r" }, x.run_id_b ? `${x.run_id} → ${x.run_id_b}` : x.run_id)))));
+  if (c.mismatches.length)
+    box.append(el("ul", { class: "mismatch" }, ...c.mismatches.map(m => el("li", {}, m))));
+  return box;
+}
+
 function answerCard(v) {
-  const ok = v.status === "CHECKED";
-  const card = el("section", { class: "card answer" },
+  if (v.status === null) return null;
+  const card = el("section", { class: "card answer" + (v.status === "NOT CHECKED" ? " unchecked" : "") },
     el("div", { class: "answer-head" }, el("h2", {}, "Answer"),
-      el("span", { class: "badge " + (ok ? "ok" : "bad") }, v.status),
-      el("span", { class: "badge-note" }, ok
-        ? "Every number in the summary traces to a stored run."
-        : "Not every number could be traced to a stored run (" + v.detail + ").")),
+      el("span", { class: "badge " + BADGE[v.status] }, v.status)),
     v.summary ? el("p", { class: "summary" }, v.summary) : null,
-    v.correction.happened
-      ? el("p", { class: "note" }, v.correction.note || "The first report was refused and resubmitted.")
-      : null);
-  if (v.checks || v.claims.length) {
-    const nums = el("div", { class: "numbers" }, el("h3", {}, "Checked numbers"));
-    if (v.checks) {
-      const c = v.checks;
-      nums.append(el("p", { class: "checks-line" },
-        `${c.claims_ok} of ${c.claims} claims match the stored runs; ` +
-        `${c.numbers_matched} of ${c.numbers} summary numbers matched; ${c.mismatches.length} mismatches.`));
-    }
-    nums.append(el("div", { class: "grid" }, ...v.claims.map(c => el("div", { class: "num" },
-      el("div", { class: "k" }, label(c.metric)), el("div", { class: "v" }, fmt(c.value)),
-      el("div", { class: "r" }, c.run_id_b ? `${c.run_id} → ${c.run_id_b}` : c.run_id)))));
-    if (v.checks && v.checks.mismatches.length)
-      nums.append(el("ul", { class: "mismatch" }, ...v.checks.mismatches.map(m => el("li", {}, m))));
-    card.append(nums);
-  }
+    v.correction.note ? el("p", { class: "note" }, v.correction.note) : null);
+  if (v.checks) card.append(checksBlock(v));
   return card;
 }
 
@@ -247,7 +262,7 @@ function renderView(v, liveTrace) {
   const t = liveTrace || trace(false);
   if (!liveTrace) v.steps.forEach(s => t.add(s, false));
   t.box.open = false;
-  return el("div", { class: "result" }, questionLine(v.question), answerCard(v), runsCard(v), t.box, footer(v));
+  return el("div", { class: "result" }, questionLine(v.question), warning(v), answerCard(v), runsCard(v), t.box, footer(v));
 }
 
 function show(node) { document.getElementById("view").replaceChildren(node); }
