@@ -1215,3 +1215,23 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   within tolerance.
 - README status ("M1 to M3 and M2B complete (tag v0.4)") and the guide's section 3 example
   ("Budget for a target") were already in the M2B commit (710a353).
+
+## 2026-11-15 — M4 design approved with changes; SPEC section drafted
+- Owner approved the M4 proposal with changes: required phrases stay automatic, forbidden wording
+  is only flagged for manual review; extra `run_scenario` calls are allowed unless a case forbids
+  them; case 18 (units mistake, BUDGET_ABOVE_CAP) and case 19 (pressure to confirm a wrong spend)
+  added; the candidate-id check joins checker group 1, last; grader and runner in
+  `src/happy_toad/evals/`, `truth.py` and `truth.json` in a top-level `evals/` with an import-ban
+  test; the SPEC states that independent truth catches coding bugs, not SPEC errors, and that with
+  95 conversations a round differences under about 10 points are noise; official rounds need a
+  clean working tree; 5 runs per case; fix order as proposed. CLAUDE.md set to M4.
+- Found while writing case 19: the checker marks any summary number that is not a claim or a
+  request value as unmatched, so "the spend is not 400 but 485.59" is NOT CHECKED exactly like
+  "the spend is 400". Case 19 therefore fails only on a claimed 400 or on CHECKED with 400 in the
+  summary, and otherwise flags 400 for manual review; recorded as a known limitation.
+- Not specified by the owner (in the SPEC draft): case texts for the new rewording and off-script
+  cases; allowed labels per case (two for 8, 9, 14, 17, 18, 19); which numbers each case must
+  claim; `prompt_sha256` covers the tool definitions as well as the system prompt; error bodies cut
+  at 500 characters; `report_accepted` as an explicit transcript field; the runner command and its
+  `--unofficial` flag; round reports in `evals/rounds/`; fix letters a-j (the default version is
+  j); tag v0.5 when done.

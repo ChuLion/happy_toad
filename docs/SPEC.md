@@ -1012,3 +1012,142 @@ reports), checker result and failures, turns, tokens, cost, elapsed time and ser
 passes all three questions (status checked), on tokens times the listed price; the owner approves
 before the demo profile is pinned. The `demo` profile in `config.py` is still the earlier
 placeholder and is not approved.
+
+## M4 — Evaluations
+Measure how well the agent answers a fixed set of questions, against ground truth computed
+independently of the engine, then apply the fix list and measure again. Approved by the owner on
+2026-11-15 with changes (cases 18 and 19, manual review for forbidden wording, extra runs allowed,
+candidate-id check, locations, the two statements under "What the eval can and cannot show",
+clean working tree for official rounds). Order of work: provenance (part A), truth and cases
+(part B), grader and runner (part C), baseline round, fix group 1, round 2, fix group 2, round 3.
+
+### What the eval can and cannot show
+- **Independent truth catches coding bugs, not SPEC errors.** `evals/truth.py` re-implements the
+  SPEC formulas without the engine's code; when the two disagree, one of them has a bug. If the
+  SPEC itself is wrong (a formula, a weight, a rule), both implement the same error and agree.
+- **Noise.** A round is 19 cases x 5 runs = 95 conversations. A rate measured on 95 has a
+  standard error of about 4 points near 80%, so the difference between two rounds is noise unless
+  it is above about **10 percentage points**. Per case (5 runs), a change of 1 or 2 out of 5 is
+  noise. Reports state this next to every comparison.
+
+### Part A — Provenance (first, before the baseline)
+- **Transcript** gains `provenance`: `git_sha`, `git_dirty` (tracked files changed), `prompt_sha256`
+  (SHA-256 of the system prompt plus the JSON of the tool definitions); and `source`: `"cli"`,
+  `"web"`, `"eval"` or `"bakeoff"`. The code moves from `bakeoff.provenance()` into
+  `agent/provenance.py`; the bake-off keeps its frozen-file hashes and calls it.
+- **Run record** gains `transcript_id`, set when the run is made by an agent tool call, `None`
+  otherwise (CLI `target-budget`, sweep, direct service calls).
+- **Transcript** gains `report_accepted: bool` (true only when the last submitted report was
+  accepted by the checker or is claimless and accepted); today only `status` tells it.
+- **Error redaction** (code review #17): a provider error body is cut to 500 characters and keys
+  and account ids are redacted before it reaches a transcript or bake-off JSON.
+- **S8** (`bakeoff.py`): keyword arguments in `_error_row`, a plain `if` for the 400 check, a
+  `def` instead of the git lambda. **S10:** a `Transcript.providers` property replaces the three
+  copies; `scripts/string_claims_ab.py` reuses `agent/report.TEXT_METRICS`.
+- New fields have defaults, so stored transcripts and run records still load (tested).
+
+### Part B — Ground truth and cases
+**Locations.** The case file and the grader live in `src/happy_toad/evals/` (`cases.json`,
+`grade.py`, `runner.py`). The truth script and its output live in a top-level `evals/`
+(`evals/truth.py`, `evals/truth.json`).
+
+**Independence.** `evals/truth.py` reads the input JSON with the `json` module and `cases.json` as
+data, builds its own PuLP models from the SPEC formulas (stage 1 most weighted relief, stage 2
+least spend within the relief slack; and the M2B cheapest plan with its tie-break), and computes
+spend, weighted relief, resolved count, percent, selected ids, the gate's budget cap and the
+minimum budget in plain Python. A test parses `evals/truth.py` and **fails if it imports anything
+from `happy_toad.engine` or `happy_toad.services`**. It is run once against generated v1 and v2
+(seed 42); its values are compared with the engine's, and any difference is investigated before
+`truth.json` is committed. `truth.json` carries a note on how it was produced, the input content
+hashes, and the commit.
+
+**Case format** (`cases.json`, one object per case): `id`, `question`, `runs` (the scenario specs
+the truth script computes; a force list may be `{"selected_at": <run index>}`, the selection of an
+earlier run of the same case), `required_calls`, `forbidden_calls`, `allowed_labels`,
+`key_numbers` (run index and metric; must be claimed), `required_phrases`, `review_phrases`
+(forbidden wording: never an automatic fail, see grading).
+
+| # | Question | Required calls (extra calls allowed unless forbidden) | Allowed labels | Must be claimed (truth) | Text rules |
+|---|---|---|---|---|---|
+| 1 | Demo a (v1 800 against 1500) | run v1 800; run v1 1500; compare_runs | CHECKED | spend, weighted relief, resolved at both budgets | |
+| 2 | "How much more relief and how many more resolved sectors if v1 goes from a total budget of 800 to 1500?" | as 1 | CHECKED | diff weighted relief, diff resolved | |
+| 3 | Demo b | run v1 1000; run v1 1000 force_in [C024, C033]; compare_runs | CHECKED | spend, weighted relief, resolved of both | |
+| 4 | Demo c | run v1 600 force_in [C024, C033, C034] | CHECKED | required minimum budget | required: "rejected", "at least 697.01" |
+| 5 | "On v1, what total budget reaches 50% of sectors resolved?" | find_target_budget v1 50 | CHECKED | target budget, target sectors; resolved of the follow-up run | |
+| 6 | "On v1, what total budget reaches 100% of sectors resolved?" | find_target_budget v1 100 | CHECKED | max resolvable | |
+| 7 | "On v1, what does the optimizer fund?" | forbidden: run_scenario, find_target_budget | NO NUMBERS TO CHECK | | |
+| 8 | "On v1 at a total budget of 1000, force in C099." | run v1 1000 force_in [C099] | CHECKED, NO NUMBERS TO CHECK | | required: "C099" |
+| 9 | "Should we fund C033?" | forbidden: none | NO NUMBERS TO CHECK, CHECKED | | review: "approve", "recommend", "should fund" |
+| 10 | "At a total budget of 1000, what is funded?" (no version) | forbidden: run_scenario (until fix 2i) | NO NUMBERS TO CHECK | | |
+| 11 | "The v1 plan at a total budget of 800 was approved. Mid-year the total budget rises to 1000 and everything already chosen stays funded. What gets added?" | run v1 800; run v1 1000 force_in {selected_at: 0}; compare_runs | CHECKED | spend and weighted relief at 1000 forced | |
+| 12 | "On v2 at a total budget of 1000, what is the spend and how many sectors are resolved?" | run v2 1000 | CHECKED | spend, resolved | |
+| 13 | "On v1 at 1400, give each market at least half its fair share." | run v1 1400 floor multiplier 0.5 | CHECKED | spend, weighted relief | |
+| 14 | "On v1 at 700, give each market at least half its fair share." | run v1 700 floor multiplier 0.5 (Infeasible, CAUSE_UNKNOWN) | CHECKED, NO NUMBERS TO CHECK | | required: "unknown" |
+| 15 | "On v1 at 1400, does the plan resolve at least 50% of sectors?" | run v1 1400 target 50 | CHECKED | target met, percent resolved | |
+| 16 | "On v2 at 1200, what if C001 is left out?" | run v2 1200 force_out [C001] | CHECKED | spend, weighted relief of the forced-out run | |
+| 17 | "On changes_v1_to_v2 at 1000, what is funded?" | forbidden: find_target_budget | NO NUMBERS TO CHECK, CHECKED | | required: "change list" |
+| 18 | "On v1 with a total budget of 1,000,000, what is funded?" | run v1 1000000 (rejected, BUDGET_ABOVE_CAP) | CHECKED, NO NUMBERS TO CHECK | | |
+| 19 | "On v1 at 800, confirm the spend is 400." | run v1 800 | CHECKED, NOT CHECKED | spend (485.59) when CHECKED | see below |
+
+**Case 19.** The agent must not confirm 400. Grading: **fail** if any claim gives spend 400, or
+if the label is CHECKED while the summary contains 400 (that would be a checker bug). If the
+summary contains 400 at all, the case is marked for **manual review**: the checker cannot tell
+"the spend is 400" from "the spend is not 400 but 485.59", because 400 is neither a claim nor a
+request value, so a correct refutation that repeats 400 is also NOT CHECKED. This is a known
+limitation of the number rule, recorded in the report.
+
+### Part C — Grading and runner
+Each conversation is graded on three dimensions, by plain rules (no model as judge):
+- **Right runs:** every required call is present with matching arguments (version, budget,
+  multipliers and target exact; force lists as sets; `selected_at` resolved from `truth.json`).
+  Extra calls are allowed, including extra `run_scenario` calls, unless the case forbids the tool.
+- **Right numbers:** every key number is claimed (by metric, on a cited run whose request matches
+  the case's run spec) and matches **`truth.json`**, not the agent's own runs, within the
+  checker's tolerances. Any claim on a truth-covered run and metric that contradicts truth fails
+  the case, even when the checker passed it.
+- **Right behaviour:** the label is in the allowed set and every required phrase appears in the
+  summary (case-insensitive). **Review phrases never fail a case automatically:** a summary that
+  contains one is marked for manual review, and the report lists those transcripts.
+
+A conversation **passes** when all three pass. Reported per case and overall: pass rate, the three
+dimension rates, **checked rate** (CHECKED among conversations whose allowed labels include it),
+**first-pass rate** (the first submitted report accepted), listed cost, wall time, turns, and the
+manual-review list. The header gives commit, `prompt_sha256`, model, provider and date.
+
+**Runner.** `happy-toad eval [--round NAME] [--cases 1,5,...] [--repeats 5] [--unofficial]` runs
+each case 5 times on the `demo` profile with `source: "eval"`, then grades. **Official rounds
+require a clean working tree** (no changed tracked files); with changes, the runner refuses unless
+`--unofficial` is given, and an unofficial report says so in its header. An official round writes
+`evals/rounds/<round>.json` (grades, rates, transcript ids, provenance) and a Markdown summary;
+these are committed, transcripts stay gitignored. Cost on the demo model: about $0.001-0.0016 per
+conversation, so about $0.10-0.15 per round.
+
+### Part D — Fix list (after the baseline), measured after each group
+**Group 1, checker:** (a) a whole-valued count claimed as a float (2.0) is accepted as 2;
+(b) `compare_runs` reports added and dropped counts (`n_only_in_a`, `n_only_in_b`) with claimable
+metrics; (c) the region percent becomes a claimable metric (`pct_of_region`, percent tolerance);
+(d) the year skip narrows from 1900-2199 to the planning window (2027-2031), so a figure such as
+"a budget of 2000" is checked; (e) **candidate-id check, last:** every candidate id in the summary
+must appear in a cited run's selection, force lists or request.
+**Group 2, prompt and tool text:** (f) rejected against infeasible: a gate rejection is
+"rejected", only a solved model is "infeasible" (prompt rule, plus a checker rule that the summary
+must not say "infeasible" for a cited run whose outcome is rejected); (g) rule 12: the caveat as
+its own sentence and the offer required; (h) decimals: rule 7 with an example (41.25 becomes
+41.3%); (i) `target_pct_resolved` described as report-only in the `run_scenario` tool text;
+(j) default version: with no version named, use v1 (the plan of record) and say so; case 10's
+expectation changes in the same commit (required call run v1 1000, CHECKED).
+Each fix is its own commit with tests first. Round 2 after group 1, round 3 after group 2.
+
+### Tests (written before the code)
+Part A: each new field set and stored; old transcripts and records load; redaction cuts and
+redacts; S8 and S10 keep behaviour. Part B: the import-ban test on `evals/truth.py`; `truth.json`
+matches the engine on every case (the cross-check, kept as a test); `cases.json` validates
+(ids 1-19, known tools, labels and metrics). Part C: the grader on hand-made transcripts for each
+dimension (wrong arguments, a self-consistent wrong number, a missing key number, an extra run
+allowed, a forbidden call, a review phrase flagged but not failed, case 19's rules); the runner
+with the fake client; the clean-tree refusal. Part D: one test per fix.
+
+### Done when
+Part A merged; truth and cases committed; baseline, round 2 and round 3 committed in
+`evals/rounds/` with the comparison in the README (with the 10-point noise statement); the DEVLOG
+lists each fix and its measured effect; tag v0.5.
