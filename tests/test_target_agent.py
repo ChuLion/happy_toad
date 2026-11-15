@@ -185,3 +185,11 @@ def test_cli_exit_code_for_a_time_limit_is_3(dirs, monkeypatch):
     result = _invoke(dirs, "--target", "25")
     assert result.exit_code == 3
     assert "TimeLimit: no proven cheapest plan" in result.output
+
+
+def test_cli_shows_a_rejected_follow_up_run_instead_of_crashing(dirs):
+    """No must-fund and target 0: the budget is 0.00, which the optimizer's gate rejects."""
+    result = _invoke(dirs, "--target", "0")
+    assert result.exit_code == 0, result.output
+    assert "target budget 0.00 (total, including must-fund)" in result.output
+    assert "optimizer at 0.00: rejected BUDGET_NOT_POSITIVE" in result.output

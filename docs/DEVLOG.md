@@ -1187,3 +1187,11 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   the web runs table gets a `target_budget` column for search runs; the CLI prints the cheapest
   plan's size, spend and resolved count as well; the guide's "no reverse budget search" limitation
   is replaced by the cheapest-plan caveat, and the guide gains a "budget for a target" example.
+- Fix after commit (automated security review, then reproduced): with no must-fund and target 0
+  the target budget is 0.00, the follow-up run is rejected (`BUDGET_NOT_POSITIVE`), and both the
+  CLI and the trace formatter crashed on its missing result (`AttributeError`, `TypeError`).
+  Tests first (seen failing with those errors), then the CLI and both formatters show the
+  follow-up's own outcome ("optimizer at 0.00: rejected BUDGET_NOT_POSITIVE"). Not specified by
+  the owner: `follow_up_run_id` is still recorded for a rejected follow-up (the run exists and
+  can be cited) rather than dropped as the review suggested. Cannot happen on v1 (must-fund
+  311.44).

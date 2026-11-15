@@ -33,10 +33,14 @@ def _target_args(args: dict) -> str:
 def _target_outcome(result: dict) -> str:
     r, run_id = result.get("result") or {}, result.get("run_id")
     if result.get("follow_up_run_id"):
-        budget, follow = r["target_budget"], result["follow_up"]["result"]
+        budget, follow = r["target_budget"], result["follow_up"]
+        head = f"target budget {budget:.2f} [{run_id}]; optimizer at {budget:.2f}"
+        if (follow.get("result") or {}).get("resolved") is None:  # rejected or no plan
+            return f"{head}: {_run_outcome(follow)}"
+        plan = follow["result"]
         return (
-            f"target budget {budget:.2f} [{run_id}]; optimizer at {budget:.2f} resolves "
-            f"{follow['resolved']} of {follow['total_sectors']} [{result['follow_up_run_id']}]"
+            f"{head} resolves {plan['resolved']} of {plan['total_sectors']} "
+            f"[{result['follow_up_run_id']}]"
         )
     if r.get("status") == "Infeasible" and r.get("max_resolvable") is not None:
         return (

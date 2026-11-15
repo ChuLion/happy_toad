@@ -40,7 +40,16 @@ UNREACHABLE = {
 }  # fmt: skip
 REFUSED = {"run_id": "r1", "outcome": "rejected", "result": None,
            "reasons": [{"code": "VERSION_NOT_FOUND", "message": "x"}]}  # fmt: skip
-CALLS += [("find_target_budget", TARGET_ARGS, r) for r in (FOUND, UNREACHABLE, REFUSED)]
+FOLLOW_UP_REJECTED = {
+    "run_id": "r1", "outcome": "completed", "follow_up_run_id": "r2",
+    "result": {"status": "Optimal", "target_budget": 0.0, "total_sectors": 4},
+    "follow_up": {"run_id": "r2", "outcome": "rejected", "result": None,
+                  "reasons": [{"code": "BUDGET_NOT_POSITIVE", "message": "x"}]},
+}  # fmt: skip
+CALLS += [
+    ("find_target_budget", TARGET_ARGS, r)
+    for r in (FOUND, UNREACHABLE, REFUSED, FOLLOW_UP_REJECTED)
+]
 
 
 def test_target_budget_wording():
@@ -52,6 +61,9 @@ def test_target_budget_wording():
         "unreachable: at most 76 of 80 sectors (95.0%) [r1]"
     )
     assert fmt.call_outcome("find_target_budget", REFUSED) == "rejected VERSION_NOT_FOUND [r1]"
+    assert fmt.call_outcome("find_target_budget", FOLLOW_UP_REJECTED) == (
+        "target budget 0.00 [r1]; optimizer at 0.00: rejected BUDGET_NOT_POSITIVE [r2]"
+    )
 
 
 def test_tool_call_wording_matches_the_cli():

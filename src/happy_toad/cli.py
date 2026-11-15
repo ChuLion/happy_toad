@@ -144,10 +144,14 @@ def _target_args(args: dict) -> str:
 def _target_outcome(result: dict) -> str:
     r, run_id = result.get("result") or {}, result.get("run_id")
     if result.get("follow_up_run_id"):
-        budget, follow = r["target_budget"], result["follow_up"]["result"]
+        budget, follow = r["target_budget"], result["follow_up"]
+        head = f"target budget {budget:.2f} [{run_id}]; optimizer at {budget:.2f}"
+        if (follow.get("result") or {}).get("resolved") is None:  # rejected or no plan
+            return f"{head}: {_run_outcome(follow)}"
+        plan = follow["result"]
         return (
-            f"target budget {budget:.2f} [{run_id}]; optimizer at {budget:.2f} resolves "
-            f"{follow['resolved']} of {follow['total_sectors']} [{result['follow_up_run_id']}]"
+            f"{head} resolves {plan['resolved']} of {plan['total_sectors']} "
+            f"[{result['follow_up_run_id']}]"
         )
     if r.get("status") == "Infeasible" and r.get("max_resolvable") is not None:
         return (
@@ -328,11 +332,16 @@ def _show_search(record, runs_dir: Path) -> None:
         f"cheapest plan: {len(r.selected)} candidates, spend {r.spend:.2f}, "
         f"resolves {r.resolved} of {n}"
     )
-    follow = read_run(record.follow_up_run_id, runs_dir).result
-    typer.echo(
-        f"optimizer at {r.target_budget:.2f} resolves {follow.resolved} of {n} "
-        f"[{record.follow_up_run_id}]; it maximizes weighted relief, so it can resolve fewer"
-    )
+    follow = read_run(record.follow_up_run_id, runs_dir)
+    if follow.result is None or follow.result.resolved is None:  # rejected, error or no plan
+        problems = " ".join(x.code for x in follow.reasons) or follow.error or ""
+        status = follow.result.status if follow.result else follow.outcome
+        typer.echo(f"optimizer at {r.target_budget:.2f}: {status} {problems} [{follow.run_id}]")
+    else:
+        typer.echo(
+            f"optimizer at {r.target_budget:.2f} resolves {follow.result.resolved} of {n} "
+            f"[{follow.run_id}]; it maximizes weighted relief, so it can resolve fewer"
+        )
     typer.echo("a higher budget does not guarantee more resolved sectors")
 
 
