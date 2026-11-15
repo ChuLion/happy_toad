@@ -21,6 +21,7 @@ from web.view import build_view, referenced_runs, step
 HOST = "127.0.0.1"  # loopback only, never 0.0.0.0
 PORT = 8765
 MAX_CHARS = 500
+TOO_LONG = f"questions are limited to {MAX_CHARS} characters"
 PROFILE = "demo"
 BUSY = threading.Lock()
 
@@ -39,7 +40,7 @@ def _question(body: bytes) -> str:
     if not isinstance(question, str) or not question.strip():
         raise ValueError("send a non-empty question")
     if len(question) > MAX_CHARS:
-        raise ValueError(f"questions are limited to {MAX_CHARS} characters")
+        raise ValueError(TOO_LONG)
     return question
 
 
