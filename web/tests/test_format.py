@@ -107,3 +107,10 @@ def test_the_trace_shows_the_change_lists():
     expected = "v1, v2; change lists: changes_v1_to_v2"
     assert fmt.call_outcome("list_input_versions", result) == expected
     assert cli._call_outcome("list_input_versions", result) == expected
+
+
+def test_one_claim_is_singular_in_both():
+    check = _transcript().checks[0]
+    one = check.model_copy(update={"claims": check.claims[:1]})
+    assert fmt.check_line(one) == cli._counts(one)[0]
+    assert fmt.check_line(one).startswith("1 claim | ")

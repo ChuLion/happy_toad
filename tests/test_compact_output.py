@@ -101,7 +101,7 @@ def test_one_verified_claim_keeps_the_checked_badge() -> None:
     )
     out = render(one)
     assert "CHECKED" in out and "NO NUMBERS TO CHECK" not in out
-    assert "1 claims | 0 numbers checked | 0 mismatches" in out
+    assert "1 claim | 0 numbers checked | 0 mismatches" in out
 
 
 def test_one_verdict_per_transcript_and_its_exit_code() -> None:

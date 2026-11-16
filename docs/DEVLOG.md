@@ -1534,3 +1534,5 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   "1 claims" is unchanged. The replay was re-exported from its three transcripts, which also
   brought its pct_resolved glossary text up to date. README's intro paragraph notes the
   package keeps its working name.
+- Owner asked for "1 claim" (singular) when there is one claim, in the CLI and the web; the rest
+  of the line unchanged ("1 numbers checked" still possible; not asked).
