@@ -244,7 +244,15 @@ function fmt(v) {
   return String(v);
 }
 
-const label = name => name.replaceAll("_", " ");
+const BUDGET = "budget (ceiling)";
+const label = name => name === "budget" ? BUDGET : name.replaceAll("_", " ");
+
+function budgetLine(v, x) {
+  const of = id => v.runs.find(r => r.run_id === id)?.values.budget;
+  const shown = [x.run_id, x.run_id_b].filter(Boolean).map(of);
+  if (shown.some(b => b === null || b === undefined)) return null;
+  return el("div", { class: "r" }, `${BUDGET} ${shown.map(fmt).join(" → ")}`);
+}
 
 function stepItem(s, n, fresh) {
   return el("li", { class: fresh ? "step-new" : "" }, el("span", { class: "step-n" }, String(n)),
@@ -292,7 +300,7 @@ function checksBlock(v) {
   if (v.claims.length)
     box.append(el("div", { class: "grid" }, ...v.claims.map(x => el("div", { class: "num", title: GLOSSARY[x.metric] || "" },
       el("div", { class: "k" }, label(x.metric)), el("div", { class: "v" }, fmt(x.value)),
-      el("div", { class: "r" }, x.run_id_b ? `${x.run_id} → ${x.run_id_b}` : x.run_id)))));
+      el("div", { class: "r" }, x.run_id_b ? `${x.run_id} → ${x.run_id_b}` : x.run_id), budgetLine(v, x)))));
   if (c.mismatches.length)
     box.append(el("ul", { class: "mismatch" }, ...c.mismatches.map(m => el("li", {}, m))));
   return box;

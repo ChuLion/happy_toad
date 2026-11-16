@@ -58,3 +58,10 @@ def test_the_readme_diagram_has_both_feedback_paths_and_human_review():
     assert "-. refused report, back to the agent once .-> E" in diagram
     assert "Human review" in diagram and "class I,E ai" in diagram
     assert "class G,O,R,C code" in diagram
+
+
+def test_the_budget_is_labelled_a_ceiling_in_the_table_and_on_the_claim_cards():
+    html = page()
+    assert 'const BUDGET = "budget (ceiling)";' in html
+    assert 'name === "budget" ? BUDGET' in html  # stored-runs table header
+    assert "budgetLine(v, x)" in html  # each claim card names its run's budget
