@@ -47,6 +47,49 @@ Purple dashed boxes are the AI model (one agent, two jobs); white boxes are plai
 arrows are the two ways work goes back to the agent; the grey dotted arrow is the checker reading
 the stored runs. The agent approves nothing: it runs scenarios and reports; a human decides.
 
+<details>
+<summary>Detailed flow</summary>
+
+Adds what the simple diagram leaves out: the infeasible path out of the Optimizer, the lookup
+tools the agent can call, and the 10-turn cap that ends a conversation with no report.
+
+```mermaid
+%%{init: {"themeVariables": {"fontSize": "18px"}}}%%
+flowchart TD
+    accTitle: Detailed flow
+    accDescr: The simple flow plus the infeasible path out of the Optimizer, the lookup tools the agent can call, and the 10-turn cap that ends a conversation without a report.
+    Q([Question]) --> I["Intake (AI): exact scenario requests"]
+    T["Lookup tools (code): list_input_versions, get_run, compare_runs, find_target_budget"]
+    I --> G["Gate (code): accept or reject, all reasons"]
+    G -->|accepted| O["Optimizer (code): PuLP + CBC, two stages"]
+    G -->|rejected| R
+    O -->|plan| R["Run record (code): every attempt"]
+    O -->|infeasible: no plan, cause recorded| R
+    R --> E["Explanation (AI): summary, numbers as claims"]
+    E --> C["Checker (code): numbers vs stored runs"]
+    C -->|CHECKED, NOT CHECKED or NO NUMBERS TO CHECK| H(["Human review: decides"])
+    T -.-> I
+    T -.-> E
+    G -. rejection reasons, back to the agent .-> I
+    C -. refused report, back to the agent .-> E
+    R -. stored runs .-> C
+    I & E -.-> K{{"10-turn cap: every model turn counts"}}
+    K -->|cap reached| F(["flagged failure, no report shown"])
+    classDef ai fill:#f1edfb,stroke:#5b3cc4,stroke-width:3px,stroke-dasharray:6 4,color:#3b2585
+    classDef code fill:#ffffff,stroke:#3d4451,stroke-width:2px,color:#000000
+    classDef person fill:#3d4451,stroke:#3d4451,color:#ffffff
+    classDef stop fill:#fff5f6,stroke:#ee001e,stroke-width:2px,color:#000000
+    class I,E ai
+    class G,O,R,C,T code
+    class Q,H person
+    class K,F stop
+    linkStyle 9,10 stroke:#5b3cc4,stroke-width:2px
+    linkStyle 11,12 stroke:#ee001e,stroke-width:3px,color:#ee001e
+    linkStyle 13 stroke:#9a9a9a,stroke-width:2px,color:#6f7171
+```
+
+</details>
+
 ## Demo excerpt (live, question c)
 The live transcript `20261114T210201-5276b834` (run on v0.3.1, DeepSeek V4 Flash 0731 on
 Baseten), shown in the compact `ask` output; nothing shortened, no account id to redact:
