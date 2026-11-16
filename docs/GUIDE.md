@@ -142,6 +142,8 @@ A claim in a report names one of these metrics, its value and the run it comes f
   forced out. Given with every target-budget search; when the target needs more, it is
   unreachable.
 - **`max_pct_resolvable`:** `max_resolvable` as a percent of all sectors in the version.
+- **`n_added`:** how many candidates the second run (`run_id_b`) funds that the first does not.
+- **`n_dropped`:** how many candidates the first run (`run_id`) funds that the second does not.
 - **`diff_` prefix:** a difference between two runs: the value in the second run (`run_id_b`)
   minus the value in the first (`run_id`), in the same unit as the metric without the prefix.
   Positive means the second run is higher, negative means it is lower.

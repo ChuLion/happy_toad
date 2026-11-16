@@ -9,7 +9,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, computed_field
 
-from happy_toad.agent.report import DIFF_BASE, Claim, Report
+from happy_toad.agent.report import DIFF_BASE, PAIR_METRICS, Claim, Report
 from happy_toad.services.run import RunRecord, load_version
 from happy_toad.services.runs import metrics, read_run
 
@@ -157,6 +157,18 @@ def difference(a: RunRecord, run_id_b: str, metric: str, runs_dir: Path):
     return metrics(b)[base] - metrics(a)[base]
 
 
+def pair_value(a: RunRecord, run_id_b: str, metric: str, runs_dir: Path):
+    """A diff_ metric (b minus a), or n_added / n_dropped; None unless both runs have plans."""
+    if metric in DIFF_BASE:
+        return difference(a, run_id_b, metric, runs_dir)
+    b = read_run(run_id_b, runs_dir)
+    plans = [r for r in (a, b) if r is not None and r.result and r.result.selected is not None]
+    if len(plans) < 2:
+        return None
+    chosen_a, chosen_b = set(a.result.selected), set(b.result.selected)
+    return len(chosen_b - chosen_a) if metric == "n_added" else len(chosen_a - chosen_b)
+
+
 def values_match(metric: str, claimed, stored) -> bool:
     """Exact for counts, strings and booleans; within the displayed-rounding tolerance otherwise."""
     if metric in TOLERANCE:
@@ -168,8 +180,8 @@ def values_match(metric: str, claimed, stored) -> bool:
 
 
 def _stored(claim: Claim, record: RunRecord, runs_dir: Path, inputs_dir: Path):
-    if claim.metric in DIFF_BASE:
-        return difference(record, claim.run_id_b, claim.metric, runs_dir), "both runs need a plan"
+    if claim.metric in PAIR_METRICS:
+        return pair_value(record, claim.run_id_b, claim.metric, runs_dir), "both runs need a plan"
     if claim.metric in INPUT_METRICS:
         return input_value(record, claim.metric, inputs_dir), "input version not found"
     return stored_value(record, claim.metric), "the run has no value for this metric"

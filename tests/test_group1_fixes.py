@@ -45,3 +45,44 @@ def test_a_fractional_count_is_still_not_a_count(value):
 
 def test_money_metrics_keep_their_floats():
     assert type(Claim(metric="spend", value=11.0, unit="cost_units", run_id="r").value) is float
+
+
+# --- (b) added and dropped counts -----------------------------------------------------------
+
+
+def test_compare_runs_reports_the_added_and_dropped_counts(two_runs):
+    from happy_toad.services.runs import compare_runs
+
+    _, a, b = two_runs
+    c = compare_runs(a, b)
+    assert c.n_only_in_a == len(c.only_in_a) and c.n_only_in_b == len(c.only_in_b)
+    assert c.n_only_in_b > 0  # the larger budget adds candidates
+
+
+def test_added_and_dropped_are_pair_metrics():
+    with pytest.raises(ValueError):
+        Claim(metric="n_added", value=1, unit=COUNT, run_id="a")
+    assert Claim(metric="n_added", value=1.0, unit=COUNT, run_id="a", run_id_b="b").value == 1
+
+
+def test_added_and_dropped_claims_are_checked_against_the_two_selections(two_runs):
+    tmp_path, a, b = two_runs
+    added = len(set(b.result.selected) - set(a.result.selected))
+    dropped = len(set(a.result.selected) - set(b.result.selected))
+    good = [
+        dict(metric="n_added", value=added, run_id=a.run_id, run_id_b=b.run_id),
+        dict(metric="n_dropped", value=dropped, run_id=a.run_id, run_id_b=b.run_id),
+    ]
+    summary = f"{added} candidates are added and {dropped} dropped."
+    assert check_report(report(summary, *good), tmp_path / "runs", tmp_path / "inputs").ok
+    wrong = dict(metric="n_added", value=added + 1, run_id=a.run_id, run_id_b=b.run_id)
+    assert not check_report(report("", wrong), tmp_path / "runs", tmp_path / "inputs").ok
+
+
+def test_truth_has_the_added_and_dropped_counts_of_demo_a():
+    import json
+    from pathlib import Path
+
+    truth = json.loads((Path(__file__).parents[1] / "evals/truth.json").read_text())
+    diffs = truth["cases"]["1"]["diffs"]["0,1"]
+    assert (diffs["n_added"], diffs["n_dropped"]) == (15, 2)  # 14 - 2 + 15 = 27

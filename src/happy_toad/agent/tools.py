@@ -68,8 +68,9 @@ TOOLS = [
     _tool(
         "compare_runs",
         "Compare two completed runs that both have a plan: status, spend, weighted relief, "
-        "number selected, number resolved, percent resolved, and which candidates are only in "
-        "one run. Use it for a comparison instead of computing differences yourself.",
+        "number selected, number resolved, percent resolved, which candidates are only in one "
+        "run, and how many (n_only_in_b added, claim as n_added; n_only_in_a dropped, claim as "
+        "n_dropped). Use it for a comparison instead of computing differences yourself.",
         _object({"run_id_a": _RUN_ID, "run_id_b": _RUN_ID}, ["run_id_a", "run_id_b"]),
     ),
     _tool(

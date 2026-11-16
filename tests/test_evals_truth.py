@@ -8,7 +8,7 @@ from typing import get_args
 
 import pytest
 
-from happy_toad.agent.checker import difference, stored_value
+from happy_toad.agent.checker import pair_value, stored_value
 from happy_toad.agent.report import Metric
 from happy_toad.agent.tools import TOOLS
 from happy_toad.data.files import write_inputs
@@ -167,7 +167,7 @@ def disagreements(case, case_truth, inputs, runs) -> list[str]:
     for pair, values in case_truth.get("diffs", {}).items():
         a, b = (int(x) for x in pair.split(","))
         for metric, value in values.items():
-            got = difference(records[a], records[b].run_id, metric, runs)
+            got = pair_value(records[a], records[b].run_id, metric, runs)
             if not same(got, value):
                 found.append(f"diff {pair}: {metric} {got} != {value}")
     return found

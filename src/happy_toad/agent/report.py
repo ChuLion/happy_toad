@@ -27,6 +27,8 @@ Metric = Literal[
     "diff_n_selected",
     "diff_n_resolved",
     "diff_pct_resolved",
+    "n_added",
+    "n_dropped",
 ]
 Unit = Literal["need_units", "cost_units", "count", "percent", "none"]
 
@@ -55,9 +57,13 @@ METRIC_UNITS: dict[str, str] = {
     "max_pct_resolvable": "percent",
 }
 METRIC_UNITS |= {diff: METRIC_UNITS[base] for diff, base in DIFF_BASE.items()}
+METRIC_UNITS |= {"n_added": "count", "n_dropped": "count"}
+SELECTION_PAIRS = {"n_added", "n_dropped"}  # candidates only in run_id_b, only in run_id
+PAIR_METRICS = set(DIFF_BASE) | SELECTION_PAIRS
 
 SIGNED_COUNTS = {"diff_n_selected", "diff_n_resolved"}
 COUNT_METRICS = {"n_selected", "n_resolved", "n_sectors", "target_sectors", "max_resolvable"}
+COUNT_METRICS |= SELECTION_PAIRS
 COUNT_METRICS |= SIGNED_COUNTS
 TEXT_METRICS = {"status", "target_met"}
 PLAIN_DECIMAL = re.compile(r"-?\d+(\.\d+)?", re.ASCII)
@@ -89,7 +95,9 @@ class Claim(BaseModel):
     run_id: str
     run_id_b: str | None = Field(
         default=None,
-        description="Only for diff_* metrics: the second run; value is run_id_b minus run_id, "
+        description="Only for diff_*, n_added and n_dropped: the second run; a diff_ value is "
+        "run_id_b minus run_id, n_added counts candidates only in run_id_b, n_dropped only in "
+        "run_id; "
         "as compare_runs reports it.",
     )
     entity: Literal["plan"] = "plan"
@@ -110,8 +118,10 @@ class Claim(BaseModel):
 
     @model_validator(mode="after")
     def _second_run_only_for_differences(self):
-        if (self.metric in DIFF_BASE) != (self.run_id_b is not None):
-            raise ValueError("run_id_b is required for diff_* metrics and allowed only for them")
+        if (self.metric in PAIR_METRICS) != (self.run_id_b is not None):
+            raise ValueError(
+                "run_id_b is required for diff_*, n_added and n_dropped and allowed only for them"
+            )
         return self
 
 

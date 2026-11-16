@@ -294,6 +294,11 @@ def case_truth(case: dict, inputs: Path) -> dict:
     for a, b in pairs:
         first, second = runs[a]["values"], runs[b]["values"]
         diffs[f"{a},{b}"] = {f"diff_{m}": second[m] - first[m] for m in DIFFS}
+        chosen_a, chosen_b = set(runs[a]["selected"]), set(runs[b]["selected"])
+        diffs[f"{a},{b}"] |= {
+            "n_added": len(chosen_b - chosen_a),
+            "n_dropped": len(chosen_a - chosen_b),
+        }
     return {"runs": runs} | ({"diffs": diffs} if diffs else {})
 
 

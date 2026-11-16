@@ -33,6 +33,8 @@ class RunComparison(BaseModel):
     fields: dict[str, FieldDiff]
     only_in_a: list[str]
     only_in_b: list[str]
+    n_only_in_a: int  # dropped: chosen in a, not in b (claim as n_dropped)
+    n_only_in_b: int  # added: chosen in b, not in a (claim as n_added)
 
 
 def list_versions(inputs_dir: Path = Path("data/inputs")) -> list[str]:
@@ -85,4 +87,6 @@ def compare_runs(a: RunRecord, b: RunRecord) -> RunComparison:
         fields=fields,
         only_in_a=sorted(chosen_a - chosen_b),
         only_in_b=sorted(chosen_b - chosen_a),
+        n_only_in_a=len(chosen_a - chosen_b),
+        n_only_in_b=len(chosen_b - chosen_a),
     )

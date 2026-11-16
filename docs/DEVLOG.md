@@ -1337,3 +1337,8 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   agent. Applied as specified, to be measured in round 2.
 - (a) Whole-valued counts: a count claimed as a whole float (2.0, -1.0) becomes the int in the
   claim schema; 21.5 stays a float and still fails. Tests first (4 seen failing on the type).
+- (b) Added and dropped counts: `compare_runs` reports `n_only_in_a` / `n_only_in_b`; new pair
+  metrics `n_added` (only in `run_id_b`) and `n_dropped` (only in `run_id`) need both run ids and
+  are checked against the two selections (`checker.pair_value`); the compare_runs tool text names
+  them; glossary entries; `evals/truth.py` computes them independently (truth.json regenerated;
+  cross-check still clean; case 1: 15 added, 2 dropped). Tests first (4 seen failing).

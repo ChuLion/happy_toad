@@ -83,7 +83,9 @@
      "diff_weighted_relief": 694.7725,
      "diff_n_selected": 13,
      "diff_n_resolved": 24,
-     "diff_pct_resolved": 30.0
+     "diff_pct_resolved": 30.0,
+     "n_added": 15,
+     "n_dropped": 2
     }
    }
   },
@@ -165,7 +167,9 @@
      "diff_weighted_relief": 694.7725,
      "diff_n_selected": 13,
      "diff_n_resolved": 24,
-     "diff_pct_resolved": 30.0
+     "diff_pct_resolved": 30.0,
+     "n_added": 15,
+     "n_dropped": 2
     }
    }
   },
@@ -244,7 +248,9 @@
      "diff_weighted_relief": -243.69833333333327,
      "diff_n_selected": -2,
      "diff_n_resolved": 1,
-     "diff_pct_resolved": 1.25
+     "diff_pct_resolved": 1.25,
+     "n_added": 3,
+     "n_dropped": 5
     }
    }
   },
@@ -504,14 +510,18 @@
      "diff_weighted_relief": 683.2625,
      "diff_n_selected": 15,
      "diff_n_resolved": 24,
-     "diff_pct_resolved": 30.0
+     "diff_pct_resolved": 30.0,
+     "n_added": 15,
+     "n_dropped": 0
     },
     "2,1": {
      "diff_spend": -0.05999999999994543,
      "diff_weighted_relief": -11.509999999999991,
      "diff_n_selected": 2,
      "diff_n_resolved": 0,
-     "diff_pct_resolved": 0.0
+     "diff_pct_resolved": 0.0,
+     "n_added": 3,
+     "n_dropped": 1
     }
    }
   },
@@ -752,5 +762,5 @@
    ]
   }
  },
- "commit": "32e45570113bbc603aca76cbfcd4bc84ed0d5109"
+ "commit": "c3e215aa099ab45b3b7d91a879f5dae0715afb18"
 }
