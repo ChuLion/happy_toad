@@ -1370,3 +1370,28 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   figures and request values, add numbers. Declined from the same review: requiring a validated
   claim whenever a summary has numbers; the owner decided (k) allows numbers from the
   conversation's runs without a citing claim.
+- Acknowledged, not changed (automated security review of fix e): tracking candidates per run and
+  per role would be a wording check, while the owner's rule is "selection, force lists or
+  request"; ids are matched as C plus three digits, which is how this data names them (a
+  lowercase "c033" would not be caught); force-list ids count because the rule says so (case 8's
+  C099 is only in a rejected run's force list).
+
+## 2026-11-16 — Round 2 (after fix group 1), official, commit 14dca3a
+- 95 conversations, $0.0927, 1 infrastructure (HTTP error, case 15) excluded. Pass 84% (baseline
+  86%), checked 76% (80%): both within the 10-point noise. **First pass 54% (66%): down 12
+  points**, just above the noise line.
+- Where group 1 worked: case 1's "15" (now `n_added`), case 8's "1000" and case 18's cap figures
+  (5,138.73 and 1.5) no longer cause first refusals; case 18 passes 5/5 (4/5); case 19 5/5.
+- **Fix (e) as specified makes answers worse.** 8 new first refusals: all 5 case 9 declines and 3
+  case 8 answers named the candidate from the question without citing a run. All case 9 answers
+  recovered by dropping "C033" (pass, but vaguer); in 2 case 8 answers the agent replaced "C099"
+  with "the specified candidate", which fails the required phrase (case 8: 3/5, was 5/5).
+- Other causes of the first-pass drop, not from the fixes: "80" (the sector count) written
+  without an `n_sectors` claim (cases 1, 2, 3, 19); case 3's relief rounded to one decimal
+  (1573.6, 1329.9; fix h); case 10's "1000" from the question with no run (5, was 1; unallowed
+  by design).
+- **New gap found:** case 13's answers say "38 sectors remained unresolved" (true: 80 - 42); the
+  tool result shows `unresolved_count`, but no metric can claim it. In 1 of 5 the agent then
+  claimed `n_resolved` = 38 to back it and failed.
+- Unchanged failures: case 15 (0/4; the agent still computes the target itself; fix i), case 17
+  (0/5; "change list" still not reachable; fix l), case 14 once without a run.
