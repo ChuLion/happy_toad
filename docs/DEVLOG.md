@@ -1440,3 +1440,7 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   to say so; case 10 now expects a v1 run at 1000 labelled CHECKED (was: no run, NO NUMBERS TO
   CHECK); truth.json regenerated (cross-check clean); guide and SPEC case table updated. Tests
   first (2 seen failing). Not specified by the owner: "Do not ask which version to use."
+- (l) Change list at the gate: a request on a change list (name starting `changes_`) is still
+  VERSION_NOT_FOUND, with the message "changes_v1_to_v2 is a change list, not an input version"
+  (scenario and target-budget gates); other unknown names keep "no input version 'x'". Tests
+  first (1 seen failing; the unchanged message passed before and after).

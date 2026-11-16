@@ -105,3 +105,36 @@ def test_case_10_now_expects_a_v1_run_at_1000():
     assert case.allowed_labels == ["CHECKED"] and case.forbidden_calls == []
     truth = json.loads((Path(__file__).parents[1] / "evals/truth.json").read_text())
     assert truth["cases"]["10"]["runs"][0]["values"]["spend"] > 0
+
+
+# --- (l) the gate names a change list --------------------------------------------------------
+
+
+def test_the_gate_says_a_change_list_is_not_an_input_version(tmp_path):
+    from happy_toad.reasons import ReasonCode
+    from happy_toad.services.request import SolveRequest
+    from happy_toad.services.run import run_request
+    from happy_toad.services.target import TargetBudgetRequest, run_target
+
+    inputs, runs = toy_dirs(tmp_path)
+    for record in (
+        run_request(SolveRequest(input_version="changes_v1_to_v2", budget=10.0), inputs, runs),
+        run_target(
+            TargetBudgetRequest(input_version="changes_v1_to_v2", target_pct_resolved=50),
+            inputs,
+            runs,
+        ),
+    ):
+        assert [r.code for r in record.reasons] == [ReasonCode.VERSION_NOT_FOUND]
+        assert (
+            record.reasons[0].message == "changes_v1_to_v2 is a change list, not an input version"
+        )
+
+
+def test_an_unknown_version_keeps_its_message(tmp_path):
+    from happy_toad.services.request import SolveRequest
+    from happy_toad.services.run import run_request
+
+    inputs, runs = toy_dirs(tmp_path)
+    record = run_request(SolveRequest(input_version="v9", budget=10.0), inputs, runs)
+    assert record.reasons[0].message == "no input version 'v9'"

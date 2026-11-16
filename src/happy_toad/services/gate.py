@@ -3,6 +3,7 @@
 import math
 
 from happy_toad.constants import BUDGET_CAP_FACTOR
+from happy_toad.data.files import is_change_list
 from happy_toad.data.schemas import InputSet
 from happy_toad.reasons import Reason, ReasonCode
 from happy_toad.services.request import SolveRequest
@@ -60,12 +61,21 @@ def _force_reasons(request: SolveRequest, data: InputSet) -> list[Reason]:
     return reasons
 
 
+def _version_not_found(name: str) -> Reason:
+    """A change list is named as such (M4 fix l); any other name is simply not found."""
+    if is_change_list(name):
+        return _reason(
+            ReasonCode.VERSION_NOT_FOUND, f"{name} is a change list, not an input version"
+        )
+    return _reason(ReasonCode.VERSION_NOT_FOUND, f"no input version {name!r}")
+
+
 def check_target_request(
     input_version: str, force_in: list[str], force_out: list[str], data: InputSet | None
 ) -> list[Reason]:
     """All reasons a target-budget search cannot run (M2B): version and force-list ids only."""
     if data is None:
-        return [_reason(ReasonCode.VERSION_NOT_FOUND, f"no input version {input_version!r}")]
+        return [_version_not_found(input_version)]
     return _force_id_reasons(force_in, force_out, data)
 
 
@@ -73,9 +83,7 @@ def check_request(request: SolveRequest, data: InputSet | None) -> list[Reason]:
     """All reasons the request cannot run (empty if it can). `data` is None if no such version."""
     reasons = []
     if data is None:
-        reasons.append(
-            _reason(ReasonCode.VERSION_NOT_FOUND, f"no input version {request.input_version!r}")
-        )
+        reasons.append(_version_not_found(request.input_version))
     reasons += _budget_reasons(request, data)
     if data is not None:
         reasons += _force_reasons(request, data)
