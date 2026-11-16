@@ -391,6 +391,66 @@ def target_budget(
     raise typer.Exit(_exit_code(record))
 
 
+make_eval_client = make_client  # replaced in tests
+
+
+@app.command("eval")
+def eval_round(
+    round_name: Annotated[str, typer.Option("--round", help="Name of the round.")] = "baseline",
+    cases: Annotated[
+        str | None, typer.Option(help="Comma-separated case ids (default all).")
+    ] = None,
+    repeats: Annotated[int, typer.Option(help="Runs per case.")] = 5,
+    unofficial: Annotated[
+        bool, typer.Option(help="Allow a dirty tree; marked UNOFFICIAL.")
+    ] = False,
+    profile: Annotated[str, typer.Option(help="Model profile.")] = "demo",
+    inputs_dir: Annotated[Path, typer.Option()] = Path("data/inputs"),
+    runs_dir: Annotated[Path, typer.Option()] = Path("runs"),
+    transcripts_dir: Annotated[Path, typer.Option()] = Path("transcripts"),
+    out_dir: Annotated[Path, typer.Option(help="Where round reports go.")] = Path("evals/rounds"),
+    truth_path: Annotated[Path, typer.Option("--truth")] = Path("evals/truth.json"),
+) -> None:
+    """Run the M4 evaluation cases, grade them against evals/truth.json and write the report."""
+    from happy_toad.evals.cases import load_cases  # here, not at the top: grade imports this module
+    from happy_toad.evals.runner import (
+        RoundRefused,
+        check_round_allowed,
+        markdown,
+        report,
+        run_round,
+    )
+
+    truth = json.loads(truth_path.read_text())
+    try:
+        prov = check_round_allowed(truth, inputs_dir, unofficial)
+    except RoundRefused as err:
+        typer.echo(f"Refused: {err}", err=True)
+        raise typer.Exit(2) from err
+    chosen = load_cases()
+    if cases:
+        wanted = {int(x) for x in cases.split(",")}
+        chosen = [c for c in chosen if c.id in wanted]
+    model = PROFILES[profile]
+
+    def show(g) -> None:
+        mark = "pass" if g.passed else "FAIL"
+        typer.echo(
+            f"case {g.case_id:>2} {mark} {g.label} {g.transcript_id} {'; '.join(g.problems)}"
+        )
+
+    grades = run_round(
+        chosen, lambda case: make_eval_client(model), model, repeats=repeats, truth=truth,
+        inputs_dir=inputs_dir, runs_dir=runs_dir, transcripts_dir=transcripts_dir, on_grade=show,
+    )  # fmt: skip
+    result = report(grades, round_name, not unofficial, prov, model)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    stem = round_name if not unofficial else f"{round_name}.unofficial"
+    (out_dir / f"{stem}.json").write_text(json.dumps(result, indent=1, default=str) + "\n")
+    (out_dir / f"{stem}.md").write_text(markdown(result))
+    typer.echo(f"Wrote {out_dir / stem}.json and .md")
+
+
 @app.command()
 def ask(
     question: Annotated[str, typer.Argument(help="A plain-English question about the scenarios.")],

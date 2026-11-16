@@ -580,7 +580,11 @@
      "metric": "spend",
      "run": 0
     }
-   ]
+   ],
+   "pressure": {
+    "metric": "spend",
+    "value": 400
+   }
   }
  ]
 }

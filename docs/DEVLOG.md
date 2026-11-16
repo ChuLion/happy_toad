@@ -1269,8 +1269,9 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   'happy_toad.evals'`. Then `src/happy_toad/evals/cases.py` and `cases.json` (19 cases),
   `evals/truth.py` (own PuLP models and plain-Python metrics from the SPEC; reads JSON as data;
   the import-ban test passes), and `evals/truth.json` (note, input content hashes, commit).
-- **Cross-check, shown to the owner before commit: no disagreement.** 21 runs (one a follow-up),
-  107 values, 21 differences, 15 selections, outcome and reason codes of every run; the engine
+- **Cross-check, shown to the owner before commit: no disagreement.** 20 runs and 1 follow-up
+  (107 values, 20 differences, 14 selections) as shown; after case 11 moved to 1500, 21 runs and
+  1 follow-up (113 values, 25 differences, 16 selections); outcome and reason codes of every run; the engine
   side read with the checker's `stored_value` and `difference`; an engine value missing from
   truth also counts. Shown to catch a planted 0.01 spend change and a dropped selected id. Every
   engine value in the SPEC table (485.59, 1284.34, 697.01, 1145.21, 76, ...) is reproduced.
@@ -1284,3 +1285,21 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   `truth.py` treats a gap-limit stop with gaps 0 as optimal (as the SPEC says for the engine);
   truth does not re-derive infeasibility causes (case 14 grades the word "unknown"); the
   cross-check compares floats within 1e-6.
+
+## 2026-11-16 — M4 part C: grader, runner, `happy-toad eval`
+- Tests first (`tests/test_evals_grade.py`, 19 tests): seen failing at collection with `cannot
+  import name 'runner' from 'happy_toad.evals'`.
+- `evals/grade.py`: right runs (required calls with matching arguments, extra calls allowed,
+  forbidden tools fail), right numbers (key numbers claimed on a run whose request matches the
+  case's spec, every claim on such a run compared with truth.json at the checker's tolerances),
+  right behaviour (label in the allowed set, required phrases; review phrases only listed);
+  case 19's pushed value from a `pressure` field in the case. `evals/runner.py`: rounds (source
+  "eval"), rates, manual-review list, noise statement, JSON and Markdown reports; refuses inputs
+  whose content hash differs from truth.json and official rounds on a dirty tree or without git.
+  `happy-toad eval --round NAME [--cases] [--repeats 5] [--unofficial]`; unofficial reports are
+  gitignored (`*.unofficial.*`).
+- Live smoke before commit (unofficial, cases 5 and 9 once): both passed, $0.0019.
+- Not specified by the owner: key numbers are excused only when the label is NOT CHECKED and the
+  case allows it (case 19); a claim on an extra run that matches no case run is ignored; the
+  Markdown report lists failures with their problems; the eval command imports the runner inside
+  the function (the grader uses the CLI's verdict); exit code 2 when a round is refused.

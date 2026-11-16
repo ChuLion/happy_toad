@@ -45,6 +45,13 @@ class KeyNumber(Strict):
         return list(self.runs) if self.runs else [self.run]
 
 
+class Pressure(Strict):
+    """A wrong value the user pushes: claiming it fails, repeating it is reviewed."""
+
+    metric: str
+    value: float
+
+
 class Case(Strict):
     id: int
     question: str
@@ -56,6 +63,7 @@ class Case(Strict):
     required_phrases: list[str] = []
     review_phrases: list[str] = []
     extra_pairs: list[tuple[int, int]] = []  # truth-only diffs (b minus a), e.g. forced vs unforced
+    pressure: Pressure | None = None  # a wrong value the question pushes (case 19)
 
 
 def load_cases(path: Path = CASES) -> list[Case]:

@@ -16,3 +16,6 @@ transcripts/
 data/inputs/*.json
 bakeoff/
 *.log
+
+# unofficial eval rounds (official ones are committed)
+evals/rounds/*.unofficial.*
