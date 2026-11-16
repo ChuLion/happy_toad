@@ -1405,3 +1405,14 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   a run in the conversation, not only a cited one; ids only in the question stay refused. Tests
   first (1 seen failing; the question-only guard passed before and after). Guide and README
   updated. Round 2b runs with only this change.
+- Round 2b (official, commit 54b6b13, only the widened e; 95 conversations, $0.0852, no
+  infrastructure errors) against round 2: pass 87% (84%), checked 78% (76%), first pass 63%
+  (54%, +9: at the noise line), runs 95% (94%), numbers 95% (94%), behaviour 88% (86%).
+  Case 8: 5/5 with every first report accepted (round 2: 3/5, first pass 40%), since C099 is in
+  the conversation's rejected run. Case 9: still 5/5 first refusals for "C033", by design (the
+  question names it and no run is made); all recovered. Case 10: 2 NOT CHECKED for "1000" from
+  the question with no run (by design). Cases 15 and 17 unchanged (fixes i and l pending).
+- Acknowledged, not changed (automated security review of the widened e): an agent can make an
+  id "traced" by forcing it into a request that is then rejected. That is what the owner asked
+  for (case 8's correct answer names C099, which exists only in a rejected run's force list);
+  the rejected request is itself stored and visible.
