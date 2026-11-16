@@ -1532,5 +1532,5 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   "Explanation" replace the step names "Agent" and "Report". M in the check line still counts the
   numbers that matched (as before), not all numbers looked at; "1 mismatch" stays singular and
   "1 claims" is unchanged. The replay was re-exported from its three transcripts, which also
-  brought its pct_resolved glossary text up to date. README's "What it does" sentence notes the
+  brought its pct_resolved glossary text up to date. README's intro paragraph notes the
   package keeps its working name.
