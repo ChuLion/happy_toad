@@ -77,3 +77,15 @@ def test_the_readme_diagram_names_all_three_labels():
     readme = (WEB.parent / "README.md").read_text()
     diagram = readme.split("```mermaid")[1].split("```")[0]
     assert "C -->|CHECKED, NOT CHECKED or NO NUMBERS TO CHECK| H" in diagram
+
+
+STEPS = ["Question", "Intake", "Gate", "Optimizer", "Run record", "Explanation", "Checker",
+         "Human review"]  # fmt: skip
+
+
+def test_the_guide_has_the_diagram_steps_in_order():
+    guide = (WEB.parent / "docs/GUIDE.md").read_text()
+    section = guide.split("## 4. From question to decision")[1].split("\n## ")[0]
+    names = re.findall(r"^\d+\. \*\*([^.*(]+?)(?: \((?:AI|code)\))?\.\*\*", section, re.M)
+    assert names == STEPS
+    assert re.findall(r"<b>([^<]+)</b>", page().split('class="flow"')[1].split("</ol>")[0]) == STEPS

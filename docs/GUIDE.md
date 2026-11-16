@@ -57,20 +57,27 @@ market's share of the total shortfall with an equal split between markets.
 A target or region size changes only what is reported, not the plan.
 
 ## 4. From question to decision
-1. **You ask a question.** The planner states the scenario in their own words.
-2. **The agent turns it into scenario requests.** The optimizer needs exact inputs, not prose.
-3. **A gate accepts or rejects each request, listing every problem.** An impossible request is
-   refused with its reasons instead of being turned into a misleading plan.
-4. **The optimizer solves it in two stages.** First the most weighted relief, then the lowest
+The same eight steps as the diagram on the web page and in the README. Two are done by the AI
+model (marked AI); four are plain code (marked code); the first and the last are people.
+
+1. **Question.** A planner asks in plain English.
+2. **Intake (AI).** The agent turns the question into exact scenario requests. The optimizer
+   needs exact inputs, not prose.
+3. **Gate (code).** It accepts or rejects each request, listing every problem. An impossible
+   request is refused with its reasons instead of being turned into a misleading plan. A
+   rejection goes back to the agent with every reason.
+4. **Optimizer (code).** It solves in two stages: first the most weighted relief, then the lowest
    spend that delivers it, so the plan doesn't spend money that adds no relief.
-5. **Every attempt is stored as a run record.** Each number can be traced to a run id.
-6. **The agent writes a summary and lists its numbers as claims.** The numbers become data that
-   can be checked, not just sentences.
-7. **The checker compares the claims and every number in the summary with the stored runs.**
-   A mismatch goes back to the agent once; if it still fails, you see the answer as NOT CHECKED.
-8. **You see CHECKED, NOT CHECKED or NO NUMBERS TO CHECK.** The label tells you how far the
-   numbers can be trusted.
-9. **A human decides.** The agent approves nothing.
+5. **Run record (code).** Every attempt, rejected ones included, is stored with a run id, so each
+   number can be traced.
+6. **Explanation (AI).** The agent writes a summary and lists its numbers as claims. The numbers
+   become data that can be checked, not just sentences.
+7. **Checker (code).** It compares the claims and every number in the summary with the stored
+   runs. A refused report goes back to the agent; a report that fails the check gets one
+   correction, and if it fails again you see the answer as NOT CHECKED.
+8. **Human review.** You see CHECKED, NOT CHECKED or NO NUMBERS TO CHECK, with the numbers. The
+   label tells you how far the numbers can be trusted. A human decides; the agent approves
+   nothing.
 
 ## 5. What it does not do
 - **No approvals.** It runs scenarios and reports; it never approves or funds anything.

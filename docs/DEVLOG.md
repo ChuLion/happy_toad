@@ -1551,3 +1551,9 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   Not specified by the owner: the exact new wording.
 - #2: the README diagram's last edge names all three labels (CHECKED, NOT CHECKED or NO NUMBERS
   TO CHECK), as the page shows them. #3 (drawing the 10-turn cap) skipped by the owner.
+- #4–#6 SPEC: a report failing twice is "shown as NOT CHECKED" (was "flagged UNVERIFIED"); the loop
+  also stops after a second failing report; six tools, not five.
+- #7 GUIDE "From question to decision" (it is section 4; I called it section 3 when reporting):
+  now the diagram's eight steps in order (Question, Intake (AI), Gate, Optimizer, Run record,
+  Explanation (AI), Checker, Human review) with both feedback paths. A test compares the step
+  names in the guide and on the page.
