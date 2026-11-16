@@ -907,7 +907,8 @@ Report = `{summary, claims}`. Values are reported at displayed precision: 2 deci
 1. Never numbers: run ids (`YYYYMMDDTHHMMSS-xxxxxxxx`) are removed first, and so are the
    timestamp and the suffix of any run of the conversation or of a claim written on their own
    (a digit-only suffix such as `78612358` is not a number). A numeric token must
-   not touch a letter, digit or underscore before it, nor a letter or underscore after it, so
+   not touch a letter, digit or underscore before it, nor a letter or underscore after it (a
+   token such as `0.5x` is skipped whole, not read as `0`; M4), so
    identifiers (candidate `C033`, sector `S001`, must-fund `M1`, version `v1`, market `market_e`)
    contain no numbers. A hyphen is a separator (`2027-2031` is two years).
 2. Years: a plain integer in the planning window, 2027 to 2031 (no sign, comma, decimal point

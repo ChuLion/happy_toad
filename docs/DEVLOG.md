@@ -1487,3 +1487,8 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   numbers, not wording; the eval grades case 4's wording ("rejected", "at least 697.01"). Test
   first (the denial seen refused); the rule's test replaced by one that the denial passes. Guide
   and README updated.
+- "0.5x" number-reader bug fixed: when "0.5x" failed (it touches a letter), the optional decimal
+  part backed off and "0" alone matched; likewise "1,284x" gave "1". The lookahead now also
+  forbids stopping before ".digit" or ",digit", so such a token is skipped whole. Tests first
+  (3 seen failing: the two glued tokens and case 13's summary; the guard cases "485.59." and a
+  comma-separated list passed before and after). SPEC number rule noted.
