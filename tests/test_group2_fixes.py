@@ -54,3 +54,12 @@ def test_rule_12_makes_the_caveat_its_own_sentence_and_requires_the_offer():
     rule = SYSTEM_PROMPT[SYSTEM_PROMPT.index("12. ") :]
     assert "as its own sentence, not as the conclusion of another" in rule
     assert 'End with the offer: "I can run the optimizer at other budgets you name."' in rule
+
+
+# --- (h) decimals ----------------------------------------------------------------------------
+
+
+def test_rule_7_gives_rounding_examples():
+    rule = SYSTEM_PROMPT[SYSTEM_PROMPT.index("7. ") : SYSTEM_PROMPT.index("8. ")]
+    assert "41.25% is written 41.3%" in rule
+    assert "1573.567 is written 1573.57" in rule

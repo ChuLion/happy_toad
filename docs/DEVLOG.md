@@ -1425,3 +1425,5 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
 - (g) Rule 12: the caveat is written as its own sentence, not as the conclusion of another, and
   the answer ends with the offer "I can run the optimizer at other budgets you name." Test first
   (seen failing).
+- (h) Decimals: rule 7 says to round to the displayed precision, never more or fewer digits,
+  with examples (41.25% is written 41.3%, 1573.567 is written 1573.57). Test first (seen failing).

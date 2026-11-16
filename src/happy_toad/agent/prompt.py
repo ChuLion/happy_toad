@@ -21,6 +21,7 @@ Follow these rules:
    - Relief and spend: 2 decimal places.
    - Percentages: 1 decimal place.
    - Counts: whole numbers.
+   Round to that precision, never more digits and never fewer: 41.25% is written 41.3%, 1573.567 is written 1573.57.
 
 8. Be clear about the financial figures. Spend excludes must-fund projects, while the total budget includes them. Don't mix these two figures or present them as if they mean the same thing.
 
