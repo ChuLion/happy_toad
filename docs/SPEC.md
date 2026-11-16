@@ -769,7 +769,8 @@ the section "M3 — approved changes and specification" at the end wins.
    minimum budget"). `get_run` returns the run summary, not the full record. **Tool descriptions
    are part of this SPEC** (written with the tests, because the model chooses tools from them).
 3. **Loop [owner].** Step cap 10 model turns (**[lead]**: a turn is one model response). The loop
-   stops when `submit_report` is accepted. Reaching the cap is a flagged failure recorded in the
+   stops when `submit_report` is accepted, or after a second schema-valid report that still fails
+   the check (shown as NOT CHECKED; see "Checker flow"). Reaching the cap is a flagged failure recorded in the
    transcript, not a silent stop. Only the five listed tools run; no generated code executes; a
    call to an unknown tool is returned to the model as an error and counts as a turn.
 4. **System prompt rules [owner].** Use only tool results. Say "under the modeled objective and
