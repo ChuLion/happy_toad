@@ -45,7 +45,7 @@ def test_accepted_report_is_a_checked_panel_with_counts_and_correction() -> None
     assert "CHECKED" in out and "NOT CHECKED" not in out
     assert "at least 697.01" in out
     assert "First report refused, then corrected: unmatched numbers 297.57, 311.44" in out
-    assert "2 claims, 2 numbers matched against stored runs, 0 mismatches" in out
+    assert "2 claims | 2 numbers checked | 0 mismatches" in out
 
 
 def test_footer_has_model_provider_turns_cost_and_seconds() -> None:
@@ -59,7 +59,7 @@ def test_unverified_report_is_not_checked_and_lists_mismatches() -> None:
     t = t.model_copy(update={"status": "unverified", "checks": [first, first]})
     out = render(t)
     assert "NOT CHECKED" in out
-    assert "2 claims, 3 numbers matched against stored runs, 2 mismatches" in out
+    assert "2 claims | 3 numbers checked | 2 mismatches" in out
     assert "number 297.57 in the summary: does not match" in out
     assert "First report refused" not in out
 
@@ -82,7 +82,7 @@ def test_a_report_with_no_claims_and_no_numbers_is_not_shown_as_checked() -> Non
     out = render(no_figures(demo_c()))
     assert "NO NUMBERS TO CHECK" in out and "No checkable figures in this answer" in out
     assert "CHECKED" not in out
-    assert "numbers matched" not in out
+    assert "numbers checked" not in out
 
 
 def test_one_verified_claim_keeps_the_checked_badge() -> None:
@@ -101,7 +101,7 @@ def test_one_verified_claim_keeps_the_checked_badge() -> None:
     )
     out = render(one)
     assert "CHECKED" in out and "NO NUMBERS TO CHECK" not in out
-    assert "1 claims, 0 numbers matched against stored runs, 0 mismatches" in out
+    assert "1 claims | 0 numbers checked | 0 mismatches" in out
 
 
 def test_one_verdict_per_transcript_and_its_exit_code() -> None:
@@ -123,7 +123,7 @@ def test_one_mismatch_is_singular() -> None:
     one_bad = [n for n in first.numbers if not n.ok][:1]
     one = first.model_copy(update={"numbers": one_bad})
     out = render(t.model_copy(update={"status": "unverified", "checks": [one, one]}))
-    assert "0 numbers matched against stored runs, 1 mismatch\n" in out
+    assert "0 numbers checked | 1 mismatch\n" in out
 
 
 def test_one_refusal_problem_is_singular() -> None:

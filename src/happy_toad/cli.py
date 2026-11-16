@@ -254,9 +254,7 @@ def _counts(check) -> list[str]:
     errors = check.errors()
     matched = sum(n.ok for n in check.numbers)
     mismatches = "1 mismatch" if len(errors) == 1 else f"{len(errors)} mismatches"
-    head = (
-        f"{len(check.claims)} claims, {matched} numbers matched against stored runs, {mismatches}"
-    )
+    head = f"{len(check.claims)} claims | {matched} numbers checked | {mismatches}"
     return [head] + [f"  {e}" for e in errors]
 
 

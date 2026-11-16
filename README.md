@@ -55,7 +55,7 @@ submit_report 2 claims -> accepted
 │ produced because the run was not accepted.                                                   │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
 First report refused, then corrected: unmatched numbers 297.57, 311.44
-2 claims, 2 numbers matched against stored runs, 0 mismatches
+2 claims | 2 numbers checked | 0 mismatches
 deepseek/deepseek-v4-flash-0731 | BaseTen | 3 turns | $0.0010 | 3.8 s
 ```
 `--verbose` shows every tool result and every check instead.

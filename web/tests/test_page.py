@@ -65,3 +65,9 @@ def test_the_budget_is_labelled_a_ceiling_in_the_table_and_on_the_claim_cards():
     assert 'const BUDGET = "budget (ceiling)";' in html
     assert 'name === "budget" ? BUDGET' in html  # stored-runs table header
     assert "budgetLine(v, x)" in html  # each claim card names its run's budget
+
+
+def test_the_replay_uses_the_current_check_line():
+    replay = (WEB / "replay.html").read_text()
+    assert "matched against stored runs" not in replay
+    assert "19 claims | 24 numbers checked | 0 mismatches" in replay

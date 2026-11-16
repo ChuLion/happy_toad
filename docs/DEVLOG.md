@@ -1515,3 +1515,22 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   count.
 - README: M4 section with the round table, the noise note and the trade-offs accepted after the
   security reviews; status M1 to M4 and M2B (v0.5).
+
+## 2026-11-16 — Pre-recording polish (no behaviour changes)
+- Owner asked for four display changes, one commit each:
+  1. Visible name "Capital Planning Scenario Assistant": page title and header (live page and
+     replay) and README title. Package and CLI command keep `happy_toad` / `happy-toad`.
+  2. Architecture diagram (page and README): larger text; Intake and Explanation marked AI MODEL
+     (dashed purple), Gate, Optimizer, Run record and Checker marked CODE; both feedback paths
+     drawn back to the agent (rejection; refused report, once) and lit on the page when they
+     happen; "You" renamed "Human review". The README mermaid also gained the rejection path it
+     was missing.
+  3. Budget labelled "budget (ceiling)" in the stored-runs table and on each claim card.
+  4. Check line "N claims | M numbers checked | K mismatches", identical in the CLI and the web.
+- Not specified by the owner: claims have no plain budget metric, so each claim card got a line
+  naming its run's budget ("budget (ceiling) 800", "800 → 1500" for a comparison). "Intake" and
+  "Explanation" replace the step names "Agent" and "Report". M in the check line still counts the
+  numbers that matched (as before), not all numbers looked at; "1 mismatch" stays singular and
+  "1 claims" is unchanged. The replay was re-exported from its three transcripts, which also
+  brought its pct_resolved glossary text up to date. README's "What it does" sentence notes the
+  package keeps its working name.

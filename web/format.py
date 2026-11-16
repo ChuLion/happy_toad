@@ -132,9 +132,7 @@ def check_line(check) -> str:
     errors = len(check.errors())
     matched = sum(n.ok for n in check.numbers)
     mismatches = "1 mismatch" if errors == 1 else f"{errors} mismatches"
-    return (
-        f"{len(check.claims)} claims, {matched} numbers matched against stored runs, {mismatches}"
-    )
+    return f"{len(check.claims)} claims | {matched} numbers checked | {mismatches}"
 
 
 def verdict(t) -> str | None:

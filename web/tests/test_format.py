@@ -87,7 +87,7 @@ def test_check_line_matches_the_cli():
     one_bad = [n for n in check.numbers if not n.ok][:1]
     one = check.model_copy(update={"numbers": one_bad})
     assert fmt.check_line(one) == cli._counts(one)[0]
-    assert fmt.check_line(one).endswith(", 1 mismatch")
+    assert fmt.check_line(one).endswith(" | 1 mismatch")
 
 
 def test_view_module_does_not_import_the_cli():

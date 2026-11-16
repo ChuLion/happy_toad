@@ -42,7 +42,7 @@
         "numbers": 24,
         "numbers_matched": 24,
         "unmatched_numbers": [],
-        "line": "19 claims, 24 numbers matched against stored runs, 0 mismatches",
+        "line": "19 claims | 24 numbers checked | 0 mismatches",
         "mismatches": []
       },
       "claims": [
@@ -236,7 +236,7 @@
         "numbers": 2,
         "numbers_matched": 2,
         "unmatched_numbers": [],
-        "line": "2 claims, 2 numbers matched against stored runs, 0 mismatches",
+        "line": "2 claims | 2 numbers checked | 0 mismatches",
         "mismatches": []
       },
       "claims": [
@@ -325,7 +325,7 @@
           "15",
           "2"
         ],
-        "line": "19 claims, 21 numbers matched against stored runs, 2 mismatches",
+        "line": "19 claims | 21 numbers checked | 2 mismatches",
         "mismatches": [
           "number 15 in the summary: does not match any validated claim or request value",
           "number 2 in the summary: does not match any validated claim or request value"

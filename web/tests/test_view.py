@@ -40,7 +40,7 @@ def test_saved_transcript_fits_the_schema():
     View.model_validate(view)
     assert view["schema_version"] == 3
     assert view["status"] == "CHECKED"
-    assert view["checks"]["line"] == "2 claims, 2 numbers matched against stored runs, 0 mismatches"
+    assert view["checks"]["line"] == "2 claims | 2 numbers checked | 0 mismatches"
     assert view["steps"][0]["tool"] == "run_scenario"
     assert "rejected" in view["steps"][0]["outcome"]
     assert view["checks"]["mismatches"] == []
@@ -61,14 +61,14 @@ def test_unverified_is_not_checked_with_mismatches():
     assert view["status"] == "NOT CHECKED"
     assert len(view["checks"]["mismatches"]) == 2
     assert view["checks"]["unmatched_numbers"] == ["297.57", "311.44"]
-    assert view["checks"]["line"].endswith(", 2 mismatches")
+    assert view["checks"]["line"].endswith(" | 2 mismatches")
 
 
 def test_one_mismatch_is_singular():
     t = _transcript(status="unverified")
     first = t.checks[0]
     t.checks = [first.model_copy(update={"numbers": [n for n in first.numbers if not n.ok][:1]})]
-    assert build_view(t, [])["checks"]["line"].endswith(", 1 mismatch")
+    assert build_view(t, [])["checks"]["line"].endswith(" | 1 mismatch")
 
 
 def test_answer_without_figures_is_no_numbers_to_check():
