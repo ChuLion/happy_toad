@@ -17,8 +17,8 @@ answer it cannot verify is shown as not checked. A human decides; the agent appr
 
 ## Architecture
 ```mermaid
-%%{init: {"themeVariables": {"fontSize": "20px"}}}%%
-flowchart LR
+%%{init: {"themeVariables": {"fontSize": "18px"}}}%%
+flowchart TD
     Q([Question]) --> I[Intake, AI: exact scenario requests]
     I --> G[Gate, code: accept or reject, all reasons]
     G -->|accepted| O[Optimizer, code: PuLP + CBC, two stages]
@@ -35,8 +35,9 @@ flowchart LR
     class I,E ai
     class G,O,R,C code
     class Q,H person
+    linkStyle 5,8 stroke:#ee001e,stroke-width:3px,color:#ee001e
 ```
-Purple dashed boxes are the AI model (one agent, two jobs); black boxes are plain code. Dotted
+Purple dashed boxes are the AI model (one agent, two jobs); black boxes are plain code. Red dotted
 arrows are the two ways work goes back to the agent.
 The agent approves nothing: it runs scenarios and reports; a human decides.
 
