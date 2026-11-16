@@ -1303,3 +1303,29 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   case allows it (case 19); a claim on an extra run that matches no case run is ignored; the
   Markdown report lists failures with their problems; the eval command imports the runner inside
   the function (the grader uses the CLI's verdict); exit code 2 when a round is refused.
+
+## 2026-11-16 — Baseline round; infrastructure rule; re-grade; fixes k and l added
+- Baseline (official, commit 7414534, 95 conversations, $0.0942): pass 85%, checked 79%, first
+  pass 65%. Failures read one by one: case 15 (5, the agent never passes `target_pct_resolved`),
+  case 17 (5, "change list" not reachable from the tools), case 13 (an HTTP 429, and "50%"
+  written for the 0.5 multiplier), case 18 (gate-message numbers 1.5 and 5,138.73 unclaimable),
+  case 19 (one claimed spend 800).
+- **Correction:** I told the owner one case 19 run ended CHECKED with "400" in its summary. Wrong:
+  all three summaries that repeat 400 ended NOT CHECKED with 400 as the unmatched number; the two
+  CHECKED runs contain no 400 (checked against the transcripts and the checker's last results).
+  The checker never accepted 400; I had misread the case's 40% checked rate.
+- Owner decisions: provider errors are tagged "infrastructure", excluded from every rate and
+  counted separately, no retries; the baseline is re-graded from its transcripts (no new
+  conversations) and committed with a note that case 17's required phrase was not reachable with
+  the original gate message; fix (k) joins group 1 (numbers in request values and rejection
+  messages of executed runs allowed; question-only numbers stay unallowed); fix (l) joins group 2
+  (gate message for a change list). Tests first for the infrastructure rule and the re-grade
+  (seen failing on the missing `Grade.infrastructure` and `regrade`).
+- **Logged for later (not on the fix lists):** (1) reports that do not fit the schema on the first
+  try: 7 first refusals in the baseline (null claim values, unknown metric names), in cases 12,
+  14, 15 and 18; (2) case 13: the agent wrote the 0.5 floor multiplier as "50%", which the checker
+  cannot match (0.5 is a request value, 50% is not).
+- Not specified by the owner: infrastructure means transcript status `api_error` (provider
+  refused); our own errors (`error`) still count as failures; the re-grade keeps the round's
+  original header and adds `regraded` (date, provenance) and `notes`; the fix order puts (k)
+  before the candidate-id check (e), which stays last.

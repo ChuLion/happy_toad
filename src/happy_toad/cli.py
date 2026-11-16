@@ -410,6 +410,10 @@ def eval_round(
     transcripts_dir: Annotated[Path, typer.Option()] = Path("transcripts"),
     out_dir: Annotated[Path, typer.Option(help="Where round reports go.")] = Path("evals/rounds"),
     truth_path: Annotated[Path, typer.Option("--truth")] = Path("evals/truth.json"),
+    regrade_path: Annotated[
+        Path | None, typer.Option("--regrade", help="Grade a stored round again, no new runs.")
+    ] = None,
+    note: Annotated[list[str] | None, typer.Option(help="A note for the report (repeat).")] = None,
 ) -> None:
     """Run the M4 evaluation cases, grade them against evals/truth.json and write the report."""
     from happy_toad.evals.cases import load_cases  # here, not at the top: grade imports this module
@@ -417,11 +421,19 @@ def eval_round(
         RoundRefused,
         check_round_allowed,
         markdown,
+        regrade,
         report,
         run_round,
     )
 
     truth = json.loads(truth_path.read_text())
+    if regrade_path is not None:
+        stored = json.loads(regrade_path.read_text())
+        result = regrade(stored, truth, runs_dir, transcripts_dir, note or [])
+        regrade_path.write_text(json.dumps(result, indent=1, default=str) + "\n")
+        regrade_path.with_suffix(".md").write_text(markdown(result))
+        typer.echo(f"Regraded {regrade_path} and its .md")
+        return
     try:
         prov = check_round_allowed(truth, inputs_dir, unofficial)
     except RoundRefused as err:
@@ -444,6 +456,7 @@ def eval_round(
         inputs_dir=inputs_dir, runs_dir=runs_dir, transcripts_dir=transcripts_dir, on_grade=show,
     )  # fmt: skip
     result = report(grades, round_name, not unofficial, prov, model)
+    result["header"]["notes"] = note or []
     out_dir.mkdir(parents=True, exist_ok=True)
     stem = round_name if not unofficial else f"{round_name}.unofficial"
     (out_dir / f"{stem}.json").write_text(json.dumps(result, indent=1, default=str) + "\n")

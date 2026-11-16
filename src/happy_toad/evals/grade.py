@@ -32,6 +32,7 @@ class Grade:
     seconds: float
     turns: int
     providers: list[str]
+    infrastructure: bool = False  # the provider refused a request: excluded from every rate
 
     @property
     def passed(self) -> bool:
@@ -224,4 +225,5 @@ def grade(case: Case, t: Transcript, truth: dict, runs_dir: Path) -> Grade:
         seconds=t.elapsed_seconds,
         turns=len(t.turns),
         providers=t.providers,
+        infrastructure=t.status == "api_error",
     )

@@ -301,3 +301,77 @@ def test_the_eval_command_runs_unofficially_and_writes_the_report(dirs, monkeypa
     report = json.loads((out / "smoke.unofficial.json").read_text())
     assert report["header"]["official"] is False and report["overall"]["pass_rate"] == 1.0
     assert (out / "smoke.unofficial.md").read_text().startswith("# Eval round smoke (UNOFFICIAL)")
+
+
+# --- infrastructure ------------------------------------------------------------------------
+
+
+class RateLimited:
+    def complete(self, messages, tools):
+        from happy_toad.agent.client import ProviderError
+
+        raise ProviderError(429, '{"error": {"message": "temporarily rate-limited upstream"}}')
+
+
+def test_a_provider_error_is_graded_as_infrastructure(dirs):
+    t = ask(CASES[12].question, RateLimited(), SMOKE, **dirs)
+    g = graded(dirs, 12, t)
+    assert t.status == "api_error" and g.infrastructure is True
+
+
+def test_infrastructure_is_left_out_of_every_rate_and_counted(dirs):
+    good = graded(dirs, 12, converse(dirs, 12, [RUN_V2_1000], v2_1000_report))
+    infra = graded(dirs, 12, ask(CASES[12].question, RateLimited(), SMOKE, **dirs))
+    s = summarize([good, infra])
+    o = s["overall"]
+    assert (o["n"], o["infrastructure"], o["pass_rate"], o["checked_rate"]) == (1, 1, 1.0, 1.0)
+    assert s["per_case"]["12"]["infrastructure"] == 1 and s["per_case"]["12"]["n"] == 1
+    assert s["infrastructure"] == [{"case": 12, "transcript_id": infra.transcript_id}]
+
+
+def test_the_markdown_report_shows_the_infrastructure_count(dirs):
+    from happy_toad.evals.runner import markdown, report
+
+    infra = graded(dirs, 12, ask(CASES[12].question, RateLimited(), SMOKE, **dirs))
+    prov = {"git_sha": "x", "git_dirty": False, "prompt_sha256": "p" * 64}
+    text = markdown(report([infra], "r", True, prov, SMOKE))
+    assert "infrastructure 1 (excluded)" in text and "## Infrastructure" in text
+
+
+# --- regrading a stored round --------------------------------------------------------------
+
+
+def test_regrade_grades_the_stored_transcripts_again_without_new_conversations(dirs, tmp_path):
+    from happy_toad.evals.runner import regrade, report
+
+    def make_client(case):
+        return Script(dirs["runs_dir"], [RUN_V2_1000], v2_1000_report)
+
+    grades = run_round([CASES[12]], make_client, SMOKE, repeats=2, truth=TRUTH, **dirs)
+    prov = {"git_sha": "old", "git_dirty": False, "prompt_sha256": "p" * 64}
+    stored = report(grades, "base", True, prov, SMOKE)
+    again = regrade(stored, TRUTH, dirs["runs_dir"], dirs["transcripts_dir"], ["a note"])
+    assert [g["transcript_id"] for g in again["grades"]] == [g.transcript_id for g in grades]
+    assert again["overall"] == stored["overall"]
+    assert again["header"]["provenance"] == prov  # the round's own provenance is kept
+    assert again["header"]["regraded"]["provenance"]["git_sha"] != "old"
+    assert again["header"]["notes"] == ["a note"]
+
+
+def test_notes_appear_in_the_markdown_report():
+    from happy_toad.evals.runner import markdown
+
+    prov = {"git_sha": "x", "git_dirty": False, "prompt_sha256": "p" * 64}
+    rates = ("pass_rate", "runs_rate", "numbers_rate", "behaviour_rate", "checked_rate")
+    rates += ("first_pass_rate", "cost_total", "seconds_mean", "turns_mean")
+    header = dict(round="r", date="d", official=True, provenance=prov, model="m", providers=[])
+    r = {
+        "header": header | {"notes": ["case 17 note"]},
+        "overall": {k: None for k in rates} | {"n": 0, "infrastructure": 0},
+        "per_case": {},
+        "review": [],
+        "infrastructure": [],
+        "grades": [],
+        "noise": "noise",
+    }
+    assert "- case 17 note" in markdown(r)

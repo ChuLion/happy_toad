@@ -1115,6 +1115,12 @@ Each conversation is graded on three dimensions, by plain rules (no model as jud
   summary (case-insensitive). **Review phrases never fail a case automatically:** a summary that
   contains one is marked for manual review, and the report lists those transcripts.
 
+**Infrastructure (owner, 2026-11-16).** A conversation that ended with a provider error (transcript
+status `api_error`, e.g. HTTP 429) is tagged `infrastructure`: excluded from every rate and listed
+with its count separately in every report; no retries. A stored round can be re-graded from its
+transcripts without new conversations (`happy-toad eval --regrade <round.json> [--note ...]`);
+the round's own provenance is kept and the re-grade's is added.
+
 A conversation **passes** when all three pass. Reported per case and overall: pass rate, the three
 dimension rates, **checked rate** (CHECKED among conversations whose allowed labels include it),
 **first-pass rate** (the first submitted report accepted), listed cost, wall time, turns, and the
@@ -1133,7 +1139,10 @@ conversation, so about $0.10-0.15 per round.
 (b) `compare_runs` reports added and dropped counts (`n_only_in_a`, `n_only_in_b`) with claimable
 metrics; (c) the region percent becomes a claimable metric (`pct_of_region`, percent tolerance);
 (d) the year skip narrows from 1900-2199 to the planning window (2027-2031), so a figure such as
-"a budget of 2000" is checked; (e) **candidate-id check, last:** every candidate id in the summary
+"a budget of 2000" is checked; (k) **numbers from executed runs (owner, 2026-11-16):** numbers in
+the request values and rejection messages of runs executed in the conversation are allowed in the
+summary even when no claim cites the run; numbers only in the question stay unallowed (so case
+19's "400" still fails); (e) **candidate-id check, last:** every candidate id in the summary
 must appear in a cited run's selection, force lists or request.
 **Group 2, prompt and tool text:** (f) rejected against infeasible: a gate rejection is
 "rejected", only a solved model is "infeasible" (prompt rule, plus a checker rule that the summary
@@ -1141,7 +1150,9 @@ must not say "infeasible" for a cited run whose outcome is rejected); (g) rule 1
 its own sentence and the offer required; (h) decimals: rule 7 with an example (41.25 becomes
 41.3%); (i) `target_pct_resolved` described as report-only in the `run_scenario` tool text;
 (j) default version: with no version named, use v1 (the plan of record) and say so; case 10's
-expectation changes in the same commit (required call run v1 1000, CHECKED).
+expectation changes in the same commit (required call run v1 1000, CHECKED); (l) the gate's
+message for a change list says "changes_v1_to_v2 is a change list, not an input version" (owner,
+2026-11-16; case 17's required phrase was not reachable before).
 Each fix is its own commit with tests first. Round 2 after group 1, round 3 after group 2.
 
 ### Tests (written before the code)
