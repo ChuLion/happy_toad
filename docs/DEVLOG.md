@@ -1492,3 +1492,12 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   forbids stopping before ".digit" or ",digit", so such a token is skipped whole. Tests first
   (3 seen failing: the two glued tokens and case 13's summary; the guard cases "485.59." and a
   comma-separated list passed before and after). SPEC number rule noted.
+- Correction to the "0.5x" fix, after an automated security review, reproduced first: the
+  lookahead I added also dropped numbers in punctuation chains ("values 1,2,3" kept only "3";
+  "485.59.12" kept nothing), a new way for a number to escape the check. Replaced by possessive
+  quantifiers: a failed "0.5x" (or "12.5%x") cannot give back digits, so it is skipped whole,
+  while "1,2,3" and "485.59" are checked as before. Tests first (2 seen failing; the "%x" case
+  checked against the earlier pattern, which read "12.5"). The final round, started on the
+  regressed code, was stopped before any report was written and restarted. Acknowledged, not
+  changed: skipping a number glued to a letter is the SPEC's existing rule (identifiers such as
+  C033 and v1 depend on it).

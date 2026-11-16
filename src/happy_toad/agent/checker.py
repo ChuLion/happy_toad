@@ -44,9 +44,9 @@ REQUEST_NUMBERS = (
 )
 RUN_ID_TEXT = re.compile(r"\d{8}T\d{6}-[0-9a-f]{8}")
 LIST_MARKER = re.compile(r"(?m)^\s*\d+[.)](?=\s)")
-# A number must not touch a letter; the lookahead also forbids stopping before ".5" or ",284",
-# so "0.5x" is skipped whole instead of being read as "0".
-NUMBER = re.compile(r"(?<![\w.])[-+]?\d+(?:,\d{3})*(?:\.\d+)?%?(?!\w|[.,]\d)")
+# A number must not touch a letter. The quantifiers are possessive, so a failed "0.5x" cannot
+# give back ".5" and match "0"; it is skipped whole. Punctuation chains ("1,2,3") stay checked.
+NUMBER = re.compile(r"(?<![\w.])[-+]?\d++(?:,\d{3})*+(?:\.\d+)?+%?+(?!\w)")
 YEAR = re.compile(r"\d{4}")
 CANDIDATE_ID = re.compile(r"\bC\d{3}\b")  # the generator's candidate ids (C001, ...)
 MODEL_YEARS = range(BASE_YEAR, BASE_YEAR + HORIZON_YEARS)  # 2027-2031 (M4 fix d)

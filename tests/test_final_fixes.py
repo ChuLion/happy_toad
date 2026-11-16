@@ -33,6 +33,9 @@ def test_the_tool_says_a_change_list_is_not_a_version():
         ("about 1,284x more", []),
         ("spend 485.59.", ["485.59"]),
         ("spend 1,284.34, relief 12.5%; then 3.", ["1,284.34", "12.5%", "3"]),
+        ("values 1,2,3", ["1", "2", "3"]),  # punctuation chains stay checked
+        ("spend 485.59.12", ["485.59"]),
+        ("a rate of 12.5%x", []),
     ],
 )
 def test_a_number_touching_a_letter_is_skipped_not_cut_short(text, numbers):
