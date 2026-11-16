@@ -37,12 +37,25 @@ def test_ai_steps_look_different_from_code_steps():
         assert 'class="code"' in stage(html, name)
 
 
-def test_both_feedback_paths_are_drawn_back_to_the_agent():
+def test_both_feedback_arcs_the_rejected_path_and_the_stored_runs_link_are_drawn():
     html = page()
-    assert re.search(r'class="back"[^>]*data-branch="rejected"', html)
-    assert re.search(r'class="back"[^>]*data-branch="mismatch"', html)
-    assert "Rejected: back to the agent with every reason." in html
-    assert "Refused: back to the agent." in html and "once" not in html
+    arcs = {
+        "rejected": "Rejected: back to the agent with every reason",
+        "refused": "Refused: back to the agent",
+        "rejected-path": "rejected",
+        "stored": "stored runs",
+    }
+    for arc, text in arcs.items():
+        assert re.search(rf'data-arc="{arc}"[^>]*>\s*<span class="arc-label">{text}</span>', html)
+    assert "once" not in html
+
+
+def test_the_edges_are_labelled():
+    html = page()
+    assert '<span class="edge-label accepted">accepted</span>' in html
+    assert (
+        '<span class="edge-label labels">CHECKED, NOT CHECKED or NO NUMBERS TO CHECK</span>' in html
+    )
 
 
 def test_the_last_step_is_human_review():

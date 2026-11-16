@@ -1570,3 +1570,29 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
 - Not specified by the owner: the README's accessibility title and description wording, the
   detailed diagram's layout (the cap drawn as a node fed by both AI steps; lookup tools in purple
   dotted lines; infeasible and "plan" as two edges into Run record), and the GUIDE caption text.
+
+## 2026-11-16 — Web: static left-to-right flow diagram
+- Owner asked: replace the stage diagram (live page and replay) with a static left-to-right version
+  of the README flow, one row of eight nodes; no step-by-step highlighting while a run streams;
+  when it finishes, highlight the path taken (nodes reached, feedback arcs used) and dim the rest,
+  derived from the existing view data (no schema change). Fit 1280 px without horizontal scroll,
+  readable at 150% zoom, keep the vertical fallback at phone width.
+- Done as plain HTML and CSS: the eight steps keep their names and `data-stage` ids; the arcs and
+  edge labels are extra list items placed by CSS grid (row 1 above the nodes, row 3 below), so at
+  phone width they fall in order under their step. `flowPath(view)` in the page works out the
+  nodes reached and arcs used from the view's steps and label (the same rules as the old
+  step-by-step tracking); the tests run that function in node on the replay's three real views.
+- Not specified by the owner:
+  - The diagram card is wider than the rest of the page when the window allows (up to 1120 px,
+    centred); below about 1000 px the step text is a little smaller. At 1280 px and at 853 px (a
+    1280 window at 150% zoom) the page has no horizontal scroll.
+  - Question and Human review are dark boxes, as in the README.
+  - The "stored runs" link and the two edge labels ("accepted"; "CHECKED, NOT CHECKED or NO
+    NUMBERS TO CHECK") are lit when the step they lead to was reached; the "rejected" path under
+    the Optimizer is lit with the rejection arc.
+  - Human review counts as reached only when there is an answer (a run that hit the step cap or
+    an error leaves it dim).
+  - At phone width the arcs show as "↩" lines under Gate and Checker (as before); the rejected
+    path, the stored-runs link and the edge labels are hidden there.
+  - Step descriptions shortened to fit; the path tests need node (present locally and on the CI
+    runner; skipped with a reason if missing).

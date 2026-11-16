@@ -9,7 +9,7 @@
 <style>
 :root {
   --canvas: #ffffff; --ink: #000000; --muted: #6f7171; --line: #d8dada;
-  --accent: #ee001e; --ai: #5b3cc4; --ai-soft: #f1edfb; --chip: #f8f3e9; --ok: #00873e; --soft: #f6f6f6;
+  --accent: #ee001e; --ai: #5b3cc4; --ai-soft: #f1edfb; --person: #3d4451; --chip: #f8f3e9; --ok: #00873e; --soft: #f6f6f6;
   --radius: 16px;
   --sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -131,32 +131,56 @@ ol.steps li:last-child { border-bottom: 0; }
 .loading .bar:nth-child(4) { width: 55%; }
 @keyframes shimmer { to { background-position: -200% 0; } }
 
-.how { margin-bottom: 16px; }
-ol.flow { list-style: none; margin: 0; padding: 4px 22px 124px; display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 0 10px; counter-reset: stop; }
-.flow li { position: relative; padding: 34px 6px 8px 0; min-width: 0; counter-increment: stop;
-  border-radius: 10px; transition: opacity .3s, background-color .3s, box-shadow .3s; }
-.flow li::before { content: counter(stop); position: absolute; top: 0; left: 0; width: 26px; height: 26px;
-  border-radius: 50%; background: var(--canvas); border: 2px solid var(--ink);
-  display: grid; place-items: center; font: 700 13px var(--sans); z-index: 1; }
-.flow li::after { content: ""; position: absolute; top: 12px; left: 26px; right: -10px;
-  border-top: 2px solid var(--ink); }
-.flow li:last-child::after { display: none; }
-.flow li:last-child::before { background: var(--ink); color: var(--canvas); }
-.flow li.ai::before { border: 2px dashed var(--ai); color: var(--ai); background: var(--ai-soft); }
-.flow li.code::before { border-radius: 6px; }
+.how { margin-bottom: 16px; --wide: max(100%, min(100vw - 48px, 1120px));
+  margin-inline: calc((100% - var(--wide)) / 2); }
+ol.flow { list-style: none; margin: 0; padding: 8px 12px 18px; display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr)); align-items: stretch; }
+.flow li { position: relative; min-width: 0; }
+.flow li[data-stage] { grid-row: 2; margin: 0 6px; padding: 7px 6px 9px; border: 2px solid var(--ink);
+  border-radius: 8px; background: var(--canvas); transition: opacity .3s; }
+.flow li.ai { border: 2px dashed var(--ai); background: var(--ai-soft); border-radius: 12px; }
+.flow li.person { background: var(--person); border-color: var(--person); color: var(--canvas); border-radius: 14px; }
+.flow li[data-stage]:not(:last-of-type)::after { content: ""; position: absolute; top: 20px; right: -14px;
+  width: 11px; border-top: 2px solid var(--ink); }
+.flow li[data-stage]:not(:last-of-type)::before { content: ""; position: absolute; top: 16px; right: -15px;
+  border-left: 7px solid var(--ink); border-top: 5px solid transparent; border-bottom: 5px solid transparent; }
+.flow b { display: block; font-size: 13px; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
 .flow li.ai b { color: var(--ai); }
-.flow b { display: block; font-size: 15px; font-weight: 700; line-height: 1.3; }
-.flow b::after { display: block; font: 600 10px/1.6 var(--mono); letter-spacing: .06em; color: var(--muted); }
+@media (max-width: 1000px) {
+  .flow li[data-stage] { margin: 0 5px; padding: 6px 5px 8px; }
+  .flow b { font-size: 12px; letter-spacing: -.01em; }
+  .flow li[data-stage] > span { font-size: 11.5px; }
+}
+.flow b::after { display: block; font: 600 9.5px/1.7 var(--mono); letter-spacing: .05em; color: var(--muted); }
 .flow li.ai b::after { content: "AI MODEL"; color: var(--ai); }
 .flow li.code b::after { content: "CODE"; }
-.flow span { display: block; font-size: 13px; line-height: 1.45; color: var(--muted); margin-top: 4px; }
-.flow .back { position: absolute; top: calc(100% + 6px); left: calc(-100% - 10px + 12px);
-  width: calc(100% + 10px); margin: 0; padding: 10px 10px 8px; border: 2px dashed var(--accent);
-  border-top: 0; border-radius: 0 0 12px 12px; color: var(--accent); font-size: 12.5px; line-height: 1.35; }
-.flow .back::before { content: ""; position: absolute; left: -8px; top: -14px;
-  border: 7px solid transparent; border-bottom: 10px solid var(--accent); border-top: 0; }
-.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0; padding: 14px 22px 10px;
+.flow li[data-stage] > span { display: block; font-size: 12px; line-height: 1.4; color: var(--muted); margin-top: 3px; }
+.flow li.person > span { color: #d9dbe0; }
+
+.flow .arc, .flow .edge { font-size: 11.5px; line-height: 1.3; text-align: center; transition: opacity .3s; }
+.flow .arc-label { display: block; padding: 0 2px; }
+.flow .arc.up { grid-row: 1; align-self: end; color: var(--accent); }
+.flow .arc.up::after { content: ""; display: block; height: 14px; margin-top: 3px;
+  border: 2px dashed var(--accent); border-bottom: 0; border-radius: 10px 10px 0 0; }
+.flow .arc.up::before { content: ""; position: absolute; left: -5px; bottom: -1px;
+  border-top: 8px solid var(--accent); border-left: 6px solid transparent; border-right: 6px solid transparent; }
+.flow .arc.down { grid-row: 3; align-self: start; color: var(--muted); }
+.flow .arc.down::before { content: ""; display: block; height: 14px; margin-bottom: 3px;
+  border: 2px solid var(--ink); border-top: 0; border-radius: 0 0 10px 10px; }
+.flow .arc.down::after { content: ""; position: absolute; right: -5px; top: -1px;
+  border-bottom: 8px solid var(--ink); border-left: 6px solid transparent; border-right: 6px solid transparent; }
+.flow [data-arc="stored"]::before { border-style: dotted; border-color: #9a9a9a; }
+.flow [data-arc="stored"]::after { border-bottom-color: #9a9a9a; }
+.flow [data-arc="rejected"] { grid-column: 2 / 4; margin: 0 25%; }
+.flow [data-arc="refused"] { grid-column: 6 / 8; margin: 0 25%; }
+.flow [data-arc="rejected-path"] { grid-column: 3 / 6; margin: 0 calc(100% / 6 + 9px) 0 calc(100% / 6); }
+.flow [data-arc="stored"] { grid-column: 5 / 8; margin: 0 calc(100% / 6) 0 calc(100% / 6 + 9px); }
+.flow .edge { grid-row: 1; align-self: end; color: var(--ink); padding-bottom: 4px; }
+.flow .edge-label { display: block; }
+.flow [data-to="optimizer"] { grid-column: 3 / 5; margin: 0 25%; }
+.flow [data-to="review"] { grid-column: 7 / 9; margin: 0 0 0 calc(25% + 8px); font-weight: 600; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0; padding: 14px 22px 4px;
   border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
 .key { display: inline-flex; align-items: center; gap: 7px; }
 .key::before { content: ""; width: 16px; height: 16px; border: 2px solid var(--ink); border-radius: 4px; }
@@ -164,10 +188,10 @@ ol.flow { list-style: none; margin: 0; padding: 4px 22px 124px; display: grid;
 .key.ai::before { border: 2px dashed var(--ai); border-radius: 50%; background: var(--ai-soft); }
 .key.back-key { color: var(--accent); }
 .key.back-key::before { height: 0; border: 0; border-top: 2px dashed var(--accent); border-radius: 0; }
-.flow.tracking li { opacity: .3; }
-.flow.tracking li.passed { opacity: 1; }
-.flow.tracking .back { opacity: .55; }
-.flow.tracking .back.hit { opacity: 1; }
+.flow.done li[data-stage]:not(.reached) { opacity: .28; }
+.flow.done .arc:not(.used), .flow.done .edge:not(.used) { opacity: .28; }
+.flow.done li.next-off::after { border-top-color: var(--line); }
+.flow.done li.next-off::before { border-left-color: var(--line); }
 
 footer.meta { color: var(--muted); font-size: 12px; margin: 2px 2px 0; overflow-wrap: anywhere; }
 footer.meta span + span::before { content: " | "; color: var(--line); }
@@ -181,13 +205,21 @@ footer.meta span + span::before { content: " | "; color: var(--line); }
   ol.steps { padding: 0 16px 14px; }
 }
 @media (max-width: 760px) {
-  ol.flow { grid-template-columns: minmax(0, 1fr); padding: 16px; }
-  .flow li { padding: 2px 0 14px 38px; }
-  .flow li::after { top: 26px; bottom: 0; left: 12px; right: auto; border-top: 0;
-    border-left: 2px solid var(--ink); }
-  .flow .back { position: static; width: auto; border: 0; padding: 4px 0 0; }
-  .flow .back::before { content: "\21A9  "; position: static; border: 0; }
-  .flow li:last-child { padding-bottom: 0; }
+  ol.flow { grid-template-columns: minmax(0, 1fr); padding: 12px 16px 16px; }
+  .flow li, .flow li[data-stage], .flow .arc.up, .flow .arc.down, .flow .edge { grid-row: auto;
+    grid-column: auto; margin: 0; }
+  .flow li[data-stage] { margin-bottom: 18px; }
+  .flow li[data-stage]:last-of-type { margin-bottom: 0; }
+  .flow li[data-stage]:not(:last-of-type)::after { top: auto; bottom: -16px; right: auto; left: 24px;
+    width: 0; height: 12px; border-top: 0; border-left: 2px solid var(--ink); }
+  .flow li[data-stage]:not(:last-of-type)::before { top: auto; bottom: -18px; right: auto; left: 20px;
+    border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 7px solid var(--ink);
+    border-bottom: 0; }
+  .flow.done li.next-off::before { border-top-color: var(--line); border-left-color: transparent; }
+  .flow .arc.up { text-align: left; margin: -12px 0 18px; padding-left: 36px; display: flex; gap: 4px; }
+  .flow .arc.up::before { content: "\21A9"; position: static; border: 0; }
+  .flow .arc.up::after { display: none; }
+  .flow .arc.down, .flow .edge { display: none; }
 }
 </style>
 </head>
@@ -207,16 +239,20 @@ footer.meta span + span::before { content: " | "; color: var(--line); }
     <p class="legend"><span class="key ai">AI model</span><span class="key code">Code</span>
       <span class="key back-key">Feedback to the agent</span></p>
     <ol class="flow">
-      <li data-stage="question"><b>Question</b><span>A planner asks in plain English.</span></li>
-      <li data-stage="intake" class="ai"><b>Intake</b><span>Turns the question into exact scenario requests.</span></li>
-      <li data-stage="gate" class="code"><b>Gate</b><span>Accepts or rejects each request, listing every problem.</span>
-        <span class="back" data-branch="rejected">Rejected: back to the agent with every reason.</span></li>
-      <li data-stage="optimizer" class="code"><b>Optimizer</b><span>Most weighted relief first, then the lowest spend for it.</span></li>
+      <li data-stage="question" class="person"><b>Question</b><span>A planner asks in plain English.</span></li>
+      <li data-stage="intake" class="ai"><b>Intake</b><span>Turns it into exact scenario requests.</span></li>
+      <li data-stage="gate" class="code"><b>Gate</b><span>Accepts or rejects each request, with every problem.</span></li>
+      <li class="arc up" data-arc="rejected"><span class="arc-label">Rejected: back to the agent with every reason</span></li>
+      <li class="arc down" data-arc="rejected-path"><span class="arc-label">rejected</span></li>
+      <li class="edge" data-to="optimizer"><span class="edge-label accepted">accepted</span></li>
+      <li data-stage="optimizer" class="code"><b>Optimizer</b><span>Most weighted relief, then the lowest spend for it.</span></li>
       <li data-stage="record" class="code"><b>Run record</b><span>Every attempt is stored with a run id.</span></li>
-      <li data-stage="explanation" class="ai"><b>Explanation</b><span>A summary, with its numbers listed as claims.</span></li>
-      <li data-stage="checker" class="code"><b>Checker</b><span>Matches every number to a stored run.</span>
-        <span class="back" data-branch="mismatch">Refused: back to the agent.</span></li>
-      <li data-stage="review"><b>Human review</b><span>Sees the label and the numbers. A human decides.</span></li>
+      <li class="arc down" data-arc="stored"><span class="arc-label">stored runs</span></li>
+      <li data-stage="explanation" class="ai"><b>Explanation</b><span>A summary, its numbers listed as claims.</span></li>
+      <li data-stage="checker" class="code"><b>Checker</b><span>Matches every number to a stored run.</span></li>
+      <li class="arc up" data-arc="refused"><span class="arc-label">Refused: back to the agent</span></li>
+      <li class="edge" data-to="review"><span class="edge-label labels">CHECKED, NOT CHECKED or NO NUMBERS TO CHECK</span></li>
+      <li data-stage="review" class="person"><b>Human review</b><span>Sees the label and the numbers, and decides.</span></li>
     </ol>
   </details>
   <div id="controls"></div>
@@ -351,37 +387,45 @@ function renderView(v, liveTrace) {
 
 const flow = document.querySelector(".flow");
 
-function stagesOf(s) {
-  const o = s.outcome;
-  const runs = s.tool === "run_scenario" || s.tool === "find_target_budget";
-  if (runs && o.startsWith("rejected")) return [["intake", "gate", "record"], "rejected"];
-  if (runs && o.startsWith("unreachable")) return [["intake", "gate", "record"]];
-  if (runs && !o.startsWith("error")) return [["intake", "gate", "optimizer", "record"]];
-  if (s.tool === "submit_report") return [["intake", "explanation", "checker"], o.startsWith("refused") ? "mismatch" : null];
-  return [["intake"]];
+// flowPath: begin
+const FLOW_STAGES = ["question", "intake", "gate", "optimizer", "record", "explanation", "checker", "review"];
+const FLOW_ARCS = ["rejected", "rejected-path", "refused"];
+
+/** The nodes a finished run reached and the arcs it used, from its steps and label alone. */
+function flowPath(v) {
+  const reached = new Set(["question"]), arcs = new Set();
+  const reach = (...names) => names.forEach(n => reached.add(n));
+  for (const s of v.steps) {
+    const o = s.outcome;
+    const runs = s.tool === "run_scenario" || s.tool === "find_target_budget";
+    reach("intake");
+    if (runs && o.startsWith("rejected")) { reach("gate", "record"); arcs.add("rejected"); arcs.add("rejected-path"); }
+    else if (runs && o.startsWith("unreachable")) reach("gate", "record");
+    else if (runs && !o.startsWith("error")) reach("gate", "optimizer", "record");
+    if (s.tool === "submit_report") {
+      reach("explanation", "checker");
+      if (o.startsWith("refused")) arcs.add("refused");
+    }
+  }
+  if (v.status !== null) reach("review");
+  return { reached: FLOW_STAGES.filter(n => reached.has(n)), arcs: FLOW_ARCS.filter(a => arcs.has(a)) };
+}
+// flowPath: end
+
+function showPath(v) {
+  const p = flowPath(v), reached = new Set(p.reached), used = new Set(p.arcs);
+  if (reached.has("checker")) used.add("stored");
+  const nodes = [...flow.querySelectorAll("[data-stage]")];
+  nodes.forEach((n, i) => {
+    n.classList.toggle("reached", reached.has(n.dataset.stage));
+    n.classList.toggle("next-off", !(reached.has(n.dataset.stage) && reached.has(nodes[i + 1]?.dataset.stage)));
+  });
+  flow.querySelectorAll("[data-arc]").forEach(n => n.classList.toggle("used", used.has(n.dataset.arc)));
+  flow.querySelectorAll("[data-to]").forEach(n => n.classList.toggle("used", reached.has(n.dataset.to)));
+  flow.classList.add("done");
 }
 
-function markFlow(stages, branch) {
-  flow.querySelector(".here")?.classList.remove("here");
-  for (const name of stages) flow.querySelector(`[data-stage="${name}"]`).classList.add("passed");
-  flow.querySelector(`[data-stage="${stages.at(-1)}"]`).classList.add("here");
-  if (branch) flow.querySelector(`[data-branch="${branch}"]`).classList.add("hit");
-}
-
-function resetFlow() {
-  flow.classList.add("tracking");
-  flow.querySelectorAll(".passed, .here, .hit").forEach(n => n.classList.remove("passed", "here", "hit"));
-  markFlow(["question"]);
-}
-
-const flowStep = s => markFlow(...stagesOf(s));
-const flowDone = () => markFlow(["review"]);
-
-function finalFlow(v) {
-  resetFlow();
-  v.steps.forEach(flowStep);
-  flowDone();
-}
+const neutralFlow = () => flow.classList.remove("done");
 
 function pendingCard() {
   return el("section", { class: "card answer loading", "aria-busy": "true" },
@@ -408,21 +452,20 @@ function startReplay() {
     const mine = ++current;
     chips.forEach((b, j) => b.classList.toggle("on", i === j));
     const v = boot.views[i], t = trace(true);
-    resetFlow();
+    neutralFlow();
     show(el("div", { class: "result" }, questionLine(v.question), pendingCard(), t.box));
     for (const s of v.steps) {
       await wait(stepMs);
       if (mine !== current) return;
       t.add(s, true);
-      flowStep(s);
     }
     await wait(stepMs);
     if (mine !== current) return;
-    flowDone();
+    showPath(v);
     show(renderView(v, t));
   }
   chips[0].classList.add("on");
-  finalFlow(boot.views[0]);
+  showPath(boot.views[0]);
   show(renderView(boot.views[0]));
 }
 
@@ -451,7 +494,7 @@ function startLive() {
     hint.className = "hint"; hint.textContent = "The agent is running scenarios. Steps appear as they happen.";
     setStatus("Running on a live model", true);
     const t = trace(true);
-    resetFlow();
+    neutralFlow();
     show(el("div", { class: "result" }, questionLine(question), pendingCard(), t.box));
     try {
       const res = await fetch("/api/ask", { method: "POST", headers: { "Content-Type": "application/json" },
@@ -466,8 +509,8 @@ function startLive() {
         let nl;
         while ((nl = buf.indexOf("\n")) >= 0) {
           const msg = JSON.parse(buf.slice(0, nl)); buf = buf.slice(nl + 1);
-          if (msg.type === "step") { t.add(msg.step, true); flowStep(msg.step); }
-          if (msg.type === "view") { flowDone(); show(renderView(msg.view, t)); hint.textContent = "Done. Open the execution trace for each tool call."; }
+          if (msg.type === "step") t.add(msg.step, true);
+          if (msg.type === "view") { showPath(msg.view); show(renderView(msg.view, t)); hint.textContent = "Done. Open the execution trace for each tool call."; }
           if (msg.type === "error") fail(msg.error);
         }
       }
