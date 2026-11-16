@@ -1449,3 +1449,26 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   38; cross-check clean and now covers it); rule 11 asks the agent to claim `n_sectors` whenever
   it writes "of N sectors", and the count before it as `n_resolved` or `n_unresolved`. Tests
   first (3 seen failing). README describes group 2.
+
+## 2026-11-16 — Round 3 (after fix group 2), official, commit ba23462
+- 95 conversations, $0.0883, no infrastructure errors. Pass 89%, runs 99%, numbers 100%,
+  behaviour 91%, checked 82%, first pass 78%, mean 4.0 s and 2.9 turns. Against round 2b: pass
+  +2, checked +4 (noise), **first pass +15** (63% to 78%, above the noise line); against the
+  baseline: pass +3, checked +2 (noise), first pass +12.
+- Worked: case 15 5/5 (0/5 in every earlier round; the agent now passes target_pct_resolved,
+  fix i); case 10 5/5 under its new expectation (fix j); case 18 first pass 100% (40%); case 13
+  4/5 with the unresolved count claimable (m).
+- **Fix (l) did not help case 17 (0/5):** the agent never sends `changes_v1_to_v2` to the gate,
+  so the new message is never shown. It lists the versions (only v1 and v2, the change list is
+  hidden), then either runs v1 and v2 and compares them (4) or asks what was meant (1). The
+  phrase stays out of reach unless the version listing names the change list.
+- **Fix (f) false positive (case 4, 1/5):** "This is a rejection ... (it is not an infeasible
+  result)" was refused because the rule matches any "infeasib..."; the agent repeated the correct
+  denial and ended NOT CHECKED.
+- **Checker tokenizer bug (case 13, 1/5):** in "0.5x fair share" the number reader rejects
+  "0.5x" (it touches a letter), backs off and reads "0", which matches nothing. It should ignore
+  the token or read 0.5 (a request value). Logged for later.
+- Single failures attributed to the agent: case 7, it ran v1 at 1000 although no budget was
+  given, then asked for one (forbidden call; rule 2); case 3, "1 more sector" without a
+  `diff_n_resolved` claim; case 9, the decline kept naming C033 (question-only, refused by
+  design) after the first refusal.
