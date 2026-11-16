@@ -279,8 +279,9 @@ failure reasons per model are in docs/DEVLOG.md.
   and rejection messages of the conversation's runs are allowed, numbers only in the question are
   not; a candidate id in the summary must be in the selection or force lists of a run made in
   the conversation (an id that is only in the question is refused).
-- Changed in the M4 fix pass (group 2, prompt, tools and gate): "infeasible" is refused for a
-  run the gate rejected; rule 12 keeps the higher-budget caveat as its own sentence and ends with
+- Changed in the M4 fix pass (group 2, prompt, tools and gate): the prompt says a gate refusal
+  is "rejected", not "infeasible" (a checker rule for it was dropped after it refused a correct
+  denial); rule 12 keeps the higher-budget caveat as its own sentence and ends with
   the offer; rule 7 gives rounding examples; `target_pct_resolved` is described as report-only;
   with no version named the agent uses v1 and says so; the gate names a change list as such; the
   unresolved count is claimable (`n_unresolved`) and "of N sectors" asks for an `n_sectors`

@@ -24,14 +24,14 @@ def test_the_prompt_separates_rejected_from_infeasible():
     assert "Never call a rejected request infeasible" in SYSTEM_PROMPT
 
 
-def test_infeasible_for_a_rejected_run_is_refused(tmp_path):
+def test_the_checker_does_not_judge_infeasible_wording(tmp_path):
+    """The rule was dropped after round 3: it refused a correct denial ("not an infeasible
+    result"). The prompt rule stays; the eval grades the wording."""
     toy_dirs(tmp_path)
     run = make_run(tmp_path, budget=12.0, force_in=["Z9"])  # rejected by the gate
-    r = report("The scenario is infeasible.", status_claim(run))
-    result = check_report(r, tmp_path / "runs", tmp_path / "inputs", [run.run_id])
-    assert not result.ok and "rejected" in " ".join(result.errors())
-    ok = report("The scenario was rejected.", status_claim(run))
-    assert check_report(ok, tmp_path / "runs", tmp_path / "inputs", [run.run_id]).ok
+    denial = "This is a rejection, meaning nothing was solved (it is not an infeasible result)."
+    r = report(denial, status_claim(run))
+    assert check_report(r, tmp_path / "runs", tmp_path / "inputs", [run.run_id]).ok
 
 
 def test_infeasible_is_fine_when_a_cited_run_is_infeasible(tmp_path):

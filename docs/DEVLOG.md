@@ -1480,3 +1480,10 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   changes_v1_to_v2" in the CLI and on the web page. Case 17 keeps its required phrase. Tests
   first (3 seen failing on assertions; the trace test first failed for the wrong reason, an
   import from `tests/`, and moved to `web/tests/test_format.py`).
+- Checker "infeasible" rule dropped (owner); the prompt rule stays. Why: in round 3 it refused a
+  correct denial ("This is a rejection ... (it is not an infeasible result)", case 4), a false
+  positive on a denial, the same lesson as case 9's keywords ("approve", "recommend" appear in
+  correct refusals, which is why they are review phrases, not failures). The checker verifies
+  numbers, not wording; the eval grades case 4's wording ("rejected", "at least 697.01"). Test
+  first (the denial seen refused); the rule's test replaced by one that the denial passes. Guide
+  and README updated.

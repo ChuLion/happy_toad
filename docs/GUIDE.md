@@ -75,8 +75,8 @@ A target or region size changes only what is reported, not the plan.
 ## 5. What it does not do
 - **No approvals.** It runs scenarios and reports; it never approves or funds anything.
 - **No wording check.** The checker verifies numbers against stored runs, not whether the words
-  are a fair reading of them. It does not check direction words such as "more" or "less". The
-  one wording rule: "infeasible" is refused for a cited run the gate rejected. Whole numbers from 2027 to 2031 (the planning
+  are a fair reading of them. It does not check direction words such as "more" or "less", or
+  wording such as "rejected" versus "infeasible" (the prompt asks for it; the eval grades it). Whole numbers from 2027 to 2031 (the planning
   window) are skipped as years. A candidate id named in the summary must be in the selection or
   force lists of a run made in the conversation; an id that is only in the question is refused.
 - **A target budget is for the cheapest plan, not the optimizer's plan.** "What budget reaches
