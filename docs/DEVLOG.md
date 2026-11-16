@@ -1362,3 +1362,11 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   a claimless answer that names a candidate is refused (predicted to affect case 9). Tests first
   (2 seen failing; the two allowed cases passed before and after). Guide and README updated for
   the whole group.
+- Fix to (k) after an automated security review, reproduced first: rejection messages of some
+  codes echo text the agent chose (VERSION_NOT_FOUND quotes the version name, UNKNOWN_CANDIDATE
+  the ids, also FORCE_CONFLICT and SCHEMA_INVALID), so a request with version "485.59" let
+  "485.59" pass in a summary with no claim (2 tests seen failing). Now only the messages of
+  BUDGET_NOT_POSITIVE, BUDGET_ABOVE_CAP and FORCED_COST_EXCEEDS_BUDGET, which hold only gate
+  figures and request values, add numbers. Declined from the same review: requiring a validated
+  claim whenever a summary has numbers; the owner decided (k) allows numbers from the
+  conversation's runs without a citing claim.

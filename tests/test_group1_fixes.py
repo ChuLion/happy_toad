@@ -240,3 +240,21 @@ def test_a_claimless_answer_that_names_a_candidate_is_refused(c_runs):
     inputs, runs, _ = c_runs
     result = check_report(report("I cannot decide whether to fund C001."), runs, inputs, [])
     assert not result.ok and "C001" in " ".join(result.errors())
+
+
+@pytest.mark.parametrize(
+    "request_fields",
+    [
+        dict(input_version="485.59", budget=12.0),  # VERSION_NOT_FOUND echoes the name
+        dict(input_version="test", budget=12.0, force_in=["485.59"]),  # UNKNOWN_CANDIDATE
+    ],
+)
+def test_text_the_agent_chose_in_a_rejection_message_is_not_allowed(tmp_path, request_fields):
+    from happy_toad.services.request import SolveRequest
+    from happy_toad.services.run import run_request
+
+    inputs, runs = toy_dirs(tmp_path)
+    run = run_request(SolveRequest(**request_fields), inputs, runs)
+    assert run.outcome == "rejected" and "485.59" in run.reasons[0].message
+    result = check_report(report("The spend is 485.59."), runs, inputs, [run.run_id])
+    assert not result.ok

@@ -11,6 +11,7 @@ from pydantic import BaseModel, computed_field
 
 from happy_toad.agent.report import DIFF_BASE, PAIR_METRICS, Claim, Report
 from happy_toad.constants import BASE_YEAR, HORIZON_YEARS
+from happy_toad.reasons import ReasonCode
 from happy_toad.services.run import RunRecord, load_version
 from happy_toad.services.runs import metrics, read_run
 
@@ -220,6 +221,15 @@ def _run_ids(report: Report) -> list[str]:
     return list(dict.fromkeys(ids))
 
 
+# Gate codes whose messages hold only the gate's own figures and request values. Other codes
+# echo text the agent chose (a version name, candidate ids, schema input), so they add nothing.
+GATE_FIGURES = {
+    ReasonCode.BUDGET_NOT_POSITIVE,
+    ReasonCode.BUDGET_ABOVE_CAP,
+    ReasonCode.FORCED_COST_EXCEEDS_BUDGET,
+}
+
+
 def allowed_numbers(
     report: Report, runs_dir: Path, executed: Iterable[str] = ()
 ) -> list[tuple[float, float]]:
@@ -244,7 +254,8 @@ def allowed_numbers(
             if _number(record.request.get(name)):
                 allowed.append((float(record.request[name]), 0.0))
         for reason in record.reasons:
-            allowed += [(value, 0.0) for _, value in find_numbers(reason.message)]
+            if reason.code in GATE_FIGURES:
+                allowed += [(value, 0.0) for _, value in find_numbers(reason.message)]
     return allowed
 
 
