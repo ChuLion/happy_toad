@@ -1,8 +1,9 @@
-# happy_toad
+# Capital Planning Scenario Assistant
 
 A small synthetic reference build of a budget-constrained capital-allocation optimizer, with an
 agent layer that answers plain-English questions by running scenarios and reporting checked
-numbers. All data is synthetic and generated from a seed. It is not a product.
+numbers. All data is synthetic and generated from a seed. It is not a product. The Python package and
+command keep the working name `happy_toad` / `happy-toad`.
 
 Plan capital budgets but don't program? Start with the [Guide for planners](docs/GUIDE.md).
 
