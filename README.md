@@ -228,7 +228,8 @@ Checkpoint version: tag v0.3.2 (v0.3.1 plus the compact `ask` output and README 
 tools, prompt and checker are the same as v0.3.1, where the live demo ran).
 
 A thin agent layer over the M2A services: it turns a plain-English question into tool calls
-(`list_input_versions`, `run_scenario`, `get_run`, `compare_runs`, `submit_report`), then submits a
+(`list_input_versions`, `run_scenario`, `get_run`, `compare_runs`, `submit_report`, and since M2B
+`find_target_budget`), then submits a
 report of claims (metric, value, unit, run id) that a checker compares with the stored runs and
 with every number in the summary. Mismatches go back to the model once; a report that still fails
 is shown as NOT CHECKED (status `unverified` in the transcript and in `--verbose`). It reaches the model through OpenRouter's OpenAI-compatible API.

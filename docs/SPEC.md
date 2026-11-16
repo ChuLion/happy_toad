@@ -937,8 +937,8 @@ difference of -243.70) would pass.
 **Checker flow.** `submit_report` input that does not fit the schema is returned to the model as an
 error (a turn used, no correction used). A schema-valid report is checked: if all pass, the report
 is accepted as **checked** and the loop ends. Otherwise the failures go back to the model once; the
-second schema-valid report ends the loop whatever the result, and a failing one is shown and
-recorded as **unverified**. Only the first `submit_report` of a turn is handled; any later one in
+second schema-valid report ends the loop whatever the result, and a failing one is shown as
+**NOT CHECKED** (recorded as `unverified`). Only the first `submit_report` of a turn is handled; any later one in
 the same turn gets an error result ("only one submit_report per turn is checked") and uses no
 correction, so the model sees the first errors before it corrects. The CLI shows the report text
 only for a checked or unverified outcome, never a rejected draft of a run that ended otherwise.
