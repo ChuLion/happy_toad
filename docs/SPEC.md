@@ -757,7 +757,7 @@ the section "M3 — approved changes and specification" at the end wins.
    **[lead]** The model ID is a constant in `config`, pinned to `claude-sonnet-5-5` (current
    Sonnet-class ID), and recorded in every transcript. No temperature or other sampling options
    beyond the SDK defaults.
-2. **Tools, five [owner]:** `list_input_versions`, `run_scenario`, `get_run`, `compare_runs`,
+2. **Tools, five in M3 (six since M2B added `find_target_budget`) [owner]:** `list_input_versions`, `run_scenario`, `get_run`, `compare_runs`,
    `submit_report`. New deterministic services first, with their own tests: a version lister
    (names of `data/inputs/*.json`, except change lists `changes_*.json`), a run reader (`runs/<run_id>.json`, a name that is not a run id
    is not opened as a path), and a run comparer. **[lead]** Comparer output: both run ids, then
@@ -771,7 +771,7 @@ the section "M3 — approved changes and specification" at the end wins.
 3. **Loop [owner].** Step cap 10 model turns (**[lead]**: a turn is one model response). The loop
    stops when `submit_report` is accepted, or after a second schema-valid report that still fails
    the check (shown as NOT CHECKED; see "Checker flow"). Reaching the cap is a flagged failure recorded in the
-   transcript, not a silent stop. Only the five listed tools run; no generated code executes; a
+   transcript, not a silent stop. Only the six tools run (the five listed in item 2, plus `find_target_budget` from M2B); no generated code executes; a
    call to an unknown tool is returned to the model as an error and counts as a turn.
 4. **System prompt rules [owner].** Use only tool results. Say "under the modeled objective and
    constraints". Ask for a budget when one is missing. Decline questions outside scope ("should we
