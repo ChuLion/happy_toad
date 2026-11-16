@@ -30,6 +30,7 @@ TOLERANCE = {m: MONEY_TOLERANCE for m in MONEY_METRICS} | {
     "pct_resolved": PERCENT_TOLERANCE,
     "diff_pct_resolved": PERCENT_TOLERANCE,
     "max_pct_resolvable": PERCENT_TOLERANCE,
+    "pct_of_region": PERCENT_TOLERANCE,
 }
 INPUT_METRICS = ("n_sectors", "must_fund_cost", "forced_cost")
 REQUEST_NUMBERS = (
@@ -125,6 +126,7 @@ def stored_value(record: RunRecord, metric: str):
         "n_selected": None if r.selected is None else len(r.selected),
         "n_resolved": r.resolved,
         "pct_resolved": r.pct_resolved,
+        "pct_of_region": r.pct_of_region,
         "target_met": r.target_met,
         "target_budget": r.target_budget,
         "target_sectors": r.target_sectors,

@@ -86,3 +86,24 @@ def test_truth_has_the_added_and_dropped_counts_of_demo_a():
     truth = json.loads((Path(__file__).parents[1] / "evals/truth.json").read_text())
     diffs = truth["cases"]["1"]["diffs"]["0,1"]
     assert (diffs["n_added"], diffs["n_dropped"]) == (15, 2)  # 14 - 2 + 15 = 27
+
+
+# --- (c) the region percent -----------------------------------------------------------------
+
+
+def test_the_region_percent_is_claimable_with_percent_tolerance(tmp_path):
+    toy_dirs(tmp_path)
+    run = make_run(tmp_path, budget=12.0, region_total_sectors=10)
+    stored = run.result.pct_of_region
+    claim = dict(metric="pct_of_region", value=round(stored, 1), run_id=run.run_id)
+    summary = f"That is {round(stored, 1)}% of the region."
+    assert check_report(report(summary, claim), tmp_path / "runs", tmp_path / "inputs").ok
+    off = dict(metric="pct_of_region", value=stored + 0.1, run_id=run.run_id)
+    assert not check_report(report("", off), tmp_path / "runs", tmp_path / "inputs").ok
+
+
+def test_a_run_without_a_region_has_no_region_percent(tmp_path):
+    toy_dirs(tmp_path)
+    run = make_run(tmp_path, budget=12.0)
+    claim = dict(metric="pct_of_region", value=50.0, run_id=run.run_id)
+    assert not check_report(report("", claim), tmp_path / "runs", tmp_path / "inputs").ok

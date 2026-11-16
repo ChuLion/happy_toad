@@ -1342,3 +1342,7 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   are checked against the two selections (`checker.pair_value`); the compare_runs tool text names
   them; glossary entries; `evals/truth.py` computes them independently (truth.json regenerated;
   cross-check still clean; case 1: 15 added, 2 dropped). Tests first (4 seen failing).
+- (c) Region percent: `pct_of_region` is a claimable metric (percent tolerance) read from the
+  run; none for runs without a region size. Guide: the "not checkable yet" limitation removed,
+  glossary entry added, `pct_resolved` points to it. Tests first (2 seen failing); the
+  cross-check also requires truth to cover any region percent the engine reports.

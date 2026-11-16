@@ -87,9 +87,6 @@ A target or region size changes only what is reported, not the plan.
 - **Checked live with one model.** The demo answers were checked live with one model (DeepSeek V4
   Flash 0731). One small round compared five models; with five runs per cell the differences
   are suggestive, not conclusive.
-- **The region percent is not checkable yet.** With a region size, the run reports the percent
-  of the region resolved, but it is not a report metric, so an answer that states it is shown
-  as NOT CHECKED (planned for M4). The percent of all sectors in the version is checked.
 - **It cannot read the change list** (revision analysis is planned). Ask about v1 or v2, not
   about what changed between them.
 
@@ -121,8 +118,9 @@ A claim in a report names one of these metrics, its value and the run it comes f
 - **`n_selected`:** how many candidate solutions the plan funds.
 - **`n_resolved`:** how many sectors the plan resolves (whole shortfall relieved).
 - **`pct_resolved`:** resolved sectors as a percent of all sectors in the version. A region
-  size does not change it: the run stores the percent of the region separately, and that
-  percent is not a report metric, so a summary that states it fails the check.
+  size does not change it; the percent of the region is `pct_of_region`.
+- **`pct_of_region`:** resolved sectors as a percent of the region size you gave
+  (`region_total_sectors`). Only for runs with a region size.
 - **`n_sectors`:** how many sectors the run's version has. Read from the data, not the plan.
 - **`status`:** the solver status of a run with a plan (Optimal, Infeasible, TimeLimit, Error),
   or the run outcome (rejected, error) when the run has none.
