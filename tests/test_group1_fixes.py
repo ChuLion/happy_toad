@@ -222,7 +222,7 @@ def test_a_candidate_outside_the_cited_runs_is_refused(c_runs):
     r = report("The plan funds C001, C002 and C003.", status_claim(record))
     result = check_report(r, runs, inputs, [record.run_id])
     assert not result.ok
-    assert any("C003" in e and "cited run" in e for e in result.errors())
+    assert any("C003" in e and "run in this conversation" in e for e in result.errors())
 
 
 def test_a_forced_in_unknown_candidate_of_a_cited_rejected_run_may_be_named(c_runs):
@@ -258,3 +258,21 @@ def test_text_the_agent_chose_in_a_rejection_message_is_not_allowed(tmp_path, re
     assert run.outcome == "rejected" and "485.59" in run.reasons[0].message
     result = check_report(report("The spend is 485.59."), runs, inputs, [run.run_id])
     assert not result.ok
+
+
+# --- (e) widened (owner, after round 2): runs executed in the conversation count too ----------
+
+
+def test_a_candidate_in_an_uncited_run_of_the_conversation_may_be_named(c_runs):
+    inputs, runs, run = c_runs
+    record = run(budget=10.0, force_in=["C099"])  # rejected, not cited by any claim
+    r = report("C099 is not a candidate in this data, so the run was rejected.")
+    assert check_report(r, runs, inputs, [record.run_id]).ok
+
+
+def test_a_candidate_only_in_the_question_is_still_refused(c_runs):
+    inputs, runs, run = c_runs
+    record = run(budget=10.0)  # selects C001 and C002, not C003
+    r = report("I cannot decide whether to fund C003.")
+    result = check_report(r, runs, inputs, [record.run_id])
+    assert not result.ok and "C003" in " ".join(result.errors())

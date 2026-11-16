@@ -263,10 +263,12 @@ def _number(value) -> bool:
     return isinstance(value, int | float) and not isinstance(value, bool)
 
 
-def untraced_candidates(report: Report, runs_dir: Path) -> list[str]:
-    """Candidate ids in the summary that are in no cited run's selection or force lists."""
+def untraced_candidates(report: Report, runs_dir: Path, executed: Iterable[str] = ()) -> list[str]:
+    """Candidate ids in the summary that are in no selection or force list of a cited run or of a
+    run in the conversation (fix e, widened by the owner after round 2); ids only in the question
+    stay untraced."""
     traced: set[str] = set()
-    for run_id in _run_ids(report):
+    for run_id in dict.fromkeys([*_run_ids(report), *executed]):
         record = read_run(run_id, runs_dir)
         if record is None:
             continue
@@ -277,7 +279,8 @@ def untraced_candidates(report: Report, runs_dir: Path) -> list[str]:
             traced |= set(record.result.selected)
     named = dict.fromkeys(CANDIDATE_ID.findall(report.summary))
     return [
-        f"candidate {cid} in the summary is not in a cited run's selection or force lists"
+        f"candidate {cid} in the summary is not in the selection or force lists of a run in "
+        "this conversation"
         for cid in named
         if cid not in traced
     ]
@@ -332,5 +335,5 @@ def check_report(
         message = "matches" if match else "does not match any validated claim or request value"
         numbers.append(NumberCheck(text=text, ok=match, message=message))
     missing = missing_minimum_budgets(valid, run_ids, runs_dir)
-    candidates = untraced_candidates(valid, runs_dir)
+    candidates = untraced_candidates(valid, runs_dir, conversation_runs or ())
     return CheckResult(claims=claims, numbers=numbers, missing=missing, candidates=candidates)

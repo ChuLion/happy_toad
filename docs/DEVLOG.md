@@ -1395,3 +1395,13 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   claimed `n_resolved` = 38 to back it and failed.
 - Unchanged failures: case 15 (0/4; the agent still computes the target itself; fix i), case 17
   (0/5; "change list" still not reachable; fix l), case 14 once without a run.
+
+## 2026-11-16 — Fix (e) widened; round 2b
+- **Round-2 finding (owner asked to record it):** tightening (e) made answers vaguer. In case 8
+  the agent's correct "C099 is not a recognized candidate" was refused, and it rewrote it as "the
+  specified candidate", which only the usefulness checks (the required phrase "C099") caught;
+  the checker itself passed the vaguer answer. Case 9's declines likewise lost "C033".
+- Owner change: a candidate id in the summary passes if it is in the selection or force lists of
+  a run in the conversation, not only a cited one; ids only in the question stay refused. Tests
+  first (1 seen failing; the question-only guard passed before and after). Guide and README
+  updated. Round 2b runs with only this change.

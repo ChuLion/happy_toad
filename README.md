@@ -277,8 +277,8 @@ failure reasons per model are in docs/DEVLOG.md.
   claimable); the region percent is a claimable metric (`pct_of_region`); only the planning-window
   years (2027-2031) are skipped, so "a budget of 2000" is checked; numbers in the request values
   and rejection messages of the conversation's runs are allowed, numbers only in the question are
-  not; a candidate id in the summary must be in a cited run's selection or force lists, so a
-  claimless answer that names a candidate is refused.
+  not; a candidate id in the summary must be in the selection or force lists of a run made in
+  the conversation (an id that is only in the question is refused).
 
 What a failed check looks like (a real run: the summary said 15 candidates appear only in the
 1500 run, a number no claim backs, so the answer is shown as NOT CHECKED):
