@@ -387,7 +387,42 @@
    "runs": []
   },
   "10": {
-   "runs": []
+   "runs": [
+    {
+     "outcome": "completed",
+     "reasons": [],
+     "selected": [
+      "C002",
+      "C004",
+      "C005",
+      "C006",
+      "C007",
+      "C008",
+      "C013",
+      "C018",
+      "C019",
+      "C020",
+      "C021",
+      "C025",
+      "C027",
+      "C028",
+      "C030",
+      "C034",
+      "C043",
+      "C044",
+      "C046",
+      "C049"
+     ],
+     "values": {
+      "status": "Optimal",
+      "spend": 688.1,
+      "weighted_relief": 1573.5674999999999,
+      "n_selected": 20,
+      "n_resolved": 27,
+      "pct_resolved": 33.75
+     }
+    }
+   ]
   },
   "11": {
    "runs": [
@@ -762,5 +797,5 @@
    ]
   }
  },
- "commit": "c3e215aa099ab45b3b7d91a879f5dae0715afb18"
+ "commit": "7becce5bdfe37c39e921b0ad80498615ac55ea4f"
 }

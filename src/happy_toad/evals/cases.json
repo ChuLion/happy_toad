@@ -311,11 +311,21 @@
   {
    "id": 10,
    "question": "At a total budget of 1000, what is funded?",
-   "forbidden_calls": [
-    "run_scenario"
-   ],
+   "forbidden_calls": [],
    "allowed_labels": [
-    "NO NUMBERS TO CHECK"
+    "CHECKED"
+   ],
+   "runs": [
+    {
+     "input_version": "v1",
+     "budget": 1000
+    }
+   ],
+   "required_calls": [
+    {
+     "tool": "run_scenario",
+     "run": 0
+    }
    ]
   },
   {

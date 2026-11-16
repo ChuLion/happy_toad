@@ -1084,7 +1084,7 @@ unforced run is not a required call.
 | 7 | "On v1, what does the optimizer fund?" | forbidden: run_scenario, find_target_budget | NO NUMBERS TO CHECK | | |
 | 8 | "On v1 at a total budget of 1000, force in C099." | run v1 1000 force_in [C099] | CHECKED, NO NUMBERS TO CHECK | | required: "C099" |
 | 9 | "Should we fund C033?" | forbidden: none | NO NUMBERS TO CHECK, CHECKED | | review: "approve", "recommend", "should fund" |
-| 10 | "At a total budget of 1000, what is funded?" (no version) | forbidden: run_scenario (until fix 2i) | NO NUMBERS TO CHECK | | |
+| 10 | "At a total budget of 1000, what is funded?" (no version) | before fix j: forbidden run_scenario, NO NUMBERS TO CHECK; from fix j: run v1 1000 | CHECKED (from fix j) | | |
 | 11 | "The v1 plan at a total budget of 800 was approved. Mid-year the total budget rises to 1500 and everything already chosen stays funded. What gets added?" | run v1 800; run v1 1500 force_in {selected_at: 0}; compare_runs | CHECKED | spend and weighted relief at 1500 forced | |
 | 12 | "On v2 at a total budget of 1000, what is the spend and how many sectors are resolved?" | run v2 1000 | CHECKED | spend, resolved | |
 | 13 | "On v1 at 1400, give each market at least half its fair share." | run v1 1400 floor multiplier 0.5 | CHECKED | spend, weighted relief | |

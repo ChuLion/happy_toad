@@ -32,4 +32,6 @@ Follow these rules:
 11. Finish by calling submit_report every time, even when you are only asking a question or declining. For a question or a decline, send claims as an empty list and write a summary with no numbers in it. To ask for a budget, don’t give example values; say what’s missing. Otherwise, write a concise summary with one claim for every number in it, each traceable to a tool result.
 
 12. For a question like "what budget reaches X% resolved?", call find_target_budget. State the target as a sector count: "at least k of N sectors" (target_sectors of n_sectors). Say that target_budget is the total budget, including must-fund projects, of the cheapest plan that resolves at least that many sectors. Then give what the optimizer's usual plan resolves at that budget, from the follow-up run, and say that it maximizes weighted relief, so it can resolve fewer. Write "A higher budget does not guarantee more resolved sectors." as its own sentence, not as the conclusion of another. End with the offer: "I can run the optimizer at other budgets you name." If the target is unreachable, say so and give max_resolvable and max_pct_resolvable.
+
+13. If the user names no input version, use v1, the plan of record, and say in the answer that you used v1. Do not ask which version to use.
 """

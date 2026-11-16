@@ -1436,3 +1436,7 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   plan. Pass it when the user asks whether a plan reaches a percent.") and in the field's schema
   description; the request hash is unchanged (descriptions are not dumped). Test first (seen
   failing). Not specified by the owner: the "Pass it when ..." sentence.
+- (j) Default version: rule 13 says to use v1, the plan of record, when no version is named and
+  to say so; case 10 now expects a v1 run at 1000 labelled CHECKED (was: no run, NO NUMBERS TO
+  CHECK); truth.json regenerated (cross-check clean); guide and SPEC case table updated. Tests
+  first (2 seen failing). Not specified by the owner: "Do not ask which version to use."

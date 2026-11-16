@@ -40,6 +40,7 @@ moved, 3 sectors added). You cannot run a scenario on it.
 ## 3. What you can ask
 Budgets are always the total, including must-fund projects.
 - Which data sets exist? "Which input versions are there?"
+- No version named: the agent uses v1, the plan of record, and says so.
 - One budget: "On v1, what does a total budget of 1000 fund?"
 - Force a candidate in: "On v1 at a total budget of 1000, what happens if we force in C033?"
 - Leave a candidate out: "On v2 at a total budget of 1200, what if C001 is left out?"

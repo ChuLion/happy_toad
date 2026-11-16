@@ -83,3 +83,25 @@ def test_the_field_description_does_not_change_the_request_hash():
     r = SolveRequest(input_version="v1", budget=1400, target_pct_resolved=50)
     assert request_hash(r) == request_hash(SolveRequest.model_validate(r.model_dump()))
     assert "description" not in str(r.model_dump())
+
+
+# --- (j) default version ---------------------------------------------------------------------
+
+
+def test_the_prompt_defaults_to_v1_and_says_so():
+    assert "If the user names no input version, use v1, the plan of record" in SYSTEM_PROMPT
+    assert "say in the answer that you used v1" in SYSTEM_PROMPT
+
+
+def test_case_10_now_expects_a_v1_run_at_1000():
+    import json
+    from pathlib import Path
+
+    from happy_toad.evals.cases import load_cases
+
+    case = next(c for c in load_cases() if c.id == 10)
+    assert case.runs[0].input_version == "v1" and case.runs[0].budget == 1000
+    assert [(c.tool, c.run) for c in case.required_calls] == [("run_scenario", 0)]
+    assert case.allowed_labels == ["CHECKED"] and case.forbidden_calls == []
+    truth = json.loads((Path(__file__).parents[1] / "evals/truth.json").read_text())
+    assert truth["cases"]["10"]["runs"][0]["values"]["spend"] > 0
