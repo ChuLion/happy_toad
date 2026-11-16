@@ -41,9 +41,11 @@ flowchart TD
     linkStyle 8,9 stroke:#ee001e,stroke-width:3px,color:#ee001e
     linkStyle 10 stroke:#9a9a9a,stroke-width:2px,color:#6f7171
 ```
-Purple dashed boxes are the AI model (one agent, two jobs); black boxes are plain code. Red dotted
-arrows are the two ways work goes back to the agent.
-The agent approves nothing: it runs scenarios and reports; a human decides.
+In words: A question goes to Intake (AI), which writes a structured request. The Gate (code) accepts or rejects it, and rejection reasons go back to the AI. Accepted requests go to the Optimizer (code: PuLP with CBC, two stages). Every attempt, accepted or rejected, is stored in the Run record (code). The Explanation (AI) writes a summary with its numbers as claims. The Checker (code) compares those numbers with the stored runs, and a refused report goes back to the AI. The answer, labeled CHECKED, NOT CHECKED, or NO NUMBERS TO CHECK, goes to a person, who decides.
+
+Purple dashed boxes are the AI model (one agent, two jobs); white boxes are plain code. Red dotted
+arrows are the two ways work goes back to the agent; the grey dotted arrow is the checker reading
+the stored runs. The agent approves nothing: it runs scenarios and reports; a human decides.
 
 ## Demo excerpt (live, question c)
 The live transcript `20261114T210201-5276b834` (run on v0.3.1, DeepSeek V4 Flash 0731 on
