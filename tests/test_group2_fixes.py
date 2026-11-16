@@ -45,3 +45,12 @@ def test_infeasible_is_fine_when_a_cited_run_is_infeasible(tmp_path):
     assert infeasible.result.status == "Infeasible"
     r = report("The scenario is infeasible.", status_claim(infeasible))
     assert check_report(r, runs, inputs, [infeasible.run_id]).ok
+
+
+# --- (g) rule 12 wording ---------------------------------------------------------------------
+
+
+def test_rule_12_makes_the_caveat_its_own_sentence_and_requires_the_offer():
+    rule = SYSTEM_PROMPT[SYSTEM_PROMPT.index("12. ") :]
+    assert "as its own sentence, not as the conclusion of another" in rule
+    assert 'End with the offer: "I can run the optimizer at other budgets you name."' in rule

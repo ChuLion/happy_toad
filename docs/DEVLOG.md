@@ -1422,3 +1422,6 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   status Infeasible is "infeasible"; the checker refuses a summary that says "infeasible" when a
   cited run was rejected and no cited run is Infeasible. Tests first (2 seen failing). Guide
   updated.
+- (g) Rule 12: the caveat is written as its own sentence, not as the conclusion of another, and
+  the answer ends with the offer "I can run the optimizer at other budgets you name." Test first
+  (seen failing).
