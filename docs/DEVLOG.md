@@ -1557,3 +1557,16 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   now the diagram's eight steps in order (Question, Intake (AI), Gate, Optimizer, Run record,
   Explanation (AI), Checker, Human review) with both feedback paths. A test compares the step
   names in the guide and on the page.
+
+## 2026-11-16 — Diagrams: one source of truth
+- `docs/images/workflow_video.png` (added by the owner, shown in GUIDE section 4) is a hand-made
+  rendering of the README's simple mermaid diagram. **The README mermaid is the source of
+  truth**; the image is redrawn from it, never the other way round.
+- If the flow changes, these change together: the README (simple diagram, "In words" paragraph,
+  detailed flow), the GUIDE (section 4 steps and the image's alt text and caption), the web page
+  (`web/page.html` flow and `web/replay.html`, re-exported) and the image. A test already keeps
+  the GUIDE step names and the page step names in line (`web/tests/test_page.py`); nothing checks
+  the image.
+- Not specified by the owner: the README's accessibility title and description wording, the
+  detailed diagram's layout (the cap drawn as a node fed by both AI steps; lookup tools in purple
+  dotted lines; infeasible and "plan" as two edges into Run record), and the GUIDE caption text.
