@@ -46,6 +46,7 @@ RUN_ID_TEXT = re.compile(r"\d{8}T\d{6}-[0-9a-f]{8}")
 LIST_MARKER = re.compile(r"(?m)^\s*\d+[.)](?=\s)")
 NUMBER = re.compile(r"(?<![\w.])[-+]?\d+(?:,\d{3})*(?:\.\d+)?%?(?!\w)")
 YEAR = re.compile(r"\d{4}")
+INFEASIBLE = re.compile(r"\binfeasib", re.IGNORECASE)
 CANDIDATE_ID = re.compile(r"\bC\d{3}\b")  # the generator's candidate ids (C001, ...)
 MODEL_YEARS = range(BASE_YEAR, BASE_YEAR + HORIZON_YEARS)  # 2027-2031 (M4 fix d)
 NOT_CHECKED = "not checked because no claim validated"
@@ -69,6 +70,7 @@ class CheckResult(BaseModel):
     numbers: list[NumberCheck]
     missing: list[str] = []  # claims the report must make but does not
     candidates: list[str] = []  # candidate ids in the summary that no cited run contains (fix e)
+    wording: list[str] = []  # "infeasible" said of a run the gate rejected (fix f)
 
     @computed_field
     @property
@@ -78,6 +80,7 @@ class CheckResult(BaseModel):
             and all(n.ok for n in self.numbers)
             and not self.missing
             and not self.candidates
+            and not self.wording
         )
 
     def errors(self) -> list[str]:
@@ -95,7 +98,7 @@ class CheckResult(BaseModel):
         ]
         if unchecked:
             bad_numbers.append(f"{len(unchecked)} summary numbers {NOT_CHECKED}")
-        return bad_claims + self.missing + bad_numbers + self.candidates
+        return bad_claims + self.missing + bad_numbers + self.candidates + self.wording
 
 
 def _strip_run_ids(text: str, run_ids: Iterable[str]) -> str:
@@ -286,6 +289,20 @@ def untraced_candidates(report: Report, runs_dir: Path, executed: Iterable[str] 
     ]
 
 
+def wording_errors(report: Report, runs_dir: Path) -> list[str]:
+    """ "Infeasible" for a cited run the gate rejected, when no cited run is infeasible (fix f)."""
+    if not INFEASIBLE.search(report.summary):
+        return []
+    records = [r for r in (read_run(i, runs_dir) for i in _run_ids(report)) if r is not None]
+    if any(r.result is not None and r.result.status == "Infeasible" for r in records):
+        return []
+    return [
+        f"the summary says infeasible, but run {r.run_id} was rejected by the gate (say rejected)"
+        for r in records
+        if r.outcome == "rejected"
+    ]
+
+
 def _needs_minimum_budget(record: RunRecord) -> bool:
     blocked = record.outcome == "rejected" or (
         record.result is not None and record.result.status == "Infeasible"
@@ -336,4 +353,7 @@ def check_report(
         numbers.append(NumberCheck(text=text, ok=match, message=message))
     missing = missing_minimum_budgets(valid, run_ids, runs_dir)
     candidates = untraced_candidates(valid, runs_dir, conversation_runs or ())
-    return CheckResult(claims=claims, numbers=numbers, missing=missing, candidates=candidates)
+    wording = wording_errors(valid, runs_dir)
+    return CheckResult(
+        claims=claims, numbers=numbers, missing=missing, candidates=candidates, wording=wording
+    )

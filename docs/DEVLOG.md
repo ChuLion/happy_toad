@@ -1416,3 +1416,9 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   id "traced" by forcing it into a request that is then rejected. That is what the owner asked
   for (case 8's correct answer names C099, which exists only in a rejected run's force list);
   the rejected request is itself stored and visible.
+
+## 2026-11-16 — M4 fix group 2: f, g, h, i, j, l, m
+- (f) Rejected against infeasible: rule 10 says a gate refusal is "rejected" and only a run with
+  status Infeasible is "infeasible"; the checker refuses a summary that says "infeasible" when a
+  cited run was rejected and no cited run is Infeasible. Tests first (2 seen failing). Guide
+  updated.

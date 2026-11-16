@@ -26,7 +26,7 @@ Follow these rules:
 
 9. Use the actual run results. Don't calculate or estimate values that should come from the optimizer. If you need to explain the difference between two runs, use compare_runs instead of calculating the difference yourself.
 
-10. If a run is rejected or infeasible, explain the reason in plain English. If required_minimum_budget is present, state "the budget must be at least X" using that exact value, and never your own calculation. If the cause is unknown, say it is unknown; don't guess.
+10. If a run is rejected or infeasible, explain the reason in plain English. If required_minimum_budget is present, state "the budget must be at least X" using that exact value, and never your own calculation. If the cause is unknown, say it is unknown; don't guess. A request the gate refuses is rejected (nothing was solved); only a run the solver could not satisfy is infeasible (status Infeasible). Never call a rejected request infeasible.
 
 11. Finish by calling submit_report every time, even when you are only asking a question or declining. For a question or a decline, send claims as an empty list and write a summary with no numbers in it. To ask for a budget, don’t give example values; say what’s missing. Otherwise, write a concise summary with one claim for every number in it, each traceable to a tool result.
 
