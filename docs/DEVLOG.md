@@ -1472,3 +1472,11 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   given, then asked for one (forbidden call; rule 2); case 3, "1 more sector" without a
   `diff_n_resolved` claim; case 9, the decline kept naming C033 (question-only, refused by
   design) after the first refusal.
+
+## 2026-11-16 — Final M4 changes: change lists listed, wording rule dropped, "0.5x"
+- Change lists: `list_input_versions` returns `versions` and, separately, `change_lists`
+  (`changes_v1_to_v2`), and its description says a change list records the edits between two
+  versions, is not a version and cannot be run; the trace shows "v1, v2; change lists:
+  changes_v1_to_v2" in the CLI and on the web page. Case 17 keeps its required phrase. Tests
+  first (3 seen failing on assertions; the trace test first failed for the wrong reason, an
+  import from `tests/`, and moved to `web/tests/test_format.py`).

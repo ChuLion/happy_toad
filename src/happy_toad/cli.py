@@ -212,7 +212,9 @@ def _call_outcome(name: str, result: dict) -> str:
     if result.get("error"):
         return f"error: {result['error']}"
     if name == "list_input_versions":
-        return ", ".join(result.get("versions", []))
+        text = ", ".join(result.get("versions", []))
+        lists = result.get("change_lists")
+        return f"{text}; change lists: {', '.join(lists)}" if lists else text
     if name == "compare_runs":
         return _compare_outcome(result)
     return "ok"

@@ -42,6 +42,11 @@ def list_versions(inputs_dir: Path = Path("data/inputs")) -> list[str]:
     return sorted(p.stem for p in inputs_dir.glob("*.json") if not is_change_list(p.stem))
 
 
+def list_change_lists(inputs_dir: Path = Path("data/inputs")) -> list[str]:
+    """Sorted names of the change lists in the inputs folder (they are not versions)."""
+    return sorted(p.stem for p in inputs_dir.glob("*.json") if is_change_list(p.stem))
+
+
 def read_run(run_id: str, runs_dir: Path = Path("runs")) -> RunRecord | None:
     """The stored record for a run id, or None if the id is not a run id or has no file.
 

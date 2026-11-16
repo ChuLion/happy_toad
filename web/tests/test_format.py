@@ -100,3 +100,10 @@ def test_view_module_does_not_import_the_cli():
 def test_one_problem_is_singular():
     result = {"accepted": False, "errors": ["a"]}
     assert fmt.call_outcome("submit_report", result) == "refused (1 problem)"
+
+
+def test_the_trace_shows_the_change_lists():
+    result = {"versions": ["v1", "v2"], "change_lists": ["changes_v1_to_v2"]}
+    expected = "v1, v2; change lists: changes_v1_to_v2"
+    assert fmt.call_outcome("list_input_versions", result) == expected
+    assert cli._call_outcome("list_input_versions", result) == expected

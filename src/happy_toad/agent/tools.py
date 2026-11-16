@@ -11,7 +11,13 @@ from pydantic import ValidationError
 from happy_toad.agent.report import Report
 from happy_toad.services.request import SolveRequest
 from happy_toad.services.run import RunRecord, record_invalid_request, run_request
-from happy_toad.services.runs import CompareError, compare_runs, list_versions, read_run
+from happy_toad.services.runs import (
+    CompareError,
+    compare_runs,
+    list_change_lists,
+    list_versions,
+    read_run,
+)
 from happy_toad.services.target import TargetBudgetRequest, run_target
 
 TOP_UNRESOLVED = 5
@@ -36,8 +42,10 @@ _RUN_ID = {"type": "string", "description": "A run id returned by run_scenario."
 TOOLS = [
     _tool(
         "list_input_versions",
-        "List the names of the available input versions (synthetic data sets). Call this when "
-        "the user does not name a version or you are unsure what exists.",
+        "List the names of the available input versions (synthetic data sets) in `versions`, and "
+        "the change lists in `change_lists`: a change list records the edits between two "
+        "versions; it is not a version and cannot be run. Call this when the user does not name "
+        "a version or you are unsure what exists.",
         _object({}, []),
     ),
     _tool(
@@ -133,7 +141,10 @@ class ToolRunner:
         if not isinstance(args, dict):
             return {"error": "arguments are not a JSON object"}
         if name == "list_input_versions":
-            return {"versions": list_versions(self.inputs_dir)}
+            return {
+                "versions": list_versions(self.inputs_dir),
+                "change_lists": list_change_lists(self.inputs_dir),
+            }
         if name == "get_run":
             return self.get_run(args.get("run_id", ""))
         if name == "compare_runs":
