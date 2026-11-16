@@ -910,8 +910,8 @@ Report = `{summary, claims}`. Values are reported at displayed precision: 2 deci
    not touch a letter, digit or underscore before it, nor a letter or underscore after it, so
    identifiers (candidate `C033`, sector `S001`, must-fund `M1`, version `v1`, market `market_e`)
    contain no numbers. A hyphen is a separator (`2027-2031` is two years).
-2. Years: a plain integer from 1900 to 2199 (no sign, comma, decimal point or percent sign) is a
-   year and is ignored. Known consequence: a spend of exactly 2030 written without decimals would
+2. Years: a plain integer in the planning window, 2027 to 2031 (no sign, comma, decimal point
+   or percent sign), is a year and is ignored (M4 fix d; it was 1900 to 2199). Known consequence: a spend of exactly 2030 written without decimals would
    also be ignored; the prompt requires 2 decimals for money, so `2030.00` is a number.
 3. List markers at the start of a line (`1.`, `2)`) are ignored.
 4. A number is then: an optional sign, digits with optional thousands commas, optional decimals,

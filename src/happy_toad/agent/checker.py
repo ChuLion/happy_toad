@@ -10,6 +10,7 @@ from pathlib import Path
 from pydantic import BaseModel, computed_field
 
 from happy_toad.agent.report import DIFF_BASE, PAIR_METRICS, Claim, Report
+from happy_toad.constants import BASE_YEAR, HORIZON_YEARS
 from happy_toad.services.run import RunRecord, load_version
 from happy_toad.services.runs import metrics, read_run
 
@@ -44,6 +45,7 @@ RUN_ID_TEXT = re.compile(r"\d{8}T\d{6}-[0-9a-f]{8}")
 LIST_MARKER = re.compile(r"(?m)^\s*\d+[.)](?=\s)")
 NUMBER = re.compile(r"(?<![\w.])[-+]?\d+(?:,\d{3})*(?:\.\d+)?%?(?!\w)")
 YEAR = re.compile(r"\d{4}")
+MODEL_YEARS = range(BASE_YEAR, BASE_YEAR + HORIZON_YEARS)  # 2027-2031 (M4 fix d)
 NOT_CHECKED = "not checked because no claim validated"
 NOT_IN_CONVERSATION = "run was not executed or read in this conversation"
 
@@ -105,7 +107,7 @@ def find_numbers(text: str, run_ids: Iterable[str] = ()) -> list[tuple[str, floa
     found = []
     for m in NUMBER.finditer(text):
         token = m.group()
-        if YEAR.fullmatch(token) and 1900 <= int(token) <= 2199:
+        if YEAR.fullmatch(token) and int(token) in MODEL_YEARS:
             continue
         found.append((token, float(token.rstrip("%").replace(",", ""))))
     return found

@@ -76,7 +76,7 @@ A target or region size changes only what is reported, not the plan.
 - **No wording check.** The checker verifies numbers against stored runs, not whether the words
   are a fair reading of them. It does not check direction words such as "more" or "less", or
   wording such as "rejected" versus "infeasible". Candidate ids named in the summary are not
-  checked, and whole numbers from 1900 to 2199 are skipped as possible years.
+  checked, and whole numbers from 2027 to 2031 (the planning window) are skipped as years.
 - **A target budget is for the cheapest plan, not the optimizer's plan.** "What budget reaches
   50%?" gives the total budget of the cheapest plan that resolves at least that many sectors. The
   optimizer's usual plan at that budget maximizes weighted relief and can resolve fewer, and a
@@ -199,7 +199,7 @@ Checked before solving, in this order; the first one found is reported.
 
 ### Labels
 - **CHECKED:** every claim and every number in the summary matched a stored run, and there was
-  at least one. Words, candidate ids and numbers that look like years (1900 to 2199) are not
+  at least one. Words, candidate ids and the planning-window years (2027 to 2031) are not
   checked.
 - **NOT CHECKED:** some number could not be matched, even after the agent was sent back once
   to correct it. Do not rely on the numbers.

@@ -107,3 +107,22 @@ def test_a_run_without_a_region_has_no_region_percent(tmp_path):
     run = make_run(tmp_path, budget=12.0)
     claim = dict(metric="pct_of_region", value=50.0, run_id=run.run_id)
     assert not check_report(report("", claim), tmp_path / "runs", tmp_path / "inputs").ok
+
+
+# --- (d) the year skip is the planning window -----------------------------------------------
+
+
+def test_only_the_planning_window_years_are_skipped():
+    from happy_toad.agent.checker import find_numbers
+
+    text = "a budget of 2000 in 2026, 2027, 2031 and 2032"
+    assert [t for t, _ in find_numbers(text)] == ["2000", "2026", "2032"]
+
+
+def test_a_wrong_budget_of_2000_is_now_caught(tmp_path):
+    toy_dirs(tmp_path)
+    run = make_run(tmp_path, budget=12.0)
+    claim = dict(metric="spend", value=round(run.result.spend, 2), run_id=run.run_id)
+    summary = f"At a budget of 2000 the spend is {round(run.result.spend, 2)}."
+    result = check_report(report(summary, claim), tmp_path / "runs", tmp_path / "inputs")
+    assert not result.ok and "2000" in " ".join(result.errors())

@@ -1346,3 +1346,6 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   run; none for runs without a region size. Guide: the "not checkable yet" limitation removed,
   glossary entry added, `pct_resolved` points to it. Tests first (2 seen failing); the
   cross-check also requires truth to cover any region percent the engine reports.
+- (d) Year skip: only the planning window (2027-2031, from BASE_YEAR and HORIZON_YEARS) is
+  skipped as years; "a budget of 2000" is now a checked number. SPEC number rule 2 and the guide
+  updated. Tests first (2 seen failing); the existing year tests use 2027-2031 and still pass.
