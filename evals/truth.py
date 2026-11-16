@@ -75,6 +75,7 @@ def plan_values(data: dict, chosen: list[str]) -> dict:
         "weighted_relief": sum(weight[k] * v for k, v in relief.items()),
         "n_selected": len(chosen),
         "n_resolved": resolved,
+        "n_unresolved": len(data["sectors"]) - resolved,
         "pct_resolved": 100 * resolved / len(data["sectors"]),
     }
 

@@ -119,6 +119,7 @@ A claim in a report names one of these metrics, its value and the run it comes f
   optimizer makes this as large as the budget allows.
 - **`n_selected`:** how many candidate solutions the plan funds.
 - **`n_resolved`:** how many sectors the plan resolves (whole shortfall relieved).
+- **`n_unresolved`:** how many sectors the plan leaves unresolved (all sectors minus `n_resolved`).
 - **`pct_resolved`:** resolved sectors as a percent of all sectors in the version. A region
   size does not change it; the percent of the region is `pct_of_region`.
 - **`pct_of_region`:** resolved sectors as a percent of the region size you gave
@@ -201,8 +202,8 @@ Checked before solving, in this order; the first one found is reported.
 
 ### Labels
 - **CHECKED:** every claim and every number in the summary matched a stored run, and there was
-  at least one, and every candidate id named is in a run of the conversation. Words and the planning-window
-  years (2027 to 2031) are not checked.
+  at least one, and every candidate id named is in a run of the conversation. Words and the
+  planning-window years (2027 to 2031) are not checked.
 - **NOT CHECKED:** some number could not be matched, even after the agent was sent back once
   to correct it. Do not rely on the numbers.
 - **NO NUMBERS TO CHECK:** the answer was accepted but contains no claims or numbers, so there

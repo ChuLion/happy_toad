@@ -27,7 +27,7 @@ TOLERANCE = 1e-6
 RUN_METRICS = {
     "status", "spend", "weighted_relief", "n_selected", "n_resolved", "pct_resolved",
     "target_met", "required_minimum_budget", "target_budget", "target_sectors",
-    "max_resolvable", "max_pct_resolvable", "pct_of_region",
+    "max_resolvable", "max_pct_resolvable", "pct_of_region", "n_unresolved",
 }  # fmt: skip
 
 

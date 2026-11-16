@@ -136,6 +136,7 @@ def stored_value(record: RunRecord, metric: str):
         "spend": r.spend,
         "n_selected": None if r.selected is None else len(r.selected),
         "n_resolved": r.resolved,
+        "n_unresolved": None if r.resolved is None else r.total_sectors - r.resolved,
         "pct_resolved": r.pct_resolved,
         "pct_of_region": r.pct_of_region,
         "target_met": r.target_met,

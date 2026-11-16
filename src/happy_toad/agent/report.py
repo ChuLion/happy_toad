@@ -12,6 +12,7 @@ Metric = Literal[
     "required_minimum_budget",
     "n_selected",
     "n_resolved",
+    "n_unresolved",
     "n_sectors",
     "pct_resolved",
     "pct_of_region",
@@ -46,6 +47,7 @@ METRIC_UNITS: dict[str, str] = {
     "required_minimum_budget": "cost_units",
     "n_selected": "count",
     "n_resolved": "count",
+    "n_unresolved": "count",
     "n_sectors": "count",
     "pct_resolved": "percent",
     "pct_of_region": "percent",
@@ -65,6 +67,7 @@ PAIR_METRICS = set(DIFF_BASE) | SELECTION_PAIRS
 
 SIGNED_COUNTS = {"diff_n_selected", "diff_n_resolved"}
 COUNT_METRICS = {"n_selected", "n_resolved", "n_sectors", "target_sectors", "max_resolvable"}
+COUNT_METRICS |= {"n_unresolved"}
 COUNT_METRICS |= SELECTION_PAIRS
 COUNT_METRICS |= SIGNED_COUNTS
 TEXT_METRICS = {"status", "target_met"}

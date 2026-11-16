@@ -138,3 +138,30 @@ def test_an_unknown_version_keeps_its_message(tmp_path):
     inputs, runs = toy_dirs(tmp_path)
     record = run_request(SolveRequest(input_version="v9", budget=10.0), inputs, runs)
     assert record.reasons[0].message == "no input version 'v9'"
+
+
+# --- (m) n_unresolved and the sector count ----------------------------------------------------
+
+
+def test_n_unresolved_is_claimable(tmp_path):
+    toy_dirs(tmp_path)
+    run = make_run(tmp_path, budget=12.0)
+    left = run.result.total_sectors - run.result.resolved
+    claim = dict(metric="n_unresolved", value=left, run_id=run.run_id)
+    r = report(f"{left} sectors remained unresolved.", claim)
+    assert check_report(r, tmp_path / "runs", tmp_path / "inputs", [run.run_id]).ok
+    wrong = dict(metric="n_unresolved", value=left + 1, run_id=run.run_id)
+    assert not check_report(report("", wrong), tmp_path / "runs", tmp_path / "inputs").ok
+
+
+def test_the_prompt_asks_for_n_sectors_whenever_of_n_sectors_is_written():
+    assert 'Whenever you write "of N sectors", also claim n_sectors for N' in SYSTEM_PROMPT
+    assert "n_unresolved" in SYSTEM_PROMPT
+
+
+def test_truth_has_the_unresolved_count_of_case_13():
+    import json
+    from pathlib import Path
+
+    truth = json.loads((Path(__file__).parents[1] / "evals/truth.json").read_text())
+    assert truth["cases"]["13"]["runs"][0]["values"]["n_unresolved"] == 38  # 80 - 42

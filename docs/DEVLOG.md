@@ -1444,3 +1444,8 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   VERSION_NOT_FOUND, with the message "changes_v1_to_v2 is a change list, not an input version"
   (scenario and target-budget gates); other unknown names keep "no input version 'x'". Tests
   first (1 seen failing; the unchanged message passed before and after).
+- (m) Unresolved count: `n_unresolved` (all sectors minus resolved) is a claimable count with a
+  glossary entry, computed independently by `evals/truth.py` (truth.json regenerated; case 13:
+  38; cross-check clean and now covers it); rule 11 asks the agent to claim `n_sectors` whenever
+  it writes "of N sectors", and the count before it as `n_resolved` or `n_unresolved`. Tests
+  first (3 seen failing). README describes group 2.
