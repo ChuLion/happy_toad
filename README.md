@@ -27,7 +27,7 @@ flowchart TD
     G -. rejection reasons, back to the agent .-> I
     R --> E[Explanation, AI: summary, numbers as claims]
     E --> C[Checker, code: numbers vs stored runs]
-    C -. refused report, back to the agent once .-> E
+    C -. refused report, back to the agent .-> E
     C -->|checked or not checked| H([Human review: decides])
     classDef ai fill:#f1edfb,stroke:#5b3cc4,stroke-width:3px,stroke-dasharray:6 4,color:#3b2585
     classDef code fill:#ffffff,stroke:#000000,stroke-width:2px,color:#000000
@@ -55,7 +55,7 @@ submit_report 2 claims -> accepted
 │ The budget must be at least 697.01 for this scenario to be feasible. No results were         │
 │ produced because the run was not accepted.                                                   │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────╯
-First report refused, then corrected: unmatched numbers 297.57, 311.44
+Failed the check once, then corrected: unmatched numbers 297.57, 311.44
 2 claims | 2 numbers checked | 0 mismatches
 deepseek/deepseek-v4-flash-0731 | BaseTen | 3 turns | $0.0010 | 3.8 s
 ```

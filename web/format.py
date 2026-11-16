@@ -110,21 +110,35 @@ def call_outcome(name: str, result: dict) -> str:
 
 
 def correction(t) -> str | None:
-    """What the first submit_report got wrong, when it was refused and a later one accepted."""
+    """How a checked answer got there when earlier reports were refused.
+
+    A failed check uses the one correction; a report that did not fit the schema does not.
+    """
     submits = [c for turn in t.turns for c in turn.tool_calls if c["name"] == "submit_report"]
     if t.status != "checked" or len(submits) < 2 or submits[0]["result"].get("accepted"):
         return None
-    if "errors" not in submits[0]["result"]:
-        return "First report refused, then corrected: it did not fit the report schema"
-    first = t.checks[0]
     parts = []
-    if numbers := [n.text for n in first.numbers if not n.ok]:
-        parts.append("unmatched numbers " + ", ".join(numbers))
-    if claims := [f"{c.claim.metric} {c.claim.value}" for c in first.claims if not c.ok]:
-        parts.append("mismatched claims " + ", ".join(claims))
-    if first.missing:
-        parts.append(f"{len(first.missing)} missing minimum-budget claims")
-    return "First report refused, then corrected: " + "; ".join(parts)
+    if len(t.checks) > 1:
+        first = t.checks[0]
+        problems = []
+        if numbers := [n.text for n in first.numbers if not n.ok]:
+            problems.append("unmatched numbers " + ", ".join(numbers))
+        if claims := [f"{c.claim.metric} {c.claim.value}" for c in first.claims if not c.ok]:
+            problems.append("mismatched claims " + ", ".join(claims))
+        if first.missing:
+            problems.append(f"{len(first.missing)} missing minimum-budget claims")
+        parts.append("Failed the check once, then corrected: " + "; ".join(problems))
+    schema = sum(
+        str(c["result"].get("error", "")).startswith("report does not fit the schema")
+        for c in submits
+    )
+    if schema:
+        reports = "1 report" if schema == 1 else f"{schema} reports"
+        parts.append(
+            f"{reports} did not fit the schema and {'was' if schema == 1 else 'were'} "
+            "resent (no correction used)"
+        )
+    return "; ".join(parts) or None
 
 
 def check_line(check) -> str:

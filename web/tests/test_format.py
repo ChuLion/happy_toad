@@ -114,3 +114,20 @@ def test_one_claim_is_singular_in_both():
     one = check.model_copy(update={"claims": check.claims[:1]})
     assert fmt.check_line(one) == cli._counts(one)[0]
     assert fmt.check_line(one).startswith("1 claim | ")
+
+
+def test_correction_matches_the_cli_with_schema_refusals():
+    refused = {"accepted": False, "error": "report does not fit the schema: x"}
+    schema = {"name": "submit_report", "arguments": "{}", "result": refused}
+    t = _transcript()
+    both = [turn.model_copy(deep=True) for turn in t.turns]
+    both[0].tool_calls.append(schema)
+    alone = [turn.model_copy(deep=True) for turn in t.turns]
+    alone[1].tool_calls = [schema]
+    cases = [
+        t.model_copy(update={"turns": both}),
+        t.model_copy(update={"turns": alone, "checks": t.checks[1:]}),
+    ]
+    for case in cases:
+        assert fmt.correction(case) == cli._correction(case)
+        assert "(no correction used)" in fmt.correction(case)

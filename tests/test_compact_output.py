@@ -44,7 +44,7 @@ def test_accepted_report_is_a_checked_panel_with_counts_and_correction() -> None
     out = render(demo_c())
     assert "CHECKED" in out and "NOT CHECKED" not in out
     assert "at least 697.01" in out
-    assert "First report refused, then corrected: unmatched numbers 297.57, 311.44" in out
+    assert "Failed the check once, then corrected: unmatched numbers 297.57, 311.44" in out
     assert "2 claims | 2 numbers checked | 0 mismatches" in out
 
 
@@ -61,7 +61,7 @@ def test_unverified_report_is_not_checked_and_lists_mismatches() -> None:
     assert "NOT CHECKED" in out
     assert "2 claims | 3 numbers checked | 2 mismatches" in out
     assert "number 297.57 in the summary: does not match" in out
-    assert "First report refused" not in out
+    assert "then corrected" not in out
 
 
 def test_a_run_without_a_report_prints_its_status() -> None:
@@ -131,3 +131,31 @@ def test_one_refusal_problem_is_singular() -> None:
     call = {"name": "submit_report", "arguments": "{}", "result": {"accepted": False}}
     compact_tool_call(call, console)
     assert console.export_text().strip() == "submit_report 0 claims -> refused (1 problem)"
+
+
+SCHEMA_ERROR = {"accepted": False, "error": "report does not fit the schema: 1 validation error"}
+SCHEMA_NOTE = "1 report did not fit the schema and was resent (no correction used)"
+
+
+def schema_refused_first(t: Transcript) -> dict:
+    return {"name": "submit_report", "arguments": "{}", "result": SCHEMA_ERROR}
+
+
+def test_a_schema_refusal_alone_is_not_called_a_correction() -> None:
+    t = demo_c()
+    turns = [turn.model_copy(deep=True) for turn in t.turns]
+    turns[1].tool_calls = [schema_refused_first(t)]
+    t = t.model_copy(update={"turns": turns, "checks": t.checks[1:]})
+    out = render(t)
+    assert SCHEMA_NOTE in out
+    assert "then corrected" not in out
+
+
+def test_a_schema_refusal_and_a_check_refusal_are_both_named() -> None:
+    t = demo_c()
+    turns = [turn.model_copy(deep=True) for turn in t.turns]
+    turns[0].tool_calls.append(schema_refused_first(t))
+    out = render(t.model_copy(update={"turns": turns}))
+    assert (
+        "Failed the check once, then corrected: unmatched numbers 297.57, 311.44; " + SCHEMA_NOTE
+    ) in out

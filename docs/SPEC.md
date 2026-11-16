@@ -811,8 +811,10 @@ the section "M3 — approved changes and specification" at the end wins.
     for the video. **[lead]** Exit code 0 for a checked report, 1 for unverified or step cap.
     **[owner, presentation only]** Default output is compact: one line per tool call (name, key
     arguments, outcome; no JSON), a panel with the summary and a CHECKED / NOT CHECKED badge,
-    one check-count line (mismatches listed only when there are any), one line saying what was
-    unmatched when the first report was refused and then corrected, and a dim footer (model,
+    one check-count line (mismatches listed only when there are any), one line for a checked answer
+    whose earlier reports were refused ("Failed the check once, then corrected: ..." naming what was
+    unmatched, and "N report(s) did not fit the schema and was/were resent (no correction used)"),
+    and a dim footer (model,
     provider, turns, cost, seconds). `--verbose` keeps the full output described above.
     The check line reads "N claims | M numbers checked | K mismatches" (M counts numbers that matched)
     ("1 claim" when N is 1, "1 mismatch" when K is 1). An

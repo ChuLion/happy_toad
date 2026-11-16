@@ -42,7 +42,7 @@ def test_both_feedback_paths_are_drawn_back_to_the_agent():
     assert re.search(r'class="back"[^>]*data-branch="rejected"', html)
     assert re.search(r'class="back"[^>]*data-branch="mismatch"', html)
     assert "Rejected: back to the agent with every reason." in html
-    assert "Refused: back to the agent, once" in html
+    assert "Refused: back to the agent." in html and "once" not in html
 
 
 def test_the_last_step_is_human_review():
@@ -55,7 +55,7 @@ def test_the_readme_diagram_has_both_feedback_paths_and_human_review():
     readme = (WEB.parent / "README.md").read_text()
     diagram = readme.split("```mermaid")[1].split("```")[0]
     assert "-. rejection reasons, back to the agent .-> I" in diagram
-    assert "-. refused report, back to the agent once .-> E" in diagram
+    assert "-. refused report, back to the agent .-> E" in diagram
     assert "Human review" in diagram and "class I,E ai" in diagram
     assert "class G,O,R,C code" in diagram
 

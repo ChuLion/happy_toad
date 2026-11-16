@@ -1539,3 +1539,13 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
 - Correction, found when the owner asked: the README said "measured beyond that line: first
   pass +16, pass +9", but +9 is under the 10-point line. It now says only first pass (+16) is
   clearly beyond noise and pass (+9) is suggestive. My M4 final report made the same mistake.
+
+## 2026-11-16 — Consistency fixes (owner's list after the retry-limit check)
+- #1 "once": a report that does not fit the schema is refused without using the one correction,
+  but the page lit "Refused: back to the agent, once" for it and the CLI called it "First report
+  refused, then corrected". The diagram labels (page and README) now say "back to the agent"
+  without "once". The CLI and web line now names each kind: "Failed the check once, then
+  corrected: ..." for a check refusal, "1 report did not fit the schema and was resent (no
+  correction used)" for schema refusals, both when both happened (before, a schema refusal
+  followed by a check refusal showed only the schema one). Tests first (4 seen failing).
+  Not specified by the owner: the exact new wording.

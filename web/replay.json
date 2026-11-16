@@ -255,7 +255,7 @@
       ],
       "correction": {
         "happened": true,
-        "note": "First report refused, then corrected: unmatched numbers 297.57, 311.44"
+        "note": "Failed the check once, then corrected: unmatched numbers 297.57, 311.44"
       },
       "runs": [
         {
