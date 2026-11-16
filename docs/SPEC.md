@@ -791,8 +791,8 @@ the section "M3 — approved changes and specification" at the end wins.
    validated claim's value within the same tolerance (**[lead]** numbers are found by a simple
    pattern in the summary text; a number that is a run id or a year is ignored only if it appears
    as a run id or as a version name). On a mismatch the checker's errors go back to the model
-   once; if the second report still fails, the report is shown flagged **UNVERIFIED** with the
-   failing claims listed. A report whose every claim and number passes is shown as checked.
+   once; if the second report still fails, the report is shown as **NOT CHECKED** (status
+   `unverified` in the transcript) with the failing claims listed. A report whose every claim and number passes is shown as checked.
 7. **Every attempt recorded [owner].** A tool input that fails schema validation becomes a rejected
    run record with reason `SCHEMA_INVALID` (a new reason code; message names the field).
    **[lead]** This changes an M2A implementation choice (malformed requests were raised before the
