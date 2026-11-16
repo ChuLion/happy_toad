@@ -6,7 +6,7 @@ numbers. All data is synthetic and generated from a seed. It is not a product.
 
 Plan capital budgets but don't program? Start with the [Guide for planners](docs/GUIDE.md).
 
-**Status:** M1 to M3 and M2B complete (tag v0.4); M4 to M7 planned.
+**Status:** M1 to M4 and M2B complete (tag v0.5); M5 to M7 planned.
 
 ## Why
 Planners ask follow-up questions of an optimizer: what if the budget were larger, what if this
@@ -292,8 +292,56 @@ What a failed check looks like (a real run: the summary said 15 candidates appea
 
 ![What a failed check looks like](docs/images/not_checked.png)
 
+## Milestone 4: evaluations (`happy-toad eval`)
+19 questions, each asked 5 times on the demo model (DeepSeek V4 Flash 0731), graded on three
+things: the right runs (tools and arguments), the right numbers (against ground truth computed by
+`evals/truth.py`, which shares no code with the engine, not against the agent's own runs) and the
+right behaviour (allowed label, required phrases). Wording that should never appear ("approve",
+"recommend") is listed for a person to review, not failed automatically, because it also appears
+in correct refusals. Conversations ended by a provider error are counted apart and left out of the
+rates. Official rounds run on a clean, committed tree; reports are in `evals/rounds/`.
+
+| Round | Change before it | Pass | Runs | Numbers | Behaviour | Checked | First pass | Cost |
+|---|---|---|---|---|---|---|---|---|
+| Baseline | (none) | 86% | 95% | 94% | 91% | 80% | 66% | $0.094 |
+| Round 2 | group 1: checker fixes | 84% | 94% | 94% | 86% | 76% | 54% | $0.093 |
+| Round 2b | candidate ids from any run of the conversation | 87% | 95% | 95% | 88% | 78% | 63% | $0.085 |
+| Round 3 | group 2: prompt, tool text, gate message, `n_unresolved` | 89% | 99% | 100% | 91% | 82% | 78% | $0.088 |
+| Final | change lists listed apart; checker wording rule dropped; "0.5x" | 95% | 97% | 96% | 97% | 82% | 82% | $0.075 |
+
+**Noise:** a round is 95 conversations (19 x 5), so a difference between two rounds under about 10
+percentage points is noise, and per case a change of 1 or 2 out of 5 is noise. Measured beyond
+that line: first pass +16 from baseline to final, pass +9. Independent truth catches coding bugs,
+not SPEC errors, and truth and the engine share PuLP with CBC, so a solver bug would make both
+agree.
+
+What the rounds showed: the agent never used the target field until the tool said it is
+report-only (case 15: 0/5 to 5/5); a change-list question was unanswerable until the version
+listing named change lists (case 17: 0/5 to 5/5); requiring candidate ids to be in a *cited* run
+made answers vaguer (C099 became "the specified candidate"), which only the usefulness checks
+caught, so it was widened to any run of the conversation; a checker rule against "infeasible"
+refused a correct denial ("it is not an infeasible result") and was dropped.
+
+Trade-offs accepted after automated security reviews (details in docs/DEVLOG.md):
+- Numbers in the request values of the conversation's runs, and in the gate's own rejection
+  messages (cap, minimum budget), may appear in a summary without a citing claim. So an agent
+  could run a scenario with a chosen budget to make that number allowed; the run is stored and
+  visible. Messages that echo the agent's own text (version names, candidate ids, schema input)
+  add no numbers.
+- A candidate id may be named if it is in the selection or force lists of any run of the
+  conversation, so an id forced into a rejected request counts as traced (case 8's C099 needs
+  this); the rejected request is stored.
+- The checker does not judge wording ("rejected" against "infeasible"); the prompt asks for it
+  and the eval grades it.
+- A number glued to a letter ("0.5x", "C033") is skipped, not checked; identifiers depend on it.
+- Without git, a transcript records its commit as unknown instead of failing to save.
+
+```
+uv run happy-toad eval --round NAME [--cases 1,5] [--repeats 5] [--unofficial]
+uv run happy-toad eval --regrade evals/rounds/baseline.json --note "..."
+```
+
 ## What is next (planned, not done)
-- M4: evaluations.
 - M5: revision analysis.
 - M6: an MCP server.
 - M7: deferred diagnostics: the smallest budget at which the optimizer's own plan reaches a

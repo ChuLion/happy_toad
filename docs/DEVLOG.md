@@ -1501,3 +1501,17 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   regressed code, was stopped before any report was written and restarted. Acknowledged, not
   changed: skipping a number glued to a letter is the SPEC's existing rule (identifiers such as
   C033 and v1 depend on it).
+
+## 2026-11-16 — Final round; README; v0.5
+- Final round (official, commit 7c34417, 95 conversations, $0.0746, 1 infrastructure error in
+  case 12 excluded): pass 95%, runs 97%, numbers 96%, behaviour 97%, checked 82%, first pass 82%,
+  mean 3.6 s and 2.8 turns. Case 17 5/5 (0/5 in every earlier round; the version listing now names
+  the change list). **Case 7 did not run a budget nobody gave** (all 5: list versions, then ask
+  for a budget).
+- Remaining failures, all agent behaviour: case 13 (2) asked what "half its fair share" means
+  instead of translating it to a floor multiplier of 0.5 (rule 3); case 11 (1) ran 1500 without
+  forcing in the 800 plan (caught by the 1500 change); case 4 (1) wrote "the required minimum
+  budget is 697.01", not "at least 697.01"; case 5 (1) did not claim the follow-up run's resolved
+  count.
+- README: M4 section with the round table, the noise note and the trade-offs accepted after the
+  security reviews; status M1 to M4 and M2B (v0.5).
