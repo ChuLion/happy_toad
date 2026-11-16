@@ -410,3 +410,7 @@ uv run happy-toad eval --regrade evals/rounds/baseline.json --note "..."
 - M7: deferred diagnostics: the smallest budget at which the optimizer's own plan reaches a
   target, a cause for floors that no combination of whole candidates can meet, the cheapest way
   to resolve each still-short sector, and a CLI table of target against cheapest budget.
+  Parked ideas: a runs-summary command (counts of run records by status and reason code; 1,149
+  records exist); a `list_candidates` tool plus a welcome panel showing the input versions, their
+  counts, the must-fund total and the budget range. A new tool changes the evaluation baseline, so
+  it needs a re-run of the eval rounds.
