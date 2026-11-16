@@ -47,7 +47,9 @@ TOOLS = [
         "C033). Returns the run id and a summary: status, weighted relief (`objective`), spend "
         "(candidates only), selected candidates, sectors resolved, percent resolved, unresolved "
         "sectors, and, when infeasible, the cause and `required_minimum_budget` (the budget must "
-        "be at least that). Never guess a budget; ask the user.",
+        "be at least that). target_pct_resolved only reports whether the plan resolves at least "
+        "that percent (target_met); it does not change the plan. Pass it when the user asks "
+        "whether a plan reaches a percent. Never guess a budget; ask the user.",
         SolveRequest.model_json_schema(),
     ),
     _tool(

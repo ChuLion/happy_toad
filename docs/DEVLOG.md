@@ -1427,3 +1427,12 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   (seen failing).
 - (h) Decimals: rule 7 says to round to the displayed precision, never more or fewer digits,
   with examples (41.25% is written 41.3%, 1573.567 is written 1573.57). Test first (seen failing).
+- Acknowledged, not changed (automated security review of f): the rule covers cited runs, as
+  the SPEC says, so a claimless "infeasible" about a rejected run passes (a possible follow-up:
+  the conversation's runs, as for e); when any cited run is really Infeasible, the rule stands
+  down for the whole summary, since telling which run a word refers to needs sentence parsing.
+- (i) `target_pct_resolved` is described as report-only in the `run_scenario` tool text ("only
+  reports whether the plan resolves at least that percent (target_met); it does not change the
+  plan. Pass it when the user asks whether a plan reaches a percent.") and in the field's schema
+  description; the request hash is unchanged (descriptions are not dumped). Test first (seen
+  failing). Not specified by the owner: the "Pass it when ..." sentence.

@@ -63,3 +63,23 @@ def test_rule_7_gives_rounding_examples():
     rule = SYSTEM_PROMPT[SYSTEM_PROMPT.index("7. ") : SYSTEM_PROMPT.index("8. ")]
     assert "41.25% is written 41.3%" in rule
     assert "1573.567 is written 1573.57" in rule
+
+
+# --- (i) target_pct_resolved is report-only ---------------------------------------------------
+
+
+def test_run_scenario_describes_the_target_as_report_only():
+    from happy_toad.agent.tools import TOOLS
+
+    spec = next(t["function"] for t in TOOLS if t["function"]["name"] == "run_scenario")
+    assert "target_pct_resolved only reports" in spec["description"]
+    field = spec["parameters"]["properties"]["target_pct_resolved"]
+    assert "does not change the plan" in field["description"]
+
+
+def test_the_field_description_does_not_change_the_request_hash():
+    from happy_toad.services.request import SolveRequest, request_hash
+
+    r = SolveRequest(input_version="v1", budget=1400, target_pct_resolved=50)
+    assert request_hash(r) == request_hash(SolveRequest.model_validate(r.model_dump()))
+    assert "description" not in str(r.model_dump())
