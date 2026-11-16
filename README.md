@@ -19,23 +19,27 @@ answer it cannot verify is shown as not checked. A human decides; the agent appr
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "18px"}}}%%
 flowchart TD
-    Q([Question]) --> I[Intake, AI: exact scenario requests]
-    I --> G[Gate, code: accept or reject, all reasons]
-    G -->|accepted| O[Optimizer, code: PuLP + CBC, two stages]
+    accTitle: How an answer is made
+    accDescr: A question goes to Intake (AI), then the Gate (code). Accepted requests go to the Optimizer (code); every attempt is stored in the Run record (code). Explanation (AI) writes a summary with numbers as claims, and the Checker (code) compares them with the stored runs before a person reviews the labelled answer. Rejections and refused reports go back to the agent.
+    Q([Question]) --> I["Intake (AI): exact scenario requests"]
+    I --> G["Gate (code): accept or reject, all reasons"]
+    G -->|accepted| O["Optimizer (code): PuLP + CBC, two stages"]
     G -->|rejected| R
-    O --> R[Run record, code: every attempt]
+    O --> R["Run record (code): every attempt"]
+    R --> E["Explanation (AI): summary, numbers as claims"]
+    E --> C["Checker (code): numbers vs stored runs"]
+    C -->|CHECKED, NOT CHECKED or NO NUMBERS TO CHECK| H(["Human review: decides"])
     G -. rejection reasons, back to the agent .-> I
-    R --> E[Explanation, AI: summary, numbers as claims]
-    E --> C[Checker, code: numbers vs stored runs]
     C -. refused report, back to the agent .-> E
-    C -->|CHECKED, NOT CHECKED or NO NUMBERS TO CHECK| H([Human review: decides])
+    R -. stored runs .-> C
     classDef ai fill:#f1edfb,stroke:#5b3cc4,stroke-width:3px,stroke-dasharray:6 4,color:#3b2585
-    classDef code fill:#ffffff,stroke:#000000,stroke-width:2px,color:#000000
-    classDef person fill:#000000,stroke:#000000,color:#ffffff
+    classDef code fill:#ffffff,stroke:#3d4451,stroke-width:2px,color:#000000
+    classDef person fill:#3d4451,stroke:#3d4451,color:#ffffff
     class I,E ai
     class G,O,R,C code
     class Q,H person
-    linkStyle 5,8 stroke:#ee001e,stroke-width:3px,color:#ee001e
+    linkStyle 8,9 stroke:#ee001e,stroke-width:3px,color:#ee001e
+    linkStyle 10 stroke:#9a9a9a,stroke-width:2px,color:#6f7171
 ```
 Purple dashed boxes are the AI model (one agent, two jobs); black boxes are plain code. Red dotted
 arrows are the two ways work goes back to the agent.
