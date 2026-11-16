@@ -60,6 +60,10 @@ A target or region size changes only what is reported, not the plan.
 The same eight steps as the diagram on the web page and in the README. Two are done by the AI
 model (marked AI); four are plain code (marked code); the first and the last are people.
 
+![Workflow diagram. A question goes to Intake (AI), which writes a structured request. The Gate (code) accepts or rejects it, and rejection reasons go back to the AI. Accepted requests go to the Optimizer (code: PuLP with CBC, two stages). Every attempt, accepted or rejected, is stored in the Run record (code). The Explanation (AI) writes a summary with its numbers as claims. The Checker (code) compares those numbers with the stored runs, and a refused report goes back to the AI. The answer, labeled checked, not checked, or no numbers to check, goes to a person, who decides.](images/workflow_video.png)
+
+*How an answer is made: purple steps are the AI model, white steps are code, dotted arrows go back to the agent.*
+
 1. **Question.** A planner asks in plain English.
 2. **Intake (AI).** The agent turns the question into exact scenario requests. The optimizer
    needs exact inputs, not prose.
