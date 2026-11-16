@@ -1596,3 +1596,11 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
     path, the stored-runs link and the edge labels are hidden there.
   - Step descriptions shortened to fit; the path tests need node (present locally and on the CI
     runner; skipped with a reason if missing).
+
+## 2026-11-16 — Web: claim definitions on click
+- Owner reported the claim-card glossary not working: hovering turned the pointer into a
+  question mark (`cursor: help` on the card, with the definition in a `title` tooltip). Now the
+  card keeps the default pointer and has no tooltip; the metric name is a button that shows or
+  hides the definition inside the card (`aria-expanded` set), dotted underline as before.
+- Not specified by the owner: the name button shows the hand pointer like every other button on
+  the page; cards in the grid keep their own height, so opening one does not stretch its row.

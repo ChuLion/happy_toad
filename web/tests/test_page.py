@@ -102,3 +102,11 @@ def test_the_guide_has_the_diagram_steps_in_order():
     names = re.findall(r"^\d+\. \*\*([^.*(]+?)(?: \((?:AI|code)\))?\.\*\*", section, re.M)
     assert names == STEPS
     assert re.findall(r"<b>([^<]+)</b>", page().split('class="flow"')[1].split("</ol>")[0]) == STEPS
+
+
+def test_claim_definitions_open_on_click_not_on_hover():
+    html = page()
+    assert "cursor: help" not in html  # the question-mark pointer
+    assert "title: GLOSSARY" not in html  # no hover tooltip
+    assert 'el("button", { class: "k term", type: "button", "aria-expanded": "false"' in html
+    assert 'el("p", { class: "def", hidden: "" }, definition)' in html
