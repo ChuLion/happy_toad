@@ -1356,3 +1356,9 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   in the conversation" is the loop's existing list, which also holds runs the agent read
   (`get_run`) or compared, since their values were shown to it too; a request value that is not
   a number (a schema-invalid record's raw input) is skipped instead of raising.
+- (e) Candidate ids: every candidate id (C plus three digits) in the summary must be in the
+  selection or force lists of a run cited by a valid claim; otherwise the report is refused with
+  "candidate C0xx in the summary is not in a cited run's selection or force lists". As specified,
+  a claimless answer that names a candidate is refused (predicted to affect case 9). Tests first
+  (2 seen failing; the two allowed cases passed before and after). Guide and README updated for
+  the whole group.

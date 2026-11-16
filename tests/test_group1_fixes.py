@@ -174,3 +174,69 @@ def test_the_agent_loop_allows_numbers_of_its_own_rejected_runs(tmp_path):
     t = ask("q", FakeClient(script), SMOKE, inputs_dir=inputs, runs_dir=runs,
             transcripts_dir=tmp_path / "t")  # fmt: skip
     assert t.status == "checked"
+
+
+# --- (e) candidate ids in the summary --------------------------------------------------------
+
+
+@pytest.fixture
+def c_runs(tmp_path):
+    """C001 resolves sA (cost 5), C002 resolves sB (cost 5), C003 resolves sC (cost 9)."""
+    from helpers import make_set
+
+    from happy_toad.data.loader import save_input_set
+    from happy_toad.services.request import SolveRequest
+    from happy_toad.services.run import run_request
+
+    inputs, runs = tmp_path / "inputs", tmp_path / "runs"
+    inputs.mkdir()
+    data = make_set(
+        [("sA", 10), ("sB", 10), ("sC", 10)],
+        [("C001", 5), ("C002", 5), ("C003", 9)],
+        [("C001", "sA", 10), ("C002", "sB", 10), ("C003", "sC", 10)],
+    )
+    save_input_set(data, inputs / "c.json")
+
+    def run(**kw):
+        return run_request(SolveRequest(input_version="c", **kw), inputs, runs)
+
+    return inputs, runs, run
+
+
+def status_claim(record):
+    return dict(metric="status", value=record.result.status if record.result else "rejected",
+                run_id=record.run_id)  # fmt: skip
+
+
+def test_a_selected_or_forced_candidate_may_be_named(c_runs):
+    inputs, runs, run = c_runs
+    record = run(budget=10.0, force_out=["C003"])
+    assert record.result.selected == ["C001", "C002"]
+    r = report("The plan funds C001 and C002; C003 was left out.", status_claim(record))
+    assert check_report(r, runs, inputs, [record.run_id]).ok
+
+
+def test_a_candidate_outside_the_cited_runs_is_refused(c_runs):
+    inputs, runs, run = c_runs
+    record = run(budget=10.0)
+    r = report("The plan funds C001, C002 and C003.", status_claim(record))
+    result = check_report(r, runs, inputs, [record.run_id])
+    assert not result.ok
+    assert any("C003" in e and "cited run" in e for e in result.errors())
+
+
+def test_a_forced_in_unknown_candidate_of_a_cited_rejected_run_may_be_named(c_runs):
+    inputs, runs, run = c_runs
+    record = run(budget=10.0, force_in=["C099"])
+    assert record.outcome == "rejected"
+    r = report(
+        "C099 is not a candidate in this data, so the run was rejected.", status_claim(record)
+    )
+    assert check_report(r, runs, inputs, [record.run_id]).ok
+
+
+def test_a_claimless_answer_that_names_a_candidate_is_refused(c_runs):
+    """As specified: no claim, so no cited run, so the id cannot be traced (affects case 9)."""
+    inputs, runs, _ = c_runs
+    result = check_report(report("I cannot decide whether to fund C001."), runs, inputs, [])
+    assert not result.ok and "C001" in " ".join(result.errors())

@@ -272,12 +272,13 @@ failure reasons per model are in docs/DEVLOG.md.
   "infeasible". The defaults count (units and entities the schema filled in) records schema
   behaviour and is not a quality signal. Claims are about whole plans only; differences are
   allowed only as `compare_runs` reports them, never computed by the agent.
-- Also not checked yet, logged for the M4 fix pass: candidate ids named in the summary are not
-  checked against the runs, a count claimed as a whole-valued float (2.0 instead of 2) is
-  rejected, and the percent of a region (`region_total_sectors`) is reported in the run but is
-  not a report metric, so an answer that states it is NOT CHECKED.
-- The checker skips whole numbers from 1900 to 2199 in the summary as possible years, so a wrong
-  figure in that range (for example "a budget of 2000") would go unchecked.
+- Changed in the M4 fix pass (group 1, checker): a count claimed as a whole-valued float (2.0)
+  is accepted as 2; `compare_runs` counts added and dropped candidates (`n_added`, `n_dropped`,
+  claimable); the region percent is a claimable metric (`pct_of_region`); only the planning-window
+  years (2027-2031) are skipped, so "a budget of 2000" is checked; numbers in the request values
+  and rejection messages of the conversation's runs are allowed, numbers only in the question are
+  not; a candidate id in the summary must be in a cited run's selection or force lists, so a
+  claimless answer that names a candidate is refused.
 
 What a failed check looks like (a real run: the summary said 15 candidates appear only in the
 1500 run, a number no claim backs, so the answer is shown as NOT CHECKED):

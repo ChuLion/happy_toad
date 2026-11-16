@@ -45,6 +45,7 @@ RUN_ID_TEXT = re.compile(r"\d{8}T\d{6}-[0-9a-f]{8}")
 LIST_MARKER = re.compile(r"(?m)^\s*\d+[.)](?=\s)")
 NUMBER = re.compile(r"(?<![\w.])[-+]?\d+(?:,\d{3})*(?:\.\d+)?%?(?!\w)")
 YEAR = re.compile(r"\d{4}")
+CANDIDATE_ID = re.compile(r"\bC\d{3}\b")  # the generator's candidate ids (C001, ...)
 MODEL_YEARS = range(BASE_YEAR, BASE_YEAR + HORIZON_YEARS)  # 2027-2031 (M4 fix d)
 NOT_CHECKED = "not checked because no claim validated"
 NOT_IN_CONVERSATION = "run was not executed or read in this conversation"
@@ -66,12 +67,16 @@ class CheckResult(BaseModel):
     claims: list[ClaimCheck]
     numbers: list[NumberCheck]
     missing: list[str] = []  # claims the report must make but does not
+    candidates: list[str] = []  # candidate ids in the summary that no cited run contains (fix e)
 
     @computed_field
     @property
     def ok(self) -> bool:
         return (
-            all(c.ok for c in self.claims) and all(n.ok for n in self.numbers) and not self.missing
+            all(c.ok for c in self.claims)
+            and all(n.ok for n in self.numbers)
+            and not self.missing
+            and not self.candidates
         )
 
     def errors(self) -> list[str]:
@@ -89,7 +94,7 @@ class CheckResult(BaseModel):
         ]
         if unchecked:
             bad_numbers.append(f"{len(unchecked)} summary numbers {NOT_CHECKED}")
-        return bad_claims + self.missing + bad_numbers
+        return bad_claims + self.missing + bad_numbers + self.candidates
 
 
 def _strip_run_ids(text: str, run_ids: Iterable[str]) -> str:
@@ -247,6 +252,26 @@ def _number(value) -> bool:
     return isinstance(value, int | float) and not isinstance(value, bool)
 
 
+def untraced_candidates(report: Report, runs_dir: Path) -> list[str]:
+    """Candidate ids in the summary that are in no cited run's selection or force lists."""
+    traced: set[str] = set()
+    for run_id in _run_ids(report):
+        record = read_run(run_id, runs_dir)
+        if record is None:
+            continue
+        for key in ("force_in", "force_out"):
+            if isinstance(record.request.get(key), list):
+                traced |= {str(x) for x in record.request[key]}
+        if record.result is not None and record.result.selected:
+            traced |= set(record.result.selected)
+    named = dict.fromkeys(CANDIDATE_ID.findall(report.summary))
+    return [
+        f"candidate {cid} in the summary is not in a cited run's selection or force lists"
+        for cid in named
+        if cid not in traced
+    ]
+
+
 def _needs_minimum_budget(record: RunRecord) -> bool:
     blocked = record.outcome == "rejected" or (
         record.result is not None and record.result.status == "Infeasible"
@@ -296,4 +321,5 @@ def check_report(
         message = "matches" if match else "does not match any validated claim or request value"
         numbers.append(NumberCheck(text=text, ok=match, message=message))
     missing = missing_minimum_budgets(valid, run_ids, runs_dir)
-    return CheckResult(claims=claims, numbers=numbers, missing=missing)
+    candidates = untraced_candidates(valid, runs_dir)
+    return CheckResult(claims=claims, numbers=numbers, missing=missing, candidates=candidates)
