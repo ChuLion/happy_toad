@@ -9,7 +9,7 @@
 <style>
 :root {
   --canvas: #ffffff; --ink: #000000; --muted: #6f7171; --line: #d8dada;
-  --accent: #ee001e; --chip: #f8f3e9; --ok: #00873e; --soft: #f6f6f6;
+  --accent: #ee001e; --ai: #5b3cc4; --ai-soft: #f1edfb; --chip: #f8f3e9; --ok: #00873e; --soft: #f6f6f6;
   --radius: 16px;
   --sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -132,25 +132,42 @@ ol.steps li:last-child { border-bottom: 0; }
 @keyframes shimmer { to { background-position: -200% 0; } }
 
 .how { margin-bottom: 16px; }
-ol.flow { list-style: none; margin: 0; padding: 18px 22px 20px; border-top: 1px solid var(--line);
-  display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 0 10px; counter-reset: stop; }
-.flow li { position: relative; padding-top: 30px; min-width: 0; counter-increment: stop; }
-.flow li::before { content: counter(stop); position: absolute; top: 0; left: 0; width: 22px; height: 22px;
-  border-radius: 50%; background: var(--canvas); border: 1.5px solid var(--ink);
-  display: grid; place-items: center; font: 600 11px var(--sans); z-index: 1; }
-.flow li::after { content: ""; position: absolute; top: 11px; left: 22px; right: -10px;
-  border-top: 1.5px solid var(--ink); }
+ol.flow { list-style: none; margin: 0; padding: 4px 22px 124px; display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 0 10px; counter-reset: stop; }
+.flow li { position: relative; padding: 34px 6px 8px 0; min-width: 0; counter-increment: stop;
+  border-radius: 10px; transition: opacity .3s, background-color .3s, box-shadow .3s; }
+.flow li::before { content: counter(stop); position: absolute; top: 0; left: 0; width: 26px; height: 26px;
+  border-radius: 50%; background: var(--canvas); border: 2px solid var(--ink);
+  display: grid; place-items: center; font: 700 13px var(--sans); z-index: 1; }
+.flow li::after { content: ""; position: absolute; top: 12px; left: 26px; right: -10px;
+  border-top: 2px solid var(--ink); }
 .flow li:last-child::after { display: none; }
 .flow li:last-child::before { background: var(--ink); color: var(--canvas); }
-.flow b { display: block; font-size: 13px; font-weight: 700; line-height: 1.3; }
-.flow span { display: block; font-size: 12px; line-height: 1.4; color: var(--muted); margin-top: 3px; }
-.flow .branch { color: var(--accent); margin-top: 6px; }
-.flow li { border-radius: 10px; transition: opacity .3s, background-color .3s, box-shadow .3s; }
+.flow li.ai::before { border: 2px dashed var(--ai); color: var(--ai); background: var(--ai-soft); }
+.flow li.code::before { border-radius: 6px; }
+.flow li.ai b { color: var(--ai); }
+.flow b { display: block; font-size: 15px; font-weight: 700; line-height: 1.3; }
+.flow b::after { display: block; font: 600 10px/1.6 var(--mono); letter-spacing: .06em; color: var(--muted); }
+.flow li.ai b::after { content: "AI MODEL"; color: var(--ai); }
+.flow li.code b::after { content: "CODE"; }
+.flow span { display: block; font-size: 13px; line-height: 1.45; color: var(--muted); margin-top: 4px; }
+.flow .back { position: absolute; top: calc(100% + 6px); left: calc(-100% - 10px + 12px);
+  width: calc(100% + 10px); margin: 0; padding: 10px 10px 8px; border: 2px dashed var(--accent);
+  border-top: 0; border-radius: 0 0 12px 12px; color: var(--accent); font-size: 12.5px; line-height: 1.35; }
+.flow .back::before { content: ""; position: absolute; left: -8px; top: -14px;
+  border: 7px solid transparent; border-bottom: 10px solid var(--accent); border-top: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0; padding: 14px 22px 10px;
+  border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+.key { display: inline-flex; align-items: center; gap: 7px; }
+.key::before { content: ""; width: 16px; height: 16px; border: 2px solid var(--ink); border-radius: 4px; }
+.key.ai { color: var(--ai); }
+.key.ai::before { border: 2px dashed var(--ai); border-radius: 50%; background: var(--ai-soft); }
+.key.back-key { color: var(--accent); }
+.key.back-key::before { height: 0; border: 0; border-top: 2px dashed var(--accent); border-radius: 0; }
 .flow.tracking li { opacity: .3; }
 .flow.tracking li.passed { opacity: 1; }
-.flow.tracking .branch { visibility: hidden; }
-.flow.tracking .branch.hit { visibility: visible; }
-.flow li.here { background: var(--soft); box-shadow: 0 0 0 6px var(--soft); }
+.flow.tracking .back { opacity: .55; }
+.flow.tracking .back.hit { opacity: 1; }
 
 footer.meta { color: var(--muted); font-size: 12px; margin: 2px 2px 0; overflow-wrap: anywhere; }
 footer.meta span + span::before { content: " | "; color: var(--line); }
@@ -165,9 +182,11 @@ footer.meta span + span::before { content: " | "; color: var(--line); }
 }
 @media (max-width: 760px) {
   ol.flow { grid-template-columns: minmax(0, 1fr); padding: 16px; }
-  .flow li { padding: 1px 0 14px 34px; }
-  .flow li::after { top: 22px; bottom: 0; left: 10px; right: auto; border-top: 0;
-    border-left: 1.5px solid var(--ink); }
+  .flow li { padding: 2px 0 14px 38px; }
+  .flow li::after { top: 26px; bottom: 0; left: 12px; right: auto; border-top: 0;
+    border-left: 2px solid var(--ink); }
+  .flow .back { position: static; width: auto; border: 0; padding: 4px 0 0; }
+  .flow .back::before { content: "\21A9  "; position: static; border: 0; }
   .flow li:last-child { padding-bottom: 0; }
 }
 </style>
@@ -185,17 +204,19 @@ footer.meta span + span::before { content: " | "; color: var(--line); }
 <main>
   <details class="card trace how" open>
     <summary>How an answer is made</summary>
+    <p class="legend"><span class="key ai">AI model</span><span class="key code">Code</span>
+      <span class="key back-key">Feedback to the agent</span></p>
     <ol class="flow">
-      <li data-stage="question"><b>Question</b><span>You ask in plain English.</span></li>
-      <li data-stage="agent"><b>Agent</b><span>Turns it into exact scenario requests.</span></li>
-      <li data-stage="gate"><b>Gate</b><span>Accepts or rejects each request, listing every problem.</span>
-        <span class="branch" data-branch="rejected">Rejected: stored with its reasons, not solved.</span></li>
-      <li data-stage="optimizer"><b>Optimizer</b><span>Most weighted relief first, then the lowest spend for it.</span></li>
-      <li data-stage="record"><b>Run record</b><span>Every attempt is stored with a run id.</span></li>
-      <li data-stage="report"><b>Report</b><span>A summary, with its numbers listed as claims.</span></li>
-      <li data-stage="checker"><b>Checker</b><span>Matches every number to a stored run.</span>
-        <span class="branch" data-branch="mismatch">Mismatch: sent back to the agent once.</span></li>
-      <li data-stage="you"><b>You</b><span>See the label and the numbers. A human decides.</span></li>
+      <li data-stage="question"><b>Question</b><span>A planner asks in plain English.</span></li>
+      <li data-stage="intake" class="ai"><b>Intake</b><span>Turns the question into exact scenario requests.</span></li>
+      <li data-stage="gate" class="code"><b>Gate</b><span>Accepts or rejects each request, listing every problem.</span>
+        <span class="back" data-branch="rejected">Rejected: back to the agent with every reason.</span></li>
+      <li data-stage="optimizer" class="code"><b>Optimizer</b><span>Most weighted relief first, then the lowest spend for it.</span></li>
+      <li data-stage="record" class="code"><b>Run record</b><span>Every attempt is stored with a run id.</span></li>
+      <li data-stage="explanation" class="ai"><b>Explanation</b><span>A summary, with its numbers listed as claims.</span></li>
+      <li data-stage="checker" class="code"><b>Checker</b><span>Matches every number to a stored run.</span>
+        <span class="back" data-branch="mismatch">Refused: back to the agent, once.</span></li>
+      <li data-stage="review"><b>Human review</b><span>Sees the label and the numbers. A human decides.</span></li>
     </ol>
   </details>
   <div id="controls"></div>
@@ -325,11 +346,11 @@ const flow = document.querySelector(".flow");
 function stagesOf(s) {
   const o = s.outcome;
   const runs = s.tool === "run_scenario" || s.tool === "find_target_budget";
-  if (runs && o.startsWith("rejected")) return [["agent", "gate", "record"], "rejected"];
-  if (runs && o.startsWith("unreachable")) return [["agent", "gate", "record"]];
-  if (runs && !o.startsWith("error")) return [["agent", "gate", "optimizer", "record"]];
-  if (s.tool === "submit_report") return [["agent", "report", "checker"], o.startsWith("refused") ? "mismatch" : null];
-  return [["agent"]];
+  if (runs && o.startsWith("rejected")) return [["intake", "gate", "record"], "rejected"];
+  if (runs && o.startsWith("unreachable")) return [["intake", "gate", "record"]];
+  if (runs && !o.startsWith("error")) return [["intake", "gate", "optimizer", "record"]];
+  if (s.tool === "submit_report") return [["intake", "explanation", "checker"], o.startsWith("refused") ? "mismatch" : null];
+  return [["intake"]];
 }
 
 function markFlow(stages, branch) {
@@ -346,7 +367,7 @@ function resetFlow() {
 }
 
 const flowStep = s => markFlow(...stagesOf(s));
-const flowDone = () => markFlow(["you"]);
+const flowDone = () => markFlow(["review"]);
 
 function finalFlow(v) {
   resetFlow();

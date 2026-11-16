@@ -17,17 +17,27 @@ answer it cannot verify is shown as not checked. A human decides; the agent appr
 
 ## Architecture
 ```mermaid
+%%{init: {"themeVariables": {"fontSize": "20px"}}}%%
 flowchart LR
-    Q[Question] --> A[Agent: tool calls]
-    A --> G[Gate: accept or reject, all reasons]
-    G -->|accepted| O[Optimizer: PuLP + CBC, two stages]
+    Q([Question]) --> I[Intake, AI: exact scenario requests]
+    I --> G[Gate, code: accept or reject, all reasons]
+    G -->|accepted| O[Optimizer, code: PuLP + CBC, two stages]
     G -->|rejected| R
-    O --> R[Run record: every attempt]
-    R --> P[Report: claims as data]
-    P --> C[Checker: numbers vs stored runs]
-    C -->|refused once| A
-    C --> S[Summary to a human]
+    O --> R[Run record, code: every attempt]
+    G -. rejection reasons, back to the agent .-> I
+    R --> E[Explanation, AI: summary, numbers as claims]
+    E --> C[Checker, code: numbers vs stored runs]
+    C -. refused report, back to the agent once .-> E
+    C -->|checked or not checked| H([Human review: decides])
+    classDef ai fill:#f1edfb,stroke:#5b3cc4,stroke-width:3px,stroke-dasharray:6 4,color:#3b2585
+    classDef code fill:#ffffff,stroke:#000000,stroke-width:2px,color:#000000
+    classDef person fill:#000000,stroke:#000000,color:#ffffff
+    class I,E ai
+    class G,O,R,C code
+    class Q,H person
 ```
+Purple dashed boxes are the AI model (one agent, two jobs); black boxes are plain code. Dotted
+arrows are the two ways work goes back to the agent.
 The agent approves nothing: it runs scenarios and reports; a human decides.
 
 ## Demo excerpt (live, question c)
