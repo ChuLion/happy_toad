@@ -71,3 +71,9 @@ def test_the_replay_uses_the_current_check_line():
     replay = (WEB / "replay.html").read_text()
     assert "matched against stored runs" not in replay
     assert "19 claims | 24 numbers checked | 0 mismatches" in replay
+
+
+def test_the_readme_diagram_names_all_three_labels():
+    readme = (WEB.parent / "README.md").read_text()
+    diagram = readme.split("```mermaid")[1].split("```")[0]
+    assert "C -->|CHECKED, NOT CHECKED or NO NUMBERS TO CHECK| H" in diagram

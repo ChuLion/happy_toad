@@ -1549,3 +1549,5 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   correction used)" for schema refusals, both when both happened (before, a schema refusal
   followed by a check refusal showed only the schema one). Tests first (4 seen failing).
   Not specified by the owner: the exact new wording.
+- #2: the README diagram's last edge names all three labels (CHECKED, NOT CHECKED or NO NUMBERS
+  TO CHECK), as the page shows them. #3 (drawing the 10-turn cap) skipped by the owner.

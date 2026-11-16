@@ -28,7 +28,7 @@ flowchart TD
     R --> E[Explanation, AI: summary, numbers as claims]
     E --> C[Checker, code: numbers vs stored runs]
     C -. refused report, back to the agent .-> E
-    C -->|checked or not checked| H([Human review: decides])
+    C -->|CHECKED, NOT CHECKED or NO NUMBERS TO CHECK| H([Human review: decides])
     classDef ai fill:#f1edfb,stroke:#5b3cc4,stroke-width:3px,stroke-dasharray:6 4,color:#3b2585
     classDef code fill:#ffffff,stroke:#000000,stroke-width:2px,color:#000000
     classDef person fill:#000000,stroke:#000000,color:#ffffff
