@@ -1349,3 +1349,10 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
 - (d) Year skip: only the planning window (2027-2031, from BASE_YEAR and HORIZON_YEARS) is
   skipped as years; "a budget of 2000" is now a checked number. SPEC number rule 2 and the guide
   updated. Tests first (2 seen failing); the existing year tests use 2027-2031 and still pass.
+- (k) Numbers from the conversation's runs: the request values and the numbers in rejection
+  messages of every run in the conversation are allowed in the summary, cited or not; numbers
+  only in the question stay unallowed (tested: "not 400" still fails). Tests first (3 seen
+  failing; the question-only guard passed before and after). Not specified by the owner: "runs
+  in the conversation" is the loop's existing list, which also holds runs the agent read
+  (`get_run`) or compared, since their values were shown to it too; a request value that is not
+  a number (a schema-invalid record's raw input) is skipped instead of raising.

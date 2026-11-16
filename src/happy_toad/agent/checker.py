@@ -215,8 +215,12 @@ def _run_ids(report: Report) -> list[str]:
     return list(dict.fromkeys(ids))
 
 
-def allowed_numbers(report: Report, runs_dir: Path) -> list[tuple[float, float]]:
-    """(value, tolerance) pairs a summary number may equal: claim values and request values.
+def allowed_numbers(
+    report: Report, runs_dir: Path, executed: Iterable[str] = ()
+) -> list[tuple[float, float]]:
+    """(value, tolerance) pairs a summary number may equal: claim values, and the request values
+    and rejection-message numbers of the cited runs and of the runs in the conversation (M4 fix
+    k). Numbers that are only in the question are not allowed.
 
     A difference may be written without its sign ("243.70 less").
     """
@@ -227,12 +231,20 @@ def allowed_numbers(report: Report, runs_dir: Path) -> list[tuple[float, float]]
             allowed.append((float(claim.value), tol))
             if claim.metric in DIFF_BASE:
                 allowed.append((abs(float(claim.value)), tol))
-    for run_id in _run_ids(report):
+    for run_id in dict.fromkeys([*_run_ids(report), *executed]):
         record = read_run(run_id, runs_dir)
-        for name in REQUEST_NUMBERS if record else ():
-            if record.request.get(name) is not None:
+        if record is None:
+            continue
+        for name in REQUEST_NUMBERS:
+            if _number(record.request.get(name)):
                 allowed.append((float(record.request[name]), 0.0))
+        for reason in record.reasons:
+            allowed += [(value, 0.0) for _, value in find_numbers(reason.message)]
     return allowed
+
+
+def _number(value) -> bool:
+    return isinstance(value, int | float) and not isinstance(value, bool)
 
 
 def _needs_minimum_budget(record: RunRecord) -> bool:
@@ -273,7 +285,7 @@ def check_report(
     claims = [check_claim(c, runs_dir, inputs_dir, known) for c in report.claims]
     valid = Report(summary=report.summary, claims=[c.claim for c in claims if c.ok])
     run_ids = list(dict.fromkeys([*(conversation_runs or ()), *_run_ids(report)]))
-    allowed = allowed_numbers(valid, runs_dir)
+    allowed = allowed_numbers(valid, runs_dir, conversation_runs or ())
     nothing_validated = bool(claims) and not valid.claims
     numbers = []
     for text, value in find_numbers(report.summary, run_ids):

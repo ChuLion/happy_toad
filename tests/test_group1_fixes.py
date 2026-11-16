@@ -126,3 +126,51 @@ def test_a_wrong_budget_of_2000_is_now_caught(tmp_path):
     summary = f"At a budget of 2000 the spend is {round(run.result.spend, 2)}."
     result = check_report(report(summary, claim), tmp_path / "runs", tmp_path / "inputs")
     assert not result.ok and "2000" in " ".join(result.errors())
+
+
+# --- (k) numbers from runs executed in the conversation -------------------------------------
+
+
+def test_request_values_of_executed_runs_are_allowed_without_a_citing_claim(tmp_path):
+    toy_dirs(tmp_path)
+    run = make_run(tmp_path, budget=12.0, force_in=["Z9"])  # rejected: unknown candidate
+    r = report("The run at a total budget of 12 was rejected.")
+    runs, inputs = tmp_path / "runs", tmp_path / "inputs"
+    assert check_report(r, runs, inputs, conversation_runs=[run.run_id]).ok
+    assert not check_report(r, runs, inputs, conversation_runs=[]).ok  # not executed here
+
+
+def test_numbers_in_a_rejection_message_are_allowed(tmp_path):
+    toy_dirs(tmp_path)
+    run = make_run(tmp_path, budget=100.0)  # above the cap 1.5 x 17 = 25.50
+    message = run.reasons[0].message
+    assert "25.50" in message and "1.5" in message
+    r = report("A total budget of 100 is above the cap of 25.50 (1.5 times the total cost).")
+    assert check_report(r, tmp_path / "runs", tmp_path / "inputs", [run.run_id]).ok
+
+
+def test_a_number_only_in_the_question_stays_unallowed(tmp_path):
+    toy_dirs(tmp_path)
+    run = make_run(tmp_path, budget=12.0)
+    spend = round(run.result.spend, 2)
+    claim = dict(metric="spend", value=spend, run_id=run.run_id)
+    r = report(f"The spend is {spend}, not 400.", claim)
+    result = check_report(r, tmp_path / "runs", tmp_path / "inputs", [run.run_id])
+    assert not result.ok and "400" in " ".join(result.errors())
+
+
+def test_the_agent_loop_allows_numbers_of_its_own_rejected_runs(tmp_path):
+    from agent_helpers import FakeClient, call, turn
+
+    from happy_toad.agent.config import SMOKE
+    from happy_toad.agent.loop import ask
+
+    inputs, runs = toy_dirs(tmp_path)
+    summary = "A total budget of 100 is above the cap of 25.50, so it was rejected."
+    script = [
+        turn(call("run_scenario", input_version="test", budget=100)),
+        turn(call("submit_report", summary=summary, claims=[])),
+    ]
+    t = ask("q", FakeClient(script), SMOKE, inputs_dir=inputs, runs_dir=runs,
+            transcripts_dir=tmp_path / "t")  # fmt: skip
+    assert t.status == "checked"
