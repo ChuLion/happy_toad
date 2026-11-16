@@ -1329,3 +1329,11 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   refused); our own errors (`error`) still count as failures; the re-grade keeps the round's
   original header and adds `regraded` (date, provenance) and `notes`; the fix order puts (k)
   before the candidate-id check (e), which stays last.
+
+## 2026-11-16 — M4 fix group 1 (checker): a, b, c, d, k, e
+- Prediction before applying (e) as specified: in the baseline, all 5 case 9 declines name
+  C033 and 1 case 8 answer names C099 while citing no run; under (e) those reports are refused,
+  so case 9 (allowed NO NUMBERS TO CHECK or CHECKED) will likely fail because of the rule, not the
+  agent. Applied as specified, to be measured in round 2.
+- (a) Whole-valued counts: a count claimed as a whole float (2.0, -1.0) becomes the int in the
+  claim schema; 21.5 stays a float and still fails. Tests first (4 seen failing on the type).

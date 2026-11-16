@@ -97,13 +97,15 @@ class Claim(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def _normalize(cls, data):
-        """Unit from the metric, entity always "plan", plain-number strings as numbers."""
+        """Unit from the metric, entity "plan", plain-number strings and whole floats as numbers."""
         if not isinstance(data, dict) or data.get("metric") not in METRIC_UNITS:
             return data
         metric, value = data["metric"], data.get("value")
         data = {**data, "unit": METRIC_UNITS[metric], "entity": "plan"}
         if metric not in TEXT_METRICS and isinstance(value, str):
             data["value"] = _plain_number(metric, value)
+        if metric in COUNT_METRICS and isinstance(value, float) and value.is_integer():
+            data["value"] = int(value)  # 2.0 is the count 2 (M4 fix a)
         return data
 
     @model_validator(mode="after")
