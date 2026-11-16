@@ -1536,3 +1536,6 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   package keeps its working name.
 - Owner asked for "1 claim" (singular) when there is one claim, in the CLI and the web; the rest
   of the line unchanged ("1 numbers checked" still possible; not asked).
+- Correction, found when the owner asked: the README said "measured beyond that line: first
+  pass +16, pass +9", but +9 is under the 10-point line. It now says only first pass (+16) is
+  clearly beyond noise and pass (+9) is suggestive. My M4 final report made the same mistake.

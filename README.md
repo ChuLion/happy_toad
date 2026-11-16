@@ -322,8 +322,9 @@ rates. Official rounds run on a clean, committed tree; reports are in `evals/rou
 | Final | change lists listed apart; checker wording rule dropped; "0.5x" | 95% | 97% | 96% | 97% | 82% | 82% | $0.075 |
 
 **Noise:** a round is 95 conversations (19 x 5), so a difference between two rounds under about 10
-percentage points is noise, and per case a change of 1 or 2 out of 5 is noise. Measured beyond
-that line: first pass +16 from baseline to final, pass +9. Independent truth catches coding bugs,
+percentage points is noise, and per case a change of 1 or 2 out of 5 is noise. From baseline to
+final, only first pass (+16) is clearly beyond that line; overall pass (+9) is just under it, so
+it is suggestive, not conclusive. Independent truth catches coding bugs,
 not SPEC errors, and truth and the engine share PuLP with CBC, so a solver bug would make both
 agree.
 
