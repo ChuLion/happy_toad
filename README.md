@@ -83,7 +83,7 @@ flowchart TD
     class G,O,R,C,T code
     class Q,H person
     class K,F stop
-    linkStyle 9,10 stroke:#5b3cc4,stroke-width:2px
+    linkStyle 9,10 stroke:#5b3cc4,stroke-width:2px,stroke-dasharray:4 4
     linkStyle 11,12 stroke:#ee001e,stroke-width:3px,color:#ee001e
     linkStyle 13 stroke:#9a9a9a,stroke-width:2px,color:#6f7171
 ```
