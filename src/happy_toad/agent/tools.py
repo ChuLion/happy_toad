@@ -122,7 +122,7 @@ def _fields_in(error: ValidationError) -> str:
 
 
 class ToolRunner:
-    """Runs the five deterministic tools against the inputs and runs folders."""
+    """Runs the six deterministic tools against the inputs and runs folders."""
 
     def __init__(self, inputs_dir: Path, runs_dir: Path, transcript_id: str | None = None) -> None:
         self.inputs_dir = inputs_dir
