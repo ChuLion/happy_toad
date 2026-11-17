@@ -194,6 +194,9 @@ The gate checks a request before anything is solved and lists every problem it f
 - **`FORCED_COST_EXCEEDS_BUDGET`:** must-fund cost plus forced-in cost is more than the budget.
 - **`SCHEMA_INVALID`:** the agent's request did not fit the request format (a missing or
   misspelled field, or a value of the wrong type).
+- **`REVISION_UNSUPPORTED_CHANGE`:** the two versions of a revision differ in a way the
+  ordered attribution does not cover (a candidate added or removed, a candidate's type, the
+  must-fund projects, or a shared sector's market or shortfall), so nothing was solved.
 
 ### Infeasible causes
 Checked before solving, in this order; the first one found is reported.

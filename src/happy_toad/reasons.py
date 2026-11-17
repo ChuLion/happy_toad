@@ -21,6 +21,7 @@ class ReasonCode(StrEnum):
     CAUSE_UNKNOWN = "CAUSE_UNKNOWN"
     TARGET_UNREACHABLE = "TARGET_UNREACHABLE"  # M2B: no plan resolves the target sectors
     SCHEMA_INVALID = "SCHEMA_INVALID"  # an agent tool input that does not fit the request schema
+    REVISION_UNSUPPORTED_CHANGE = "REVISION_UNSUPPORTED_CHANGE"  # M5: a change outside the 4 kinds
 
 
 class Reason(BaseModel):

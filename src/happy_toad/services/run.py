@@ -22,6 +22,7 @@ from happy_toad.engine.result import DEFAULT_SETTINGS, SolverSettings
 from happy_toad.reasons import Reason, ReasonCode
 from happy_toad.services.gate import check_request
 from happy_toad.services.request import SolveRequest, request_hash
+from happy_toad.services.revision_result import RevisionResult
 from happy_toad.services.unresolved import SectorGap, unresolved_sectors
 
 VERSION_NAME = re.compile(r"[A-Za-z0-9_-]+")
@@ -57,7 +58,7 @@ class RunRecord(BaseModel):
 
     run_id: str
     created_at: str
-    kind: Literal["scenario", "target_budget"] = "scenario"
+    kind: Literal["scenario", "target_budget", "revision"] = "scenario"
     outcome: Literal["rejected", "completed", "error"]
     request: dict
     request_hash: str
@@ -72,6 +73,7 @@ class RunRecord(BaseModel):
     warnings: list[str]
     transcript_id: str | None = None  # M4: the conversation whose tool call made this run
     follow_up_run_id: str | None = None  # M2B: the optimizer run at target_budget
+    revision: RevisionResult | None = None  # M5: revision records only
 
 
 def new_run_id(created: datetime) -> str:
