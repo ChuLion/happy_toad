@@ -93,11 +93,18 @@ def _rates(all_grades: list[Grade]) -> dict:
     }
 
 
+REVISION_FIRST_ID = 101  # M5 cases are a separate group, outside the 19-case headline
+
+
 def summarize(grades: list[Grade]) -> dict:
-    """Overall and per-case rates, the manual-review list and the noise statement."""
+    """Overall (cases 1-19) and per-case rates, the revision group when present, the manual-review
+    list and the noise statement."""
     ids = sorted({g.case_id for g in grades})
+    revision = [g for g in grades if g.case_id >= REVISION_FIRST_ID]
+    group = {"revision": _rates(revision)} if revision else {}
     return {
-        "overall": _rates(grades),
+        "overall": _rates([g for g in grades if g.case_id < REVISION_FIRST_ID]),
+        **group,
         "per_case": {str(i): _rates([g for g in grades if g.case_id == i]) for i in ids},
         "review": [
             {"case": g.case_id, "transcript_id": g.transcript_id, "phrases": g.review}
@@ -177,6 +184,15 @@ def markdown(r: dict) -> str:
         f"cost {'-' if o['cost_total'] is None else f'${o["cost_total"]:.4f}'} | "
         f"mean {_num(o['seconds_mean'])} s, {_num(o['turns_mean'])} turns",
         "",
+        *(
+            [
+                f"Revision group (M5, not in the headline): pass {_pct(r['revision']['pass_rate'])}"
+                f" | checked {_pct(r['revision']['checked_rate'])} | n {r['revision']['n']}",
+                "",
+            ]
+            if "revision" in r
+            else []
+        ),  # fmt: skip
         r["noise"],
         "",
         "| case | n | infra | pass | runs | numbers | behaviour | checked | first pass |",

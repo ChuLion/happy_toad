@@ -5,13 +5,18 @@ from pathlib import Path
 from typing import get_args
 
 import pytest
+from test_evals_grade import Script
 from test_evals_truth import load_truth_module
+from typer.testing import CliRunner
 
+import happy_toad.cli as cli
+from happy_toad.agent.config import SMOKE
+from happy_toad.agent.loop import ask
 from happy_toad.agent.report import Metric
 from happy_toad.agent.tools import TOOLS
 from happy_toad.data.files import write_inputs
 from happy_toad.evals.cases import load_cases, load_revision_cases
-from happy_toad.evals.grade import Grade
+from happy_toad.evals.grade import Grade, grade
 from happy_toad.evals.runner import summarize
 from happy_toad.services.revision import ORDER, RevisionRequest, run_revision
 
@@ -84,3 +89,61 @@ def test_summarize_reports_revision_cases_as_a_separate_group():
 def test_case_102_requires_the_order_as_a_graded_phrase():
     case = next(c for c in load_revision_cases() if c.id == 102)
     assert "costs -> offloads -> triggers -> sectors" in case.required_phrases
+
+
+# --- grading a revision conversation ------------------------------------------------------------
+
+
+def _case_102_report(with_order: bool):
+    def build(records):
+        rev = records[0].revision
+        claims = [
+            dict(
+                metric="effect_relief",
+                value=round(s.effect_relief, 2),
+                run_id=records[0].run_id,
+                entity=s.name,
+            )
+            for s in rev.steps[1:]
+        ] + [
+            dict(metric="total_relief", value=round(rev.total_relief, 2), run_id=records[0].run_id)
+        ]
+        effects = ", ".join(f"{s.name} {s.effect_relief:.2f}" for s in rev.steps[1:])
+        order = f"Applied in the order {rev.order_text}: " if with_order else "Effects: "
+        summary = f"{order}{effects}; total {rev.total_relief:.2f} weighted relief."
+        return dict(summary=summary, claims=claims)
+
+    return build  # fmt: skip
+
+
+@pytest.mark.parametrize("with_order", [True, False])
+def test_case_102_is_graded_on_numbers_and_the_order_phrase(inputs, tmp_path, with_order):
+    dirs = dict(inputs_dir=inputs, runs_dir=tmp_path / "runs", transcripts_dir=tmp_path / "t")
+    case = next(c for c in load_revision_cases() if c.id == 102)
+    steps = [("explain_revision", dict(budget=1000))]
+    client = Script(dirs["runs_dir"], steps, _case_102_report(with_order))
+    t = ask(case.question, client, SMOKE, **dirs)
+    truth = json.loads(REVISION_TRUTH.read_text())["cases"]["102"]
+    g = grade(case, t, truth, dirs["runs_dir"])
+    assert g.label == "CHECKED" and g.runs_ok and g.numbers_ok, g.problems
+    assert g.behaviour_ok is with_order
+
+
+def test_the_eval_command_runs_the_revision_group(inputs, tmp_path, monkeypatch):
+    runs = tmp_path / "runs"
+    steps = [("explain_revision", dict(budget=1000))]
+    monkeypatch.setattr(
+        cli, "make_eval_client", lambda profile: Script(runs, list(steps), _case_102_report(True))
+    )
+    out = tmp_path / "rounds"
+    args = [
+        "eval", "--revision", "--round", "m5", "--cases", "102", "--repeats", "1", "--unofficial",
+        "--out-dir", str(out), "--profile", "smoke", f"--inputs-dir={inputs}",
+        f"--runs-dir={runs}", f"--transcripts-dir={tmp_path / 't'}",
+    ]  # fmt: skip
+    result = CliRunner().invoke(cli.app, args)
+    assert result.exit_code == 0, result.output
+    report = json.loads((out / "m5.unofficial.json").read_text())
+    assert report["revision"]["n"] == 1 and report["revision"]["pass_rate"] == 1.0
+    assert report["overall"]["n"] == 0
+    assert "Revision group" in (out / "m5.unofficial.md").read_text()

@@ -453,9 +453,18 @@ def eval_round(
         Path | None, typer.Option("--regrade", help="Grade a stored round again, no new runs.")
     ] = None,
     note: Annotated[list[str] | None, typer.Option(help="A note for the report (repeat).")] = None,
+    revision: Annotated[
+        bool, typer.Option(help="M5: the revision cases 101-104 against revision truth.")
+    ] = False,
 ) -> None:
-    """Run the M4 evaluation cases, grade them against evals/truth.json and write the report."""
-    from happy_toad.evals.cases import load_cases  # here, not at the top: grade imports this module
+    """Run the evaluation cases, grade them against their truth and write the report.
+
+    The M4 cases use evals/truth.json; with --revision, the M5 cases use evals/revision_truth.json.
+    """
+    from happy_toad.evals.cases import (  # here, not at the top: grade imports this module
+        load_cases,
+        load_revision_cases,
+    )
     from happy_toad.evals.runner import (
         RoundRefused,
         check_round_allowed,
@@ -465,6 +474,8 @@ def eval_round(
         run_round,
     )
 
+    if revision and truth_path == Path("evals/truth.json"):
+        truth_path = Path("evals/revision_truth.json")
     truth = json.loads(truth_path.read_text())
     if regrade_path is not None:
         stored = json.loads(regrade_path.read_text())
@@ -478,7 +489,7 @@ def eval_round(
     except RoundRefused as err:
         typer.echo(f"Refused: {err}", err=True)
         raise typer.Exit(2) from err
-    chosen = load_cases()
+    chosen = load_revision_cases() if revision else load_cases()
     if cases:
         wanted = {int(x) for x in cases.split(",")}
         chosen = [c for c in chosen if c.id in wanted]
