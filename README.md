@@ -17,7 +17,7 @@ answer it cannot verify is shown as not checked. A human decides; the agent appr
 
 ## Architecture
 ```mermaid
-%%{init: {"themeVariables": {"fontSize": "18px"}}}%%
+%%{init: {"themeVariables": {"fontSize": "12px"}}}%%
 flowchart TD
     accTitle: How an answer is made
     accDescr: A question goes to Intake (AI), then the Gate (code). Accepted requests go to the Optimizer (code); every attempt is stored in the Run record (code). Explanation (AI) writes a summary with numbers as claims, and the Checker (code) compares them with the stored runs before a person reviews the labelled answer. Rejections and refused reports go back to the agent.
