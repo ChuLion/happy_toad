@@ -493,6 +493,11 @@ def eval_round(
     if cases:
         wanted = {int(x) for x in cases.split(",")}
         chosen = [c for c in chosen if c.id in wanted]
+    missing = [c.id for c in chosen if str(c.id) not in truth["cases"]]
+    if missing:
+        raise typer.BadParameter(
+            f"cases {missing} are not in {truth_path}", param_hint="--truth or --revision"
+        )
     model = PROFILES[profile]
 
     def show(g) -> None:

@@ -416,16 +416,21 @@ def revision(a: dict, b: dict, budget: float) -> dict:
     }
 
 
+def revision_key(spec: dict) -> str:
+    """One attribution per (plan of record, refreshed forecast, budget), e.g. "v1|v2|1000"."""
+    return f"{spec.get('plan_of_record') or 'v1'}|{spec['input_version']}|{spec['budget']:g}"
+
+
 def compute_revision(inputs: Path, cases_path: Path = REVISION_CASES) -> dict:
-    """Truth for the revision cases: one attribution per budget the cases use."""
+    """Truth for the revision cases: one attribution per pair of versions and budget."""
     cases = json.loads(cases_path.read_text())["cases"]
     budgets = {}
     for case in cases:
         for spec in case.get("runs", []):
-            a = load_version(spec.get("plan_of_record") or "v1", inputs)
-            b = load_version(spec["input_version"], inputs)
-            key = str(int(spec["budget"]))
+            key = revision_key(spec)
             if key not in budgets:
+                a = load_version(spec.get("plan_of_record") or "v1", inputs)
+                b = load_version(spec["input_version"], inputs)
                 budgets[key] = revision(a, b, spec["budget"])
     hashes = {
         v: json.loads((inputs / f"{v}.json").read_text())["content_hash"] for v in ("v1", "v2")
@@ -436,9 +441,7 @@ def compute_revision(inputs: Path, cases_path: Path = REVISION_CASES) -> dict:
         "budgets": budgets,
         "cases": {
             str(c["id"]): {
-                "runs": [
-                    {"values": budgets[str(int(s["budget"]))]["values"]} for s in c.get("runs", [])
-                ]
+                "runs": [{"values": budgets[revision_key(s)]["values"]} for s in c.get("runs", [])]
             }
             for c in cases
         },

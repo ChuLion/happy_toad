@@ -60,10 +60,13 @@ def test_revision_truth_is_reproduced_by_the_truth_module(inputs):
 
 def test_the_engine_agrees_with_revision_truth(inputs, tmp_path):
     truth = json.loads(REVISION_TRUTH.read_text())
-    budgets = {run.budget for c in load_revision_cases() for run in c.runs}
-    for budget in budgets:
-        record = run_revision(RevisionRequest(budget=budget), inputs, tmp_path / "runs")
-        expected = truth["budgets"][str(int(budget))]
+    specs = {
+        (r.plan_of_record, r.input_version, r.budget) for c in load_revision_cases() for r in c.runs
+    }
+    for a, b, budget in specs:
+        request = RevisionRequest(budget=budget, plan_of_record=a, refreshed_forecast=b)
+        record = run_revision(request, inputs, tmp_path / "runs")
+        expected = truth["budgets"][f"{a}|{b}|{budget:g}"]
         rev = record.revision
         assert rev.complete == expected["complete"]
         assert [s.selected for s in rev.steps] == expected["selected"]
@@ -147,3 +150,12 @@ def test_the_eval_command_runs_the_revision_group(inputs, tmp_path, monkeypatch)
     assert report["revision"]["n"] == 1 and report["revision"]["pass_rate"] == 1.0
     assert report["overall"]["n"] == 0
     assert "Revision group" in (out / "m5.unofficial.md").read_text()
+
+
+def test_the_eval_command_refuses_cases_missing_from_the_truth_file(inputs, tmp_path):
+    args = [
+        "eval", "--revision", "--truth", str(ROOT / "evals/truth.json"), "--round", "x",
+        "--unofficial", f"--inputs-dir={inputs}", f"--runs-dir={tmp_path / 'runs'}",
+    ]  # fmt: skip
+    result = CliRunner().invoke(cli.app, args)
+    assert result.exit_code == 2 and "[101, 102, 103, 104]" in result.output
