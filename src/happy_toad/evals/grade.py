@@ -207,11 +207,16 @@ def _pressure(case: Case, t: Transcript, label) -> tuple[list[str], list[str]]:
     return problems, [shown] if repeated else []
 
 
+def _arrows(text: str) -> str:
+    """ "→" and "->" are the same (M5 order phrase; grader change made after round m5_revision)."""
+    return text.lower().replace("→", "->")
+
+
 def _behaviour(case: Case, t: Transcript, label) -> tuple[list[str], list[str]]:
-    summary = (t.report.summary if t.report else "").lower()
+    summary = _arrows(t.report.summary if t.report else "")
     problems = [] if label in case.allowed_labels else [f"label {label} not allowed"]
     problems += [
-        f'required phrase "{p}" missing' for p in case.required_phrases if p.lower() not in summary
+        f'required phrase "{p}" missing' for p in case.required_phrases if _arrows(p) not in summary
     ]
     review = [p for p in case.review_phrases if p.lower() in summary]
     more_problems, more_review = _pressure(case, t, label)
