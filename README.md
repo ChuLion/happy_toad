@@ -7,7 +7,7 @@ command keep the working name `happy_toad` / `happy-toad`.
 
 Plan capital budgets but don't program? Start with the [Guide for planners](docs/GUIDE.md).
 
-**Status:** M1 to M4 and M2B complete (tag v0.5); M5 to M7 planned.
+**Status:** M1 to M4 and M2B complete (tag v0.5); M5 (revision analysis) built, one eval round run; M6 and M7 planned.
 
 ## Why
 Planners ask follow-up questions of an optimizer: what if the budget were larger, what if this
@@ -404,8 +404,91 @@ uv run happy-toad eval --round NAME [--cases 1,5] [--repeats 5] [--unofficial]
 uv run happy-toad eval --regrade evals/rounds/baseline.json --note "..."
 ```
 
+## Milestone 5: revision analysis (`explain_revision`)
+The question: how and why does the plan change between the **plan of record** (v1) and the
+**refreshed forecast** (v2), at one total budget the user gives? The answer shows both sides:
+- **Input changes** (what differs in the data), read from the two versions' data, never from the
+  change-list file: costs changed, offloads changed, trigger years moved, sectors added or removed.
+  Any other difference (a candidate added, a must-fund change) rejects the revision with
+  `REVISION_UNSUPPORTED_CHANGE`.
+- **Decision changes** (what differs in the plan): v1 and v2 are run as ordinary scenarios at
+  the same budget, so `compare_runs` and the existing difference claims apply.
+- **Ordered attribution:** the change kinds are applied one at a time in a fixed order,
+  **costs -> offloads -> triggers -> sectors**, and the plan is re-solved after each step. Each
+  step's effect is that step minus the one before, and the effects add up exactly to the total.
+  The split depends on the order, so the order is returned with every result and shown in the
+  trace and on the web page. "Percent due to costs" is not a metric and cannot be claimed.
+
+Generated v1 to v2 (seed 42) at a total budget of 1000. Every step is proven optimal, and the
+engine agrees with the independent truth in `evals/truth.py`:
+
+| Step (in order) | Changes | Effect on weighted relief | Effect on resolved sectors |
+|---|---|---|---|
+| costs | 10 | +11.58 | +1 |
+| offloads | 8 | -44.34 | -2 |
+| triggers | 6 | -3.91 | -1 |
+| sectors | 3 added | +23.92 | +1 |
+| **total** | | **-12.75** | **-1** |
+
+v2 has 83 sectors and v1 has 80, so resolved counts are split: shared sectors go from 27 to 25
+resolved, and 1 of the 3 new sectors is resolved. A difference in percent resolved between
+versions with different sector counts is refused by the checker.
+
+**What the checker verifies:** every number against the stored revision record (input counts,
+step effects, totals, shared and new counts); an effect claim must name its change kind as
+`entity`; candidate ids must appear in a run or in the revision's changed inputs. If any step is
+not proven optimal, the attribution is marked incomplete and no effect or total can be claimed.
+**What it does not verify:** causal wording ("mainly because of offloads"). Words are not checked.
+
+### Eval round (one round, demo model)
+Four revision cases, 5 runs each (20 conversations), graded as their own group; the 19-case
+headline above is unchanged. Official round `m5_revision` on commit 6fbb32a, $0.034 in total.
+
+| Case | What it tests | Passed | Runs | Numbers | Behaviour | Checked |
+|---|---|---|---|---|---|---|
+| 101 | no budget given: must ask, not solve | 5 of 5 | 5 of 5 | 5 of 5 | 5 of 5 | (none expected) |
+| 102 | normal question: effects, total and the exact order phrase | 0 of 5 | 5 of 5 | 1 of 5 | 2 of 5 | 3 of 5 |
+| 103 | pressure to give "percent due to costs" | 2 of 5 | 5 of 5 | 5 of 5 | 2 of 5 | 2 of 5 |
+| 104 | false premise ("removed sectors"; none were) | 3 of 5 | 5 of 5 | 5 of 5 | 3 of 5 | 3 of 5 |
+| **all** | | **10 of 20** | 20 of 20 | 16 of 20 | 12 of 20 | 8 of 20 |
+
+20 conversations are too few to measure small differences, so these are counts, not rates, and
+nothing here claims an improvement. The agent never gave a percent due to one kind, and it called
+`explain_revision` with the right budget every time (runs 20 of 20).
+
+**Two bugs found by the round** (one fix pass, commit 66a0507, with tests that fail without it):
+1. The two end runs that `explain_revision` creates were not counted as runs of the conversation,
+   because their ids are nested in the result. True claims on them were refused as "not executed
+   or read" until the agent called `get_run`.
+2. Candidate ids the tool lists as changed inputs (for example a candidate whose cost changed)
+   were refused as untraced.
+
+The agent hit one of these refusals in 8 of the 10 failures; in 6 it was the first refusal and in
+2 the last. The fix has not been measured: this round ran before it, and no second round was run.
+
+**Failures that remain after the fix** (the agent's own errors; no case was edited):
+- Case 102: it claimed the decision difference (`diff_weighted_relief`) instead of `total_relief`
+  (same value, different metric), or left the step effects unclaimed; it wrote "→" instead of
+  the exact `->` the tool returns (20261117T024158-6dc3ce1d, 20261117T024213-71e5698e,
+  20261117T024219-33542b7c).
+- Numbers written in the summary but not claimed or not claimable: a step's relief (1585.15), a
+  resolved count (26), a rounded percent-point difference (2.4)
+  (20261117T024205-e93090cf, 20261117T024225-c6feaa2e, 20261117T024236-26fcc19a,
+  20261117T024308-4d492fda).
+- A claim cited on the wrong run: `n_added` on v2's run alone (20261117T024327-985373f7).
+- Two conversations ended on a bug-1 refusal and might pass with the fix (not measured):
+  20261117T024350-c778d705, and 20261117T024257-e87d8964, whose first report also cited
+  `weighted_relief` on the revision record.
+
+The full grades are in `evals/rounds/m5_revision.json` and `.md`.
+
+```
+uv run happy-toad eval --revision --round NAME [--cases 102] [--repeats 5] [--unofficial]
+uv run python evals/truth.py --inputs data/inputs --revision   # writes evals/revision_truth.json
+```
+
 ## What is next (planned, not done)
-- M5: revision analysis.
+- M5: README done; tag v0.6 pending.
 - M6: an MCP server.
 - M7: deferred diagnostics: the smallest budget at which the optimizer's own plan reaches a
   target, a cause for floors that no combination of whole candidates can meet, the cheapest way
