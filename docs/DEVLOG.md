@@ -1634,3 +1634,30 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   ends are ordinary scenario runs, reusing `compare_runs`; a kind with no changes is not
   re-solved; the order rule in the checker (the summary must name the four kinds in order); step
   version ids `a+costs+...`; case ids 101-104; a `happy-toad revision` command [lead].
+
+## 2026-11-16 — M5 implementation
+- Owner asked (with SPEC approval): a test that the shipped v1 -> v2 pair passes the
+  supported-change check (it passes: no unsupported change; stop if not); no checker order
+  rule, the order returned as data and graded as a case-102 phrase; no `happy-toad revision`
+  command; an end-to-end test with the real CBC solver on the shipped v1 and v2 (budgets 800
+  and 1000). Then implement in small commits.
+- Done, one commit each: S4 `has_plan`; S13 id helpers; 5.1 `compare_inputs` and `apply_kinds`;
+  5.2-5.3 `run_revision` and the revision record; the claim metrics and checker rules; the
+  `explain_revision` tool and prompt rule 14; CLI-trace and web wording with the order; evals
+  (cases 101-104, independent revision truth, separate group, `eval --revision`); the web flow
+  diagram lights the optimizer for a revision run (replay rebuilt from `replay.json`).
+- Result on generated v1/v2 seed 42 at a total budget of 1000 (engine and independent truth
+  agree): complete; relief effects costs +11.58, offloads -44.34, triggers -3.91, sectors
+  +23.92; total -12.75. Shared sectors resolved 27 -> 25; new sectors resolved 1 of 3.
+- Found while implementing: a step whose kind had no changes kept the previous step's change
+  count (a failing test showed it; fixed before commit).
+- Automated security review: (1) the checker traces candidates from middle steps; kept, because
+  those records come from the solver, not the model, and the owner approved it in the SPEC;
+  (2) revision truth was keyed by the budget alone (now keyed by versions and budget), and
+  `eval --revision` with a non-revision truth file failed mid-round (now refused up front).
+- Not specified by the owner: two pinned tool-list tests updated for the seventh tool;
+  the Claim `entity` field description is shown to the model in the report schema; the
+  revision truth file has no `commit` field (its test compares the whole file); revision
+  records use `record_invalid_request` with kind "revision" for schema errors.
+- Not done yet (SPEC "Done when"): the M5 eval round (needs paid model calls; waiting for the
+  go-ahead), the README M5 section, tag v0.6.

@@ -1365,12 +1365,19 @@ Revision claims cite the revision record's run id.
     "added".
 - `RunSpec.kind` gains `"revision"` (with `budget`; the versions default to v1 and v2), and
   `KeyNumber` gains `entity`.
-- Truth: `evals/truth.py` gains its own step construction and solves (still no engine imports)
-  and writes `evals/revision_truth.json`; the test compares it with the engine.
-- Grading reuses `grade`. `summarize` reports a `revision` group next to `overall`, and
-  `overall` counts only cases 1-19. One round (`evals/rounds/m5_revision.*`), the demo
-  profile, 5 runs per case, no tuning loop. The new tool changes the agent's tool list, so the
-  M4 rounds are not comparable by hash (DEVLOG note).
+- Truth: `evals/truth.py` gains its own step construction and solves (still no engine imports).
+  `uv run python evals/truth.py --inputs data/inputs --revision` writes
+  `evals/revision_truth.json`, with one attribution per `plan_of_record|refreshed|budget` key
+  (for example `v1|v2|1000`). Truth values of `effect_*` are keyed `metric:kind`. The test
+  compares the file with the engine.
+- Grading reuses `grade`: a revision run spec matches `explain_revision` arguments (budget, with
+  both sides defaulting to v1 and v2), and a key number may name an `entity`. `summarize` reports
+  a `revision` group (ids from 101) next to `overall`, and `overall` counts only cases 1-19.
+  `happy-toad eval --revision` runs the revision cases against the revision truth. It refuses a
+  case missing from the truth file before any conversation starts.
+- One round (`evals/rounds/m5_revision.*`): the demo profile, 5 runs per case, no tuning loop.
+  The new tool changes the agent's tool list, so the M4 rounds are not comparable by hash
+  (DEVLOG note).
 
 ### Tests (written before the code)
 - `tests/test_revision_inputs.py`: the input comparison on a toy pair and on generated v1/v2
