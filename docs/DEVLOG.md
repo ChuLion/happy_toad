@@ -1661,3 +1661,20 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   records use `record_invalid_request` with kind "revision" for schema errors.
 - Not done yet (SPEC "Done when"): the M5 eval round (needs paid model calls; waiting for the
   go-ahead), the README M5 section, tag v0.6.
+
+## 2026-11-17 — M5 eval round, fix pass, README
+- Owner asked: one official round on the demo profile, cases 101-104 as their own group, the
+  19-case headline unchanged; counts, not percentages; no claim beyond noise; no case edited;
+  one fix pass for real tool or prompt bugs; publish the remaining failures. Then the README M5
+  section. The owner rejected a pre-round change of the report's revision line to counts, so the
+  round report keeps its percent format and the README gives counts.
+- Round `m5_revision` (commit 6fbb32a, $0.034): 10 of 20 passed (101: 5, 102: 0, 103: 2,
+  104: 3); runs 20 of 20; no percent due to one kind was stated.
+- Fix pass (66a0507): (1) the loop did not record the two end runs of `explain_revision`
+  (their ids are nested under `revision`), so true claims on them were refused as "not
+  executed or read"; (2) candidate ids in the revision's changed inputs were refused as
+  untraced. Each has a test that fails without the fix (checked for (2) by running it against
+  the old checker). Not re-measured: no second round.
+- Remaining failures are listed in the README with transcript ids.
+- Not specified by the owner: "run it once" read as a single round, so the fix is not
+  re-measured; inputs generated into data/inputs (gitignored) for the round.
