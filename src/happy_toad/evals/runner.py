@@ -10,7 +10,7 @@ from happy_toad.agent.config import Profile
 from happy_toad.agent.loop import ask
 from happy_toad.agent.provenance import provenance
 from happy_toad.agent.transcript import Transcript
-from happy_toad.evals.cases import Case, load_cases
+from happy_toad.evals.cases import Case, load_cases, load_revision_cases
 from happy_toad.evals.grade import Grade, grade
 
 NOISE = (
@@ -154,7 +154,7 @@ def regrade(
     stored: dict, truth: dict, runs_dir: Path, transcripts_dir: Path, notes: list[str]
 ) -> dict:
     """Grade a stored round's transcripts again (no new conversations); keep its header."""
-    cases = {c.id: c for c in load_cases()}
+    cases = {c.id: c for c in [*load_cases(), *load_revision_cases()]}
     grades = []
     for row in stored["grades"]:
         path = transcripts_dir / f"{row['transcript_id']}.json"

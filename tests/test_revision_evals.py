@@ -180,3 +180,22 @@ def test_the_eval_command_refuses_cases_missing_from_the_truth_file(inputs, tmp_
     ]  # fmt: skip
     result = CliRunner().invoke(cli.app, args)
     assert result.exit_code == 2 and "[101, 102, 103, 104]" in result.output
+
+
+def test_a_revision_round_can_be_regraded(inputs, tmp_path, monkeypatch):
+    runs, transcripts, out = tmp_path / "runs", tmp_path / "t", tmp_path / "rounds"
+    steps = [("explain_revision", dict(budget=1000))]
+    monkeypatch.setattr(
+        cli, "make_eval_client", lambda profile: Script(runs, list(steps), _case_102_report(True))
+    )
+    common = [f"--inputs-dir={inputs}", f"--runs-dir={runs}", f"--transcripts-dir={transcripts}"]
+    args = ["eval", "--revision", "--round", "m5", "--cases", "102", "--repeats", "1",
+            "--unofficial", "--out-dir", str(out), "--profile", "smoke", *common]  # fmt: skip
+    assert CliRunner().invoke(cli.app, args).exit_code == 0
+    stored = out / "m5.unofficial.json"
+    args = ["eval", "--revision", "--regrade", str(stored), "--note", "arrow-tolerant", *common]
+    result = CliRunner().invoke(cli.app, args)
+    assert result.exit_code == 0, result.output
+    regraded = json.loads(stored.read_text())
+    assert regraded["revision"]["counts"]["passed"] == 1
+    assert "arrow-tolerant" in regraded["header"]["notes"]
