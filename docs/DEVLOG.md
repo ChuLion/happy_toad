@@ -1678,3 +1678,42 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
 - Remaining failures are listed in the README with transcript ids.
 - Not specified by the owner: "run it once" read as a single round, so the fix is not
   re-measured; inputs generated into data/inputs (gitignored) for the round.
+
+## 2026-11-17 — M5 post-fix round, regrade of round 1, lessons
+- Owner asked: (a) regrade round 1 offline with an arrow-tolerant phrase check and report both
+  gradings; (b) show counts on the round report's revision line; then one post-fix round on
+  the fixed commit (same four cases, 5 runs, demo profile, clean tree); no other changes to
+  cases, prompt or tools; if case 102 still fails, publish it as a known failure and stop.
+- **Grader change made after seeing results:** required phrases now treat "→" as "->"
+  (`evals/grade.py`, commit d544a93). It was made after round 1 showed the agent writing "→"
+  for the order phrase, so round 1 is reported both ways. Regrade (`m5_revision_arrows`, same
+  transcripts and runs): still 10 of 20 passed; one conversation (20261117T024158-6dc3ce1d)
+  no longer fails the phrase but still fails on an unclaimed `total_relief`; behaviour 12 -> 13
+  of 20.
+- The round report's revision line now shows counts (0d9e1cb). `regrade` did not know the
+  revision cases (KeyError on ids 101-104); fixed with a test (a grading-infrastructure fix,
+  not a case, prompt or tool change). The original `m5_revision.md` keeps its percent line, as
+  it was produced; the regraded and round-2 files use counts.
+- Round `m5_revision_round2` (9cbeb08, $0.031): 13 of 19 passed, 1 provider error excluded
+  (case 101). Per case: 101 4 of 4, 102 3 of 5, 103 3 of 5, 104 3 of 5. No refusal from the two
+  fixed bugs in any conversation (round 1: in 8 of 10 failures). Case 102 still fails 2 of 5,
+  so it is published as a known failure; no further fix pass. About 20 conversations are within
+  noise; no improvement is claimed.
+- Round 1 failures (before the fix), for the record: case 102 claimed `diff_weighted_relief`
+  instead of `total_relief`, left step effects unclaimed, or wrote "→" (6dc3ce1d, 71e5698e,
+  33542b7c); numbers written but not claimed or not claimable, such as a step's relief 1585.15
+  (e93090cf, c6feaa2e, 26fcc19a, 4d492fda); `n_added` on the wrong run (985373f7); two ended on
+  a bug-1 refusal (c778d705, e87d8964). All ids are 20261117T02xxxx transcripts in
+  `evals/rounds/m5_revision.json`.
+- **Lessons from the two bugs:**
+  1. A tool that creates runs on the agent's behalf must hand their ids to the conversation's
+     run list. The loop read only top-level keys, and `explain_revision` nested the end-run ids
+     under `revision`, so true claims were refused. The unit tests called the tool and the
+     checker separately and never through the loop; one end-to-end test through `ask` would
+     have caught it. Rule: a new tool gets at least one test through the agent loop with a
+     claim on every run it creates.
+  2. Tracing rules written for one kind of result ("in a selection or force list") silently
+     refuse true statements about new kinds of data the tool returns (changed-input ids). Rule:
+     when a tool returns new ids, decide and test whether the checker traces them.
+- Not specified by the owner: regraded a copy (`m5_revision_arrows.*`) so the original grading
+  stays; the round-2 report carries a note naming the commits compared.

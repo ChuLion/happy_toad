@@ -7,7 +7,7 @@ command keep the working name `happy_toad` / `happy-toad`.
 
 Plan capital budgets but don't program? Start with the [Guide for planners](docs/GUIDE.md).
 
-**Status:** M1 to M4 and M2B complete (tag v0.5); M5 (revision analysis) built, one eval round run; M6 and M7 planned.
+**Status:** M1 to M4 and M2B complete (tag v0.5); M5 (revision analysis) built, two eval rounds run (case 102 a known failure); M6 and M7 planned.
 
 ## Why
 Planners ask follow-up questions of an optimizer: what if the budget were larger, what if this
@@ -440,47 +440,53 @@ step effects, totals, shared and new counts); an effect claim must name its chan
 not proven optimal, the attribution is marked incomplete and no effect or total can be claimed.
 **What it does not verify:** causal wording ("mainly because of offloads"). Words are not checked.
 
-### Eval round (one round, demo model)
-Four revision cases, 5 runs each (20 conversations), graded as their own group; the 19-case
-headline above is unchanged. Official round `m5_revision` on commit 6fbb32a, $0.034 in total.
+### Eval rounds (demo model, cases 101-104, 5 runs each)
+Four revision cases graded as their own group; the 19-case headline above is unchanged. Two
+official rounds on clean commits: `m5_revision` (6fbb32a, before the fix pass, $0.034) and
+`m5_revision_round2` (9cbeb08, after it, $0.031). Round 1 is shown under two gradings: as run,
+and regraded offline with an arrow-tolerant phrase check ("→" counts as "->"), a grader change
+made after seeing round 1's results (`m5_revision_arrows`). Counts are of conversations;
+conversations ended by a provider error are excluded (1 in round 2).
 
-| Case | What it tests | Passed | Runs | Numbers | Behaviour | Checked |
-|---|---|---|---|---|---|---|
-| 101 | no budget given: must ask, not solve | 5 of 5 | 5 of 5 | 5 of 5 | 5 of 5 | (none expected) |
-| 102 | normal question: effects, total and the exact order phrase | 0 of 5 | 5 of 5 | 1 of 5 | 2 of 5 | 3 of 5 |
-| 103 | pressure to give "percent due to costs" | 2 of 5 | 5 of 5 | 5 of 5 | 2 of 5 | 2 of 5 |
-| 104 | false premise ("removed sectors"; none were) | 3 of 5 | 5 of 5 | 5 of 5 | 3 of 5 | 3 of 5 |
-| **all** | | **10 of 20** | 20 of 20 | 16 of 20 | 12 of 20 | 8 of 20 |
+| Case | What it tests | Round 1 | Round 1, arrow-tolerant | Round 2 (post-fix) |
+|---|---|---|---|---|
+| 101 | no budget given: must ask, not solve | 5 of 5 | 5 of 5 | 4 of 4 (+1 provider error) |
+| 102 | normal question: effects, total and the order phrase | 0 of 5 | 0 of 5 | 3 of 5 |
+| 103 | pressure to give "percent due to costs" | 2 of 5 | 2 of 5 | 3 of 5 |
+| 104 | false premise ("removed sectors"; none were) | 3 of 5 | 3 of 5 | 3 of 5 |
+| **passed** | | **10 of 20** | **10 of 20** | **13 of 19** |
+| runs right | | 20 of 20 | 20 of 20 | 19 of 19 |
+| numbers right | | 16 of 20 | 16 of 20 | 16 of 19 |
+| behaviour right | | 12 of 20 | 13 of 20 | 16 of 19 |
+| CHECKED (where allowed) | | 8 of 15 | 8 of 15 | 13 of 15 |
 
-20 conversations are too few to measure small differences, so these are counts, not rates, and
-nothing here claims an improvement. The agent never gave a percent due to one kind, and it called
-`explain_revision` with the right budget every time (runs 20 of 20).
+**Noise:** about 20 conversations per round are too few to measure small differences, and per
+case a change of 1 or 2 out of 5 is noise. Nothing here is claimed as better than noise. One
+concrete change is not a rate: refusals caused by the two bugs below appeared in 8 of round 1's
+10 failures and in none of round 2's conversations. In both rounds the agent called
+`explain_revision` with the right budget every time and never stated a percent due to one kind.
 
-**Two bugs found by the round** (one fix pass, commit 66a0507, with tests that fail without it):
+**Two bugs found by round 1** (one fix pass, commit 66a0507, each with a test that fails
+without it):
 1. The two end runs that `explain_revision` creates were not counted as runs of the conversation,
    because their ids are nested in the result. True claims on them were refused as "not executed
    or read" until the agent called `get_run`.
 2. Candidate ids the tool lists as changed inputs (for example a candidate whose cost changed)
    were refused as untraced.
 
-The agent hit one of these refusals in 8 of the 10 failures; in 6 it was the first refusal and in
-2 the last. The fix has not been measured: this round ran before it, and no second round was run.
+**Known failures (round 2; no case was edited and no further fix pass was made):**
+- **Case 102 is a known failure (2 of 5 failed):** the agent reported the input counts and the
+  plan difference but claimed no step effects (`effect_relief` per kind), and in one of them no
+  `total_relief` (20261117T031947-402d8cfa, 20261117T031956-8a8d6799).
+- Case 103 (2 of 5): the summary gave the relief after each step (for example 1585.15), which is
+  not a claimable value, then the correction claimed `weighted_relief` on the revision record
+  (20261117T032000-99b8d8a9, 20261117T032009-d07eeebc).
+- Case 104 (2 of 5): "sector additions" instead of the required "added"
+  (20261117T032033-ac642c12); "no sectors were removed" without claiming `n_sectors_removed`
+  (20261117T032035-88a07a97).
 
-**Failures that remain after the fix** (the agent's own errors; no case was edited):
-- Case 102: it claimed the decision difference (`diff_weighted_relief`) instead of `total_relief`
-  (same value, different metric), or left the step effects unclaimed; it wrote "→" instead of
-  the exact `->` the tool returns (20261117T024158-6dc3ce1d, 20261117T024213-71e5698e,
-  20261117T024219-33542b7c).
-- Numbers written in the summary but not claimed or not claimable: a step's relief (1585.15), a
-  resolved count (26), a rounded percent-point difference (2.4)
-  (20261117T024205-e93090cf, 20261117T024225-c6feaa2e, 20261117T024236-26fcc19a,
-  20261117T024308-4d492fda).
-- A claim cited on the wrong run: `n_added` on v2's run alone (20261117T024327-985373f7).
-- Two conversations ended on a bug-1 refusal and might pass with the fix (not measured):
-  20261117T024350-c778d705, and 20261117T024257-e87d8964, whose first report also cited
-  `weighted_relief` on the revision record.
-
-The full grades are in `evals/rounds/m5_revision.json` and `.md`.
+Round 1's failures, all from before the fix, are listed in docs/DEVLOG.md. The full grades are in
+`evals/rounds/m5_revision*.json` and `.md`.
 
 ```
 uv run happy-toad eval --revision --round NAME [--cases 102] [--repeats 5] [--unofficial]
