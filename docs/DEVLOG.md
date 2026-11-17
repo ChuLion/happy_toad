@@ -1717,3 +1717,9 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
      when a tool returns new ids, decide and test whether the checker traces them.
 - Not specified by the owner: regraded a copy (`m5_revision_arrows.*`) so the original grading
   stays; the round-2 report carries a note naming the commits compared.
+
+## 2026-11-17 — M7 parked idea: confirm the interpreted request
+- Owner added to the README M7 parked ideas: echo the interpreted request back to the user and
+  ask for confirmation before running (catches a valid-but-wrong request, such as forcing in
+  C034 instead of C033, which neither the gate nor the checker can detect). Docs only; not
+  built.

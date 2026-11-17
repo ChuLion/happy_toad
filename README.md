@@ -503,3 +503,6 @@ uv run python evals/truth.py --inputs data/inputs --revision   # writes evals/re
   records exist); a `list_candidates` tool plus a welcome panel showing the input versions, their
   counts, the must-fund total and the budget range. A new tool changes the evaluation baseline, so
   it needs a re-run of the eval rounds.
+  Echo the interpreted request back to the user and ask for confirmation before running
+  (catches a valid-but-wrong request, such as forcing in C034 instead of C033, which neither
+  the gate nor the checker can detect).
