@@ -1604,3 +1604,33 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   hides the definition inside the card (`aria-expanded` set), dotted underline as before.
 - Not specified by the owner: the name button shows the hand pointer like every other button on
   the page; cards in the grid keep their own height, so opening one does not stretch its row.
+
+## 2026-11-16 — M5 start: decisions to settle
+- Owner asked: set CLAUDE.md to M5 (this branch only); write a "decisions to settle" list in
+  `docs/SPEC.md` (framing, attribution method, what can be claimed, by-market breakdown, the
+  sectors-added rule, what the checker can verify, what is out of scope) and the proposed new
+  tools and claim metrics. No code.
+- Done: CLAUDE.md now says M5; SPEC section "M5 — Revision analysis (draft: decisions to
+  settle)", D1-D7 plus a table of proposed tools and metrics.
+- Not specified by the owner: no schedule document exists in the repo, so the M5 inputs were the
+  README "What is next" list, the DEVLOG notes (v1/v2 framing, S4 and S13 moved to M5) and the
+  current code; each decision carries a [lead] recommendation; the 80-vs-83 sector denominator
+  issue in `diff_pct_resolved` was found while drafting and is raised under D5.
+
+## 2026-11-16 — M5 SPEC and tests (before code)
+- Owner answers: D1 lead accepted (same budget, user-supplied); D2 ordered cumulative attribution
+  in the order costs, offloads, triggers, sectors, stated everywhere, in-between inputs in memory
+  with their content hash and applied kinds recorded; D3 step effects and the total claimable,
+  no "percent due to", incomplete when any step is not proven optimal, no remainder; D4 market
+  breakdown deferred to M7; D5 accepted; D6 accepted, the kind is the claim entity; D7 as listed
+  plus average-over-orders, 4 revision eval cases as a separate group, one round, no tuning, the
+  19-case headline unchanged; the input comparison is computed from the data, not the change list.
+- Done: SPEC M5 section (decisions settled, 5.1-5.4, metrics, checker rules, tool, evals, a
+  hand-worked toy table); tests in `tests/test_revision_{inputs,attribution,claims,tool,evals}.py`
+  and `tests/revision_helpers.py`. They fail at import until `services/revision.py` exists, and
+  ruff reports I001 on those four imports until then; the existing 581 tests pass.
+- Not specified by the owner (listed in the SPEC "Not specified" block): no force or multipliers
+  in revision requests; `REVISION_UNSUPPORTED_CHANGE` for changes outside the four kinds; the two
+  ends are ordinary scenario runs, reusing `compare_runs`; a kind with no changes is not
+  re-solved; the order rule in the checker (the summary must name the four kinds in order); step
+  version ids `a+costs+...`; case ids 101-104; a `happy-toad revision` command [lead].
