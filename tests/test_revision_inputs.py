@@ -79,3 +79,10 @@ def test_generated_v1_v2_agrees_with_the_change_list(tmp_path):
     assert c.unsupported == []
     assert (len(c.sectors_added), len(c.triggers_moved), len(c.costs_changed)) == (3, 6, 10)
     assert len(c.offloads_changed) == 8
+
+
+def test_the_shipped_v1_to_v2_pair_passes_the_supported_change_check(tmp_path):
+    """data/inputs holds generated seed 42; every v1 -> v2 difference is one of the four kinds."""
+    write_inputs(42, tmp_path)
+    v1, v2 = load_input_set(tmp_path / "v1.json"), load_input_set(tmp_path / "v2.json")
+    assert compare_inputs(v1, v2).unsupported == []

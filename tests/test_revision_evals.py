@@ -79,3 +79,8 @@ def test_summarize_reports_revision_cases_as_a_separate_group():
     s = summarize([grade(1, True), grade(2, True), grade(101, False), grade(102, True)])
     assert s["overall"]["n"] == 2 and s["overall"]["pass_rate"] == 1.0
     assert s["revision"]["n"] == 2 and s["revision"]["pass_rate"] == 0.5
+
+
+def test_case_102_requires_the_order_as_a_graded_phrase():
+    case = next(c for c in load_revision_cases() if c.id == 102)
+    assert "costs -> offloads -> triggers -> sectors" in case.required_phrases

@@ -52,3 +52,8 @@ def test_a_missing_budget_is_a_schema_rejection_with_a_record(tmp_path):
 def test_unknown_arguments_are_rejected(tmp_path):
     view, _ = explain(tmp_path, budget=BUDGET, force_in=["A"])
     assert [r["code"] for r in view["reasons"]] == [ReasonCode.SCHEMA_INVALID]
+
+
+def test_the_order_is_returned_as_data(tmp_path):
+    view, _ = explain(tmp_path, budget=BUDGET, plan_of_record="a", refreshed_forecast="b")
+    assert view["revision"]["order"] == ["costs", "offloads", "triggers", "sectors"]

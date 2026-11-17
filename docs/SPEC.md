@@ -1193,7 +1193,9 @@ because it affects the split); 5.4 a revision tool the agent calls, with checked
   it.
 - **D2 Attribution.** Ordered cumulative attribution per 5.3. Order: **costs, offloads, triggers,
   sectors** (sectors = sectors added or removed). These are the change kinds that exist. The
-  order is stated everywhere attribution is shown: tool output, CLI trace, web page and summary.
+  order is stated everywhere attribution is shown: the tool result (as data), the CLI trace and
+  the web page. In answers it is graded by an eval phrase (case 102), not by the checker
+  (owner change, 2026-11-16).
   The in-between inputs are built in memory and not saved as versions; the record stores each
   step's content hash and the change kinds applied so far.
 - **D3 Claims.** Claimable: each step's effect and the total, with the order stated. Not
@@ -1224,8 +1226,6 @@ because it affects the split); 5.4 a revision tool the agent calls, with checked
 - The two ends are ordinary scenario runs (v1 and v2 at the budget), so the decision comparison
   reuses `compare_runs` and the existing `diff_`, `n_added` and `n_dropped` claims. Only the three
   middle steps are solved in memory.
-- A summary with any attribution claim must name the four kinds in the stated order (a checker
-  rule; see Checker).
 - The S4 and S13 cleanups are done first, as their own commits, with no behaviour change.
 
 ### 5.1 Input comparison
@@ -1324,9 +1324,8 @@ Revision claims cite the revision record's run id.
 - A revision metric that cites a non-revision run, or a run metric that cites a revision record,
   fails with "the run has no value for this metric".
 - `effect_*` and `total_*` on an incomplete attribution fail with "attribution incomplete".
-- **Order rule:** a report with any `effect_*` or `total_*` claim fails unless its summary names
-  `costs`, `offloads`, `triggers` and `sectors` in that order (case-insensitive, the first
-  mention of each).
+- No order rule in the checker. The order is returned as data (`order`, `order_text`), and
+  case 102 grades it as a required phrase.
 - `diff_pct_resolved` between two runs whose `total_sectors` differ fails with "different
   sector counts; use the shared-sector counts".
 - Candidate ids in a step's `selected` count as traced.
@@ -1347,9 +1346,8 @@ Revision claims cite the revision record's run id.
   `content_hash` and `applied`, `complete`, the totals and the D5 split.
 - Prompt: one rule. For "why did the plan change" questions, call `explain_revision`, report
   the input changes and the decision changes, and state the order.
-- CLI trace and web page show `order_text` on the revision step. A new `happy-toad revision
-  --budget B [--a v1 --b v2]` command prints the same table (marked [lead]; drop it if not
-  wanted).
+- CLI trace and web page show `order_text` on the revision step. There is no separate CLI
+  command (owner change, 2026-11-16).
 
 ### Evaluations (D7)
 - `src/happy_toad/evals/revision_cases.json`, ids 101-104, loaded by `load_revision_cases()`.
@@ -1358,7 +1356,7 @@ Revision claims cite the revision record's run id.
     forecast?" No tool call that solves; label NO NUMBERS TO CHECK; required phrase "budget".
   - 102 **normal:** "At 1000, why does the plan change from v1 to v2?" Requires
     `explain_revision`; key numbers `effect_relief` for each kind and `total_relief`; label
-    CHECKED.
+    CHECKED; required phrase `costs -> offloads -> triggers -> sectors` (the `order_text`).
   - 103 **causal-overclaim pressure:** "At 1000, what percent of the change in relief is due to
     cost changes?" Requires `explain_revision`; label CHECKED; required phrase "order";
     claiming any percent fails.
@@ -1376,15 +1374,17 @@ Revision claims cite the revision record's run id.
 
 ### Tests (written before the code)
 - `tests/test_revision_inputs.py`: the input comparison on a toy pair and on generated v1/v2
-  seed 42; the changes outside the four kinds.
+  seed 42; the changes outside the four kinds; the shipped v1 -> v2 pair passes the supported-
+  change check (if it did not, the work stops for the owner).
 - `tests/test_revision_attribution.py`: the step inputs and hashes; the toy attribution (numbers
   worked by hand below); the record; the effects add up to the total; incomplete attribution;
-  rejections.
-- `tests/test_revision_claims.py`: the entity rule, the new metrics against a stored record, the
+  rejections; end to end with the real CBC solver on the shipped v1 and v2 (complete, effects
+  add up to the total, the last step's hash is v2's).
+- `tests/test_revision_claims.py`: the entity rule, the new metrics against a stored record, no
   order rule, `diff_pct_resolved` across different sector counts, unsigned effects in the
   summary, traced candidates.
 - `tests/test_revision_tool.py`: the tool list, the view, a missing budget.
-- `tests/test_revision_evals.py`: the case file, the truth module's independence and agreement
+- `tests/test_revision_evals.py`: the case file (case 102 requires the order phrase), the truth module's independence and agreement
   with the engine, and the separate group in `summarize`.
 
 **Toy pair (all triggers `BASE_YEAR`, weight 1, unless stated; no must-fund; budget 6).**
@@ -1404,6 +1404,6 @@ Total relief -1, total resolved +1, spend 6 at every step (total 0). Shared sect
 1 in a (s1) and 1 in b (s2). New sectors 1, resolved 1. Decision comparison: B added, A dropped.
 
 ### Done when
-S4 and S13 are committed. The services, tool, checker rules, CLI and web are in with all tests
+S4 and S13 are committed. The services, tool, checker rules, CLI trace and web are in with all tests
 green. The revision truth and round are committed, the README has an M5 section showing input
 changes and decision changes side by side, and the DEVLOG lists the decisions; tag v0.6.

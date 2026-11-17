@@ -199,3 +199,26 @@ def test_the_request_defaults_to_v1_and_v2_and_requires_a_budget():
         RevisionRequest()
     with pytest.raises(ValueError):
         RevisionRequest(budget=1000, force_in=["C001"])
+
+
+# --- end to end, real CBC solver on the shipped v1 and v2 -----------------------------------
+
+
+@pytest.mark.parametrize("budget", [800.0, 1000.0])
+def test_end_to_end_on_shipped_v1_and_v2_with_cbc(tmp_path, budget):
+    inputs = tmp_path / "inputs"
+    write_inputs(42, inputs)
+    record = run_revision(RevisionRequest(budget=budget), inputs, tmp_path / "runs")
+    rev = record.revision
+    v2 = load_input_set(inputs / "v2.json")
+    assert record.outcome == "completed" and rev.complete
+    assert [s.status for s in rev.steps] == ["Optimal"] * 5
+    assert rev.steps[-1].content_hash == v2.content_hash
+    assert [s.n_changes for s in rev.steps] == [0, 10, 8, 6, 3]
+    effects = sum(s.effect_relief for s in rev.steps[1:])
+    assert effects == pytest.approx(rev.total_relief, abs=1e-9)
+    assert sum(s.effect_n_resolved for s in rev.steps[1:]) == rev.total_n_resolved
+    a, b = read_run(rev.run_id_a, tmp_path / "runs"), read_run(rev.run_id_b, tmp_path / "runs")
+    assert rev.steps[0].objective == pytest.approx(a.result.objective)
+    assert rev.steps[-1].objective == pytest.approx(b.result.objective)
+    assert rev.n_sectors_shared == 80 and rev.n_sectors_new == 3

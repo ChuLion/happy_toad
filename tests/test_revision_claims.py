@@ -1,4 +1,4 @@
-"""M5 claims: revision metrics, the entity rule, the order rule and D5 (docs/SPEC.md, M5)."""
+"""M5 claims: revision metrics, the entity rule and D5 (docs/SPEC.md, M5)."""
 
 import pytest
 from helpers import make_set
@@ -125,20 +125,13 @@ def test_an_incomplete_attribution_has_nothing_to_claim(rev, tmp_path):
     assert "attribution incomplete" in result.claims[0].message
 
 
-# --- the order rule -------------------------------------------------------------------------------
+# --- no order rule in the checker (the order is graded by eval case 102) ---------------------
 
 
-def test_attribution_claims_need_the_order_in_the_summary(rev, tmp_path):
-    claim = effect(rev, "costs", -2.0)
-    assert check(tmp_path, ORDER_SENTENCE + "costs moved relief by -2.00.", claim).ok
-    assert not check(tmp_path, "Costs moved relief by -2.00.", claim).ok
-    wrong_order = "Order: sectors, triggers, offloads, costs. Costs moved relief by -2.00."
-    assert not check(tmp_path, wrong_order, claim).ok
+def test_the_checker_does_not_require_the_order_in_the_summary(rev, tmp_path):
+    assert check(tmp_path, "Costs moved relief by -2.00.", effect(rev, "costs", -2.0)).ok
     total = Claim(metric="total_relief", value=-1.0, run_id=rev.run_id)
-    assert not check(tmp_path, "Relief fell by 1.00.", total).ok
-
-
-def test_the_order_rule_does_not_apply_to_input_counts(rev, tmp_path):
+    assert check(tmp_path, "Relief fell by 1.00.", total).ok
     claim = Claim(metric="n_sectors_added", value=1, run_id=rev.run_id)
     assert check(tmp_path, "1 sector was added.", claim).ok
 
