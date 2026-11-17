@@ -9,6 +9,7 @@ import numpy as np
 from happy_toad.data.config import DEFAULT_CONFIG, GeneratorConfig
 from happy_toad.data.generator import draw_market, draw_resolving_offload, draw_sector
 from happy_toad.data.hashing import build_input_set
+from happy_toad.data.ids import sector_id
 from happy_toad.data.schemas import InputSet
 
 Change = dict
@@ -28,7 +29,7 @@ def _new_sectors(rng, cfg, v1: InputSet) -> tuple[list, list, list[Change]]:
     """New sectors, each relieved by exactly one existing candidate (one new offload row)."""
     sectors, offloads, changes = [], [], []
     for k in range(cfg.new_sectors):
-        sector = draw_sector(rng, cfg, f"S{len(v1.sectors) + k + 1:03d}", draw_market(rng, cfg))
+        sector = draw_sector(rng, cfg, sector_id(len(v1.sectors) + k + 1), draw_market(rng, cfg))
         owner = v1.candidates[int(rng.integers(len(v1.candidates)))]
         row = draw_resolving_offload(rng, cfg, owner.id, sector)
         sectors.append(sector)

@@ -8,6 +8,7 @@ import numpy as np
 
 from happy_toad.data.config import DEFAULT_CONFIG, GeneratorConfig
 from happy_toad.data.hashing import build_input_set
+from happy_toad.data.ids import candidate_id, sector_id
 from happy_toad.data.schemas import Candidate, InputSet, MustFundProject, Offload, Sector
 
 Plan = list[tuple[str, list[int]]]  # (candidate type, indices of the sectors it relieves)
@@ -49,7 +50,7 @@ def make_sectors(rng: np.random.Generator, cfg: GeneratorConfig) -> list[Sector]
     """Sectors whose market counts follow the need rates exactly, in shuffled order."""
     labels = [m for m, n in zip(cfg.markets, market_counts(cfg), strict=True) for _ in range(n)]
     markets = rng.permutation(labels)
-    return [draw_sector(rng, cfg, f"S{i + 1:03d}", str(m)) for i, m in enumerate(markets)]
+    return [draw_sector(rng, cfg, sector_id(i + 1), str(m)) for i, m in enumerate(markets)]
 
 
 def offload_row(candidate_id: str, sector: Sector, share: float) -> Offload:
@@ -152,7 +153,7 @@ def make_offloads(
     rows: list[list[str]] = [[] for _ in sectors]
     for k, (_, group) in enumerate(plan):
         for i in group:
-            rows[i].append(f"C{k + 1:03d}")
+            rows[i].append(candidate_id(k + 1))
     n_unresolvable = round(cfg.unresolvable_share * len(sectors))
     unresolvable = {int(i) for i in rng.choice(len(sectors), size=n_unresolvable, replace=False)}
     offloads: list[Offload] = []
@@ -167,7 +168,7 @@ def make_candidates(rng: np.random.Generator, cfg: GeneratorConfig, plan: Plan) 
     ratio = dict(zip(cfg.types, cfg.type_cost_ratios, strict=True))
     return [
         Candidate(
-            id=f"C{k + 1:03d}",
+            id=candidate_id(k + 1),
             type=kind,
             cost=round(float(cfg.unit_cost * ratio[kind] * rng.uniform(*cfg.cost_factor_range)), 2),
         )
