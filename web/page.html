@@ -412,7 +412,7 @@ function flowPath(v) {
   const reach = (...names) => names.forEach(n => reached.add(n));
   for (const s of v.steps) {
     const o = s.outcome;
-    const runs = s.tool === "run_scenario" || s.tool === "find_target_budget";
+    const runs = ["run_scenario", "find_target_budget", "explain_revision"].includes(s.tool);
     reach("intake");
     if (runs && o.startsWith("rejected")) { reach("gate", "record"); arcs.add("rejected"); arcs.add("rejected-path"); }
     else if (runs && o.startsWith("unreachable")) reach("gate", "record");
