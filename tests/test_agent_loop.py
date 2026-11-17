@@ -34,11 +34,11 @@ def tool_result(client, index=-1):
     return json.loads([m for m in client.seen[index] if m["role"] == "tool"][-1]["content"])
 
 
-def test_six_tools_are_offered_with_descriptions() -> None:
+def test_seven_tools_are_offered_with_descriptions() -> None:
     names = [t["function"]["name"] for t in TOOLS]
     assert names == [
         "list_input_versions", "run_scenario", "find_target_budget", "get_run", "compare_runs",
-        "submit_report",
+        "explain_revision", "submit_report",
     ]  # fmt: skip
     assert all(t["function"]["description"] for t in TOOLS)
 

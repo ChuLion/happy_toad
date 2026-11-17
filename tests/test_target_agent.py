@@ -64,11 +64,11 @@ class Searcher:
         return dict(summary=summary, claims=claims)
 
 
-def test_six_tools_include_find_target_budget():
+def test_seven_tools_include_find_target_budget():
     names = [t["function"]["name"] for t in TOOLS]
     assert names == [
         "list_input_versions", "run_scenario", "find_target_budget", "get_run", "compare_runs",
-        "submit_report",
+        "explain_revision", "submit_report",
     ]  # fmt: skip
     spec = next(t["function"] for t in TOOLS if t["function"]["name"] == "find_target_budget")
     assert "total budget" in spec["description"] and "cheapest plan" in spec["description"]
