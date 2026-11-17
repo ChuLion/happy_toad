@@ -499,7 +499,7 @@ uv run python evals/truth.py --inputs data/inputs --revision   # writes evals/re
 ```
 
 ## What is next (planned, not done)
-- M5: README done; tag v0.6 pending.
+- M5: README done; tagged v0.6.
 - M6: an MCP server.
 - M7: deferred diagnostics: the smallest budget at which the optimizer's own plan reaches a
   target, a cause for floors that no combination of whole candidates can meet, the cheapest way
