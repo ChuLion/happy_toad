@@ -13,7 +13,7 @@ from happy_toad.agent.report import DIFF_BASE, PAIR_METRICS, Claim, Report
 from happy_toad.constants import BASE_YEAR, HORIZON_YEARS
 from happy_toad.reasons import ReasonCode
 from happy_toad.services.run import RunRecord, load_version
-from happy_toad.services.runs import metrics, read_run
+from happy_toad.services.runs import has_plan, metrics, read_run
 
 MONEY_TOLERANCE = 0.005  # shown to 2 decimals
 PERCENT_TOLERANCE = 0.05  # shown to 1 decimal
@@ -163,8 +163,7 @@ def input_value(record: RunRecord, metric: str, inputs_dir: Path):
 def difference(a: RunRecord, run_id_b: str, metric: str, runs_dir: Path):
     """Run b minus run a for a compared metric, as compare_runs reports it; None without plans."""
     b = read_run(run_id_b, runs_dir)
-    plans = [r for r in (a, b) if r is not None and r.result and r.result.selected is not None]
-    if len(plans) < 2:
+    if not (has_plan(a) and has_plan(b)):
         return None
     base = DIFF_BASE[metric]
     return metrics(b)[base] - metrics(a)[base]
@@ -175,8 +174,7 @@ def pair_value(a: RunRecord, run_id_b: str, metric: str, runs_dir: Path):
     if metric in DIFF_BASE:
         return difference(a, run_id_b, metric, runs_dir)
     b = read_run(run_id_b, runs_dir)
-    plans = [r for r in (a, b) if r is not None and r.result and r.result.selected is not None]
-    if len(plans) < 2:
+    if not (has_plan(a) and has_plan(b)):
         return None
     chosen_a, chosen_b = set(a.result.selected), set(b.result.selected)
     return len(chosen_b - chosen_a) if metric == "n_added" else len(chosen_a - chosen_b)
