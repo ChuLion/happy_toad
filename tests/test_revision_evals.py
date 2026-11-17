@@ -87,6 +87,10 @@ def test_summarize_reports_revision_cases_as_a_separate_group():
     s = summarize([grade(1, True), grade(2, True), grade(101, False), grade(102, True)])
     assert s["overall"]["n"] == 2 and s["overall"]["pass_rate"] == 1.0
     assert s["revision"]["n"] == 2 and s["revision"]["pass_rate"] == 0.5
+    assert s["revision"]["counts"] == {
+        "passed": 1, "runs_ok": 1, "numbers_ok": 1, "behaviour_ok": 1, "checked": 2, "n": 2,
+        "allows_checked": 2,
+    }  # fmt: skip
 
 
 def test_case_102_requires_the_order_as_a_graded_phrase():
@@ -97,7 +101,7 @@ def test_case_102_requires_the_order_as_a_graded_phrase():
 # --- grading a revision conversation ------------------------------------------------------------
 
 
-def _case_102_report(with_order: bool):
+def _case_102_report(with_order: bool, arrow: str = "->"):
     def build(records):
         rev = records[0].revision
         claims = [
@@ -112,7 +116,8 @@ def _case_102_report(with_order: bool):
             dict(metric="total_relief", value=round(rev.total_relief, 2), run_id=records[0].run_id)
         ]
         effects = ", ".join(f"{s.name} {s.effect_relief:.2f}" for s in rev.steps[1:])
-        order = f"Applied in the order {rev.order_text}: " if with_order else "Effects: "
+        order_text = rev.order_text.replace("->", arrow)
+        order = f"Applied in the order {order_text}: " if with_order else "Effects: "
         summary = f"{order}{effects}; total {rev.total_relief:.2f} weighted relief."
         return dict(summary=summary, claims=claims)
 
@@ -132,6 +137,18 @@ def test_case_102_is_graded_on_numbers_and_the_order_phrase(inputs, tmp_path, wi
     assert g.behaviour_ok is with_order
 
 
+def test_the_order_phrase_accepts_the_unicode_arrow(inputs, tmp_path):
+    """Grader change made after round m5_revision: "→" and "->" are the same order phrase."""
+    dirs = dict(inputs_dir=inputs, runs_dir=tmp_path / "runs", transcripts_dir=tmp_path / "t")
+    case = next(c for c in load_revision_cases() if c.id == 102)
+    steps = [("explain_revision", dict(budget=1000))]
+    client = Script(dirs["runs_dir"], steps, _case_102_report(True, arrow="→"))
+    t = ask(case.question, client, SMOKE, **dirs)
+    truth = json.loads(REVISION_TRUTH.read_text())["cases"]["102"]
+    g = grade(case, t, truth, dirs["runs_dir"])
+    assert g.passed, g.problems
+
+
 def test_the_eval_command_runs_the_revision_group(inputs, tmp_path, monkeypatch):
     runs = tmp_path / "runs"
     steps = [("explain_revision", dict(budget=1000))]
@@ -149,7 +166,11 @@ def test_the_eval_command_runs_the_revision_group(inputs, tmp_path, monkeypatch)
     report = json.loads((out / "m5.unofficial.json").read_text())
     assert report["revision"]["n"] == 1 and report["revision"]["pass_rate"] == 1.0
     assert report["overall"]["n"] == 0
-    assert "Revision group" in (out / "m5.unofficial.md").read_text()
+    md = (out / "m5.unofficial.md").read_text()
+    assert (
+        "Revision group (M5, not in the headline; counts): passed 1 of 1 | runs 1 of 1 | "
+        "numbers 1 of 1 | behaviour 1 of 1 | checked 1 of 1"
+    ) in md
 
 
 def test_the_eval_command_refuses_cases_missing_from_the_truth_file(inputs, tmp_path):
