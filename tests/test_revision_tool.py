@@ -2,8 +2,12 @@
 
 import json
 
+from agent_helpers import call, turn
+from helpers import make_set
 from revision_helpers import BUDGET, toy_dirs
 
+from happy_toad.agent.config import SMOKE
+from happy_toad.agent.loop import ask
 from happy_toad.agent.tools import TOOLS, ToolRunner
 from happy_toad.reasons import ReasonCode
 from happy_toad.services.runs import read_run
@@ -57,3 +61,55 @@ def test_unknown_arguments_are_rejected(tmp_path):
 def test_the_order_is_returned_as_data(tmp_path):
     view, _ = explain(tmp_path, budget=BUDGET, plan_of_record="a", refreshed_forecast="b")
     assert view["revision"]["order"] == ["costs", "offloads", "triggers", "sectors"]
+
+
+class RevisionThenReport:
+    """Calls explain_revision, then submits the report that `build` makes from its result."""
+
+    def __init__(self, build):
+        self.build, self.called = build, False
+
+    def complete(self, messages, tools):
+        if not self.called:
+            self.called = True
+            return turn(call("explain_revision", budget=BUDGET, plan_of_record="a",
+                             refreshed_forecast="b"))  # fmt: skip
+        return turn(call("submit_report", **self.build(json.loads(messages[-1]["content"]))))
+
+
+def ask_toy(tmp_path, build, a=None, b=None):
+    inputs, runs = toy_dirs(tmp_path, a, b)
+    client = RevisionThenReport(build)
+    return ask("Why?", client, SMOKE, inputs_dir=inputs, runs_dir=runs,
+               transcripts_dir=tmp_path / "t")  # fmt: skip
+
+
+def test_claims_on_the_two_end_runs_are_known_without_get_run(tmp_path):
+    def build(view):
+        rev = view["revision"]
+        a, b = rev["run_id_a"], rev["run_id_b"]
+        return dict(
+            summary="Weighted relief fell by 1.00, under the modeled objective and constraints.",
+            claims=[dict(metric="diff_weighted_relief", value=-1.0, run_id=a, run_id_b=b)],
+        )
+
+    t = ask_toy(tmp_path, build)
+    assert t.status == "checked", t.turns[-1].tool_calls[-1]["result"]
+
+
+def test_candidates_listed_as_changed_inputs_are_traced(tmp_path):
+    """The toy candidates are A and B; a C### id needs a pair with generator-style ids."""
+    a = make_set([("s1", 10)], [("C001", 6), ("C002", 6)], [("C001", "s1", 10), ("C002", "s1", 8)])
+    b = make_set([("s1", 10)], [("C001", 6), ("C002", 5)], [("C001", "s1", 10), ("C002", "s1", 8)])
+
+    def build(view):
+        claims = [dict(metric="n_costs_changed", value=1, run_id=view["run_id"])]
+        return dict(summary="1 cost changed: C002.", claims=claims)
+
+    t = ask_toy(
+        tmp_path,
+        build,
+        a.model_copy(update={"version_id": "a"}),
+        b.model_copy(update={"version_id": "b"}),
+    )
+    assert t.status == "checked", t.turns[-1].tool_calls[-1]["result"]

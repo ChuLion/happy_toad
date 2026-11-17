@@ -326,7 +326,9 @@ def untraced_candidates(report: Report, runs_dir: Path, executed: Iterable[str] 
         if record.result is not None and record.result.selected:
             traced |= set(record.result.selected)
         if record.revision is not None:
-            traced |= {c for s in record.revision.steps for c in s.selected or []}
+            rev = record.revision
+            traced |= {c for s in rev.steps for c in s.selected or []}
+            traced |= set(rev.inputs.costs_changed) | {c for c, _ in rev.inputs.offloads_changed}
     named = dict.fromkeys(CANDIDATE_ID.findall(report.summary))
     return [
         f"candidate {cid} in the summary is not in the selection or force lists of a run in "
