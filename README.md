@@ -405,8 +405,9 @@ uv run happy-toad eval --regrade evals/rounds/baseline.json --note "..."
 ```
 
 ## Milestone 5: revision analysis (`explain_revision`)
-The question: how and why does the plan change between the **plan of record** (v1) and the
-**refreshed forecast** (v2), at one total budget the user gives? The answer shows both sides:
+The question: how does the plan change between v1 (the **plan of record**) and v2 (the
+**refreshed forecast**), and which input changes account for it, in a stated order? Both runs use
+one total budget the user gives. The answer shows both sides:
 - **Input changes** (what differs in the data), read from the two versions' data, never from the
   change-list file: costs changed, offloads changed, trigger years moved, sectors added or removed.
   Any other difference (a candidate added, a must-fund change) rejects the revision with
@@ -460,6 +461,9 @@ conversations ended by a provider error are excluded (1 in round 2).
 | behaviour right | | 12 of 20 | 13 of 20 | 16 of 19 |
 | CHECKED (where allowed) | | 8 of 15 | 8 of 15 | 13 of 15 |
 
+This group is new and passes less often than the 19-case set; the two are reported separately
+and never combined.
+
 **Noise:** about 20 conversations per round are too few to measure small differences, and per
 case a change of 1 or 2 out of 5 is noise. Nothing here is claimed as better than noise. One
 concrete change is not a rate: refusals caused by the two bugs below appeared in 8 of round 1's
@@ -486,7 +490,8 @@ without it):
   (20261117T032035-88a07a97).
 
 Round 1's failures, all from before the fix, are listed in docs/DEVLOG.md. The full grades are in
-`evals/rounds/m5_revision*.json` and `.md`.
+`evals/rounds/m5_revision*.json` and `.md`. Transcripts are kept locally (not in the repo);
+`evals/rounds/*.json` lists each one by id.
 
 ```
 uv run happy-toad eval --revision --round NAME [--cases 102] [--repeats 5] [--unofficial]
