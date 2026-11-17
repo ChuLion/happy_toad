@@ -165,6 +165,32 @@ A claim in a report names one of these metrics, its value and the run it comes f
 - **`diff_n_resolved`:** the second run's `n_resolved` minus the first run's.
 - **`diff_pct_resolved`:** the second run's `pct_resolved` minus the first run's, in
   percentage points.
+  Not claimable between versions with different sector counts; use the shared-sector counts.
+
+Revision metrics (M5) cite a revision record from `explain_revision`. The plan of record is
+side a and the refreshed forecast side b; changes are applied in the order costs -> offloads ->
+triggers -> sectors, and each effect depends on that order.
+- **`n_sectors_added`:** sectors in the refreshed forecast only.
+- **`n_sectors_removed`:** sectors in the plan of record only.
+- **`n_triggers_moved`:** sectors in both versions whose trigger year differs.
+- **`n_costs_changed`:** candidates whose cost differs.
+- **`n_offloads_changed`:** offload rows on sectors in both versions that differ (amount
+  changed, row added or row removed).
+- **`effect_relief`:** how much one step of the ordered attribution moved weighted relief: the
+  step minus the step before it. The claim names the change kind.
+- **`effect_spend`:** how much one step moved spend; the claim names the change kind.
+- **`effect_n_resolved`:** how much one step moved the number of resolved sectors; the claim
+  names the change kind.
+- **`total_relief`:** the refreshed forecast's weighted relief minus the plan of record's; the
+  effects add up to it exactly.
+- **`total_spend`:** the refreshed forecast's spend minus the plan of record's.
+- **`total_n_resolved`:** the refreshed forecast's resolved sectors minus the plan of record's,
+  new sectors included.
+- **`n_sectors_shared`:** sectors present in both versions.
+- **`n_resolved_shared_a`:** shared sectors the plan of record's plan resolves.
+- **`n_resolved_shared_b`:** shared sectors the refreshed forecast's plan resolves.
+- **`n_sectors_new`:** sectors only in the refreshed forecast.
+- **`n_resolved_new`:** new sectors the refreshed forecast's plan resolves.
 
 ### Run outcomes
 - **completed:** the gate accepted the request and the optimizer ran; the run has a solver
