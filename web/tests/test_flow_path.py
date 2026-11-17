@@ -51,3 +51,14 @@ def test_a_report_refused_once_then_corrected_uses_the_checker_to_explanation_ar
 def test_a_run_with_no_answer_does_not_reach_human_review():
     view = replay_view("20261114T210145-c04c55d4") | {"status": None}
     assert "review" not in flow_path(view)["reached"]
+
+
+def test_a_revision_run_reaches_the_optimizer():
+    view = replay_view("20261114T210145-c04c55d4")
+    steps = [
+        {"tool": "explain_revision", "outcome": "order costs -> offloads -> triggers -> sectors: "
+         "relief effects costs +1.00; total +1.00 [r1]"},
+        *[s for s in view["steps"] if s["tool"] == "submit_report"],
+    ]  # fmt: skip
+    path = flow_path(view | {"steps": steps})
+    assert {"gate", "optimizer", "record"} <= set(path["reached"])

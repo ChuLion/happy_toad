@@ -98,9 +98,12 @@ class Conversation:
         if call.name == "submit_report":
             return self.submit(call)
         result = self.runner.call(call.name, call.arguments)
-        for key in ("run_id", "run_id_a", "run_id_b", "follow_up_run_id"):
-            if isinstance(result.get(key), str) and result[key] not in self.runs:
-                self.runs.append(result[key])
+        revision = result.get("revision") or {}  # M5: the two end runs are nested
+        found = [result.get(k) for k in ("run_id", "run_id_a", "run_id_b", "follow_up_run_id")]
+        found += [revision.get(k) for k in ("run_id_a", "run_id_b")]
+        for run_id in found:
+            if isinstance(run_id, str) and run_id not in self.runs:
+                self.runs.append(run_id)
         return result
 
     def take_turn(self, done: Completion, seconds: float) -> None:

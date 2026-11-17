@@ -1604,3 +1604,122 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   hides the definition inside the card (`aria-expanded` set), dotted underline as before.
 - Not specified by the owner: the name button shows the hand pointer like every other button on
   the page; cards in the grid keep their own height, so opening one does not stretch its row.
+
+## 2026-11-16 — M5 start: decisions to settle
+- Owner asked: set CLAUDE.md to M5 (this branch only); write a "decisions to settle" list in
+  `docs/SPEC.md` (framing, attribution method, what can be claimed, by-market breakdown, the
+  sectors-added rule, what the checker can verify, what is out of scope) and the proposed new
+  tools and claim metrics. No code.
+- Done: CLAUDE.md now says M5; SPEC section "M5 — Revision analysis (draft: decisions to
+  settle)", D1-D7 plus a table of proposed tools and metrics.
+- Not specified by the owner: no schedule document exists in the repo, so the M5 inputs were the
+  README "What is next" list, the DEVLOG notes (v1/v2 framing, S4 and S13 moved to M5) and the
+  current code; each decision carries a [lead] recommendation; the 80-vs-83 sector denominator
+  issue in `diff_pct_resolved` was found while drafting and is raised under D5.
+
+## 2026-11-16 — M5 SPEC and tests (before code)
+- Owner answers: D1 lead accepted (same budget, user-supplied); D2 ordered cumulative attribution
+  in the order costs, offloads, triggers, sectors, stated everywhere, in-between inputs in memory
+  with their content hash and applied kinds recorded; D3 step effects and the total claimable,
+  no "percent due to", incomplete when any step is not proven optimal, no remainder; D4 market
+  breakdown deferred to M7; D5 accepted; D6 accepted, the kind is the claim entity; D7 as listed
+  plus average-over-orders, 4 revision eval cases as a separate group, one round, no tuning, the
+  19-case headline unchanged; the input comparison is computed from the data, not the change list.
+- Done: SPEC M5 section (decisions settled, 5.1-5.4, metrics, checker rules, tool, evals, a
+  hand-worked toy table); tests in `tests/test_revision_{inputs,attribution,claims,tool,evals}.py`
+  and `tests/revision_helpers.py`. They fail at import until `services/revision.py` exists, and
+  ruff reports I001 on those four imports until then; the existing 581 tests pass.
+- Not specified by the owner (listed in the SPEC "Not specified" block): no force or multipliers
+  in revision requests; `REVISION_UNSUPPORTED_CHANGE` for changes outside the four kinds; the two
+  ends are ordinary scenario runs, reusing `compare_runs`; a kind with no changes is not
+  re-solved; the order rule in the checker (the summary must name the four kinds in order); step
+  version ids `a+costs+...`; case ids 101-104; a `happy-toad revision` command [lead].
+
+## 2026-11-16 — M5 implementation
+- Owner asked (with SPEC approval): a test that the shipped v1 -> v2 pair passes the
+  supported-change check (it passes: no unsupported change; stop if not); no checker order
+  rule, the order returned as data and graded as a case-102 phrase; no `happy-toad revision`
+  command; an end-to-end test with the real CBC solver on the shipped v1 and v2 (budgets 800
+  and 1000). Then implement in small commits.
+- Done, one commit each: S4 `has_plan`; S13 id helpers; 5.1 `compare_inputs` and `apply_kinds`;
+  5.2-5.3 `run_revision` and the revision record; the claim metrics and checker rules; the
+  `explain_revision` tool and prompt rule 14; CLI-trace and web wording with the order; evals
+  (cases 101-104, independent revision truth, separate group, `eval --revision`); the web flow
+  diagram lights the optimizer for a revision run (replay rebuilt from `replay.json`).
+- Result on generated v1/v2 seed 42 at a total budget of 1000 (engine and independent truth
+  agree): complete; relief effects costs +11.58, offloads -44.34, triggers -3.91, sectors
+  +23.92; total -12.75. Shared sectors resolved 27 -> 25; new sectors resolved 1 of 3.
+- Found while implementing: a step whose kind had no changes kept the previous step's change
+  count (a failing test showed it; fixed before commit).
+- Automated security review: (1) the checker traces candidates from middle steps; kept, because
+  those records come from the solver, not the model, and the owner approved it in the SPEC;
+  (2) revision truth was keyed by the budget alone (now keyed by versions and budget), and
+  `eval --revision` with a non-revision truth file failed mid-round (now refused up front).
+- Not specified by the owner: two pinned tool-list tests updated for the seventh tool;
+  the Claim `entity` field description is shown to the model in the report schema; the
+  revision truth file has no `commit` field (its test compares the whole file); revision
+  records use `record_invalid_request` with kind "revision" for schema errors.
+- Not done yet (SPEC "Done when"): the M5 eval round (needs paid model calls; waiting for the
+  go-ahead), the README M5 section, tag v0.6.
+
+## 2026-11-17 — M5 eval round, fix pass, README
+- Owner asked: one official round on the demo profile, cases 101-104 as their own group, the
+  19-case headline unchanged; counts, not percentages; no claim beyond noise; no case edited;
+  one fix pass for real tool or prompt bugs; publish the remaining failures. Then the README M5
+  section. The owner rejected a pre-round change of the report's revision line to counts, so the
+  round report keeps its percent format and the README gives counts.
+- Round `m5_revision` (commit 6fbb32a, $0.034): 10 of 20 passed (101: 5, 102: 0, 103: 2,
+  104: 3); runs 20 of 20; no percent due to one kind was stated.
+- Fix pass (66a0507): (1) the loop did not record the two end runs of `explain_revision`
+  (their ids are nested under `revision`), so true claims on them were refused as "not
+  executed or read"; (2) candidate ids in the revision's changed inputs were refused as
+  untraced. Each has a test that fails without the fix (checked for (2) by running it against
+  the old checker). Not re-measured: no second round.
+- Remaining failures are listed in the README with transcript ids.
+- Not specified by the owner: "run it once" read as a single round, so the fix is not
+  re-measured; inputs generated into data/inputs (gitignored) for the round.
+
+## 2026-11-17 — M5 post-fix round, regrade of round 1, lessons
+- Owner asked: (a) regrade round 1 offline with an arrow-tolerant phrase check and report both
+  gradings; (b) show counts on the round report's revision line; then one post-fix round on
+  the fixed commit (same four cases, 5 runs, demo profile, clean tree); no other changes to
+  cases, prompt or tools; if case 102 still fails, publish it as a known failure and stop.
+- **Grader change made after seeing results:** required phrases now treat "→" as "->"
+  (`evals/grade.py`, commit d544a93). It was made after round 1 showed the agent writing "→"
+  for the order phrase, so round 1 is reported both ways. Regrade (`m5_revision_arrows`, same
+  transcripts and runs): still 10 of 20 passed; one conversation (20261117T024158-6dc3ce1d)
+  no longer fails the phrase but still fails on an unclaimed `total_relief`; behaviour 12 -> 13
+  of 20.
+- The round report's revision line now shows counts (0d9e1cb). `regrade` did not know the
+  revision cases (KeyError on ids 101-104); fixed with a test (a grading-infrastructure fix,
+  not a case, prompt or tool change). The original `m5_revision.md` keeps its percent line, as
+  it was produced; the regraded and round-2 files use counts.
+- Round `m5_revision_round2` (9cbeb08, $0.031): 13 of 19 passed, 1 provider error excluded
+  (case 101). Per case: 101 4 of 4, 102 3 of 5, 103 3 of 5, 104 3 of 5. No refusal from the two
+  fixed bugs in any conversation (round 1: in 8 of 10 failures). Case 102 still fails 2 of 5,
+  so it is published as a known failure; no further fix pass. About 20 conversations are within
+  noise; no improvement is claimed.
+- Round 1 failures (before the fix), for the record: case 102 claimed `diff_weighted_relief`
+  instead of `total_relief`, left step effects unclaimed, or wrote "→" (6dc3ce1d, 71e5698e,
+  33542b7c); numbers written but not claimed or not claimable, such as a step's relief 1585.15
+  (e93090cf, c6feaa2e, 26fcc19a, 4d492fda); `n_added` on the wrong run (985373f7); two ended on
+  a bug-1 refusal (c778d705, e87d8964). All ids are 20261117T02xxxx transcripts in
+  `evals/rounds/m5_revision.json`.
+- **Lessons from the two bugs:**
+  1. A tool that creates runs on the agent's behalf must hand their ids to the conversation's
+     run list. The loop read only top-level keys, and `explain_revision` nested the end-run ids
+     under `revision`, so true claims were refused. The unit tests called the tool and the
+     checker separately and never through the loop; one end-to-end test through `ask` would
+     have caught it. Rule: a new tool gets at least one test through the agent loop with a
+     claim on every run it creates.
+  2. Tracing rules written for one kind of result ("in a selection or force list") silently
+     refuse true statements about new kinds of data the tool returns (changed-input ids). Rule:
+     when a tool returns new ids, decide and test whether the checker traces them.
+- Not specified by the owner: regraded a copy (`m5_revision_arrows.*`) so the original grading
+  stays; the round-2 report carries a note naming the commits compared.
+
+## 2026-11-17 — M7 parked idea: confirm the interpreted request
+- Owner added to the README M7 parked ideas: echo the interpreted request back to the user and
+  ask for confirmation before running (catches a valid-but-wrong request, such as forcing in
+  C034 instead of C033, which neither the gate nor the checker can detect). Docs only; not
+  built.

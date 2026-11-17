@@ -1,0 +1,539 @@
+{
+ "header": {
+  "round": "m5_revision",
+  "date": "2026-11-17T02:43:56+00:00",
+  "official": true,
+  "provenance": {
+   "git_sha": "6fbb32a1c6a643808d7d569787b54b3693621a54",
+   "git_dirty": false,
+   "prompt_sha256": "a464315812492ee67a421c9c688c128a02be74f2985bd0e6df5fe9199e027223"
+  },
+  "profile": "demo",
+  "model": "deepseek/deepseek-v4-flash-0731",
+  "providers": [
+   "Baidu",
+   "BaseTen"
+  ],
+  "notes": []
+ },
+ "overall": {
+  "n": 0,
+  "infrastructure": 0,
+  "pass_rate": null,
+  "runs_rate": null,
+  "numbers_rate": null,
+  "behaviour_rate": null,
+  "checked_rate": null,
+  "first_pass_rate": null,
+  "cost_total": 0,
+  "seconds_mean": null,
+  "turns_mean": null
+ },
+ "revision": {
+  "n": 20,
+  "infrastructure": 0,
+  "pass_rate": 0.5,
+  "runs_rate": 1.0,
+  "numbers_rate": 0.8,
+  "behaviour_rate": 0.6,
+  "checked_rate": 0.5333333333333333,
+  "first_pass_rate": 0.4,
+  "cost_total": 0.03369336,
+  "seconds_mean": 6.270227906131185,
+  "turns_mean": 3.6
+ },
+ "per_case": {
+  "101": {
+   "n": 5,
+   "infrastructure": 0,
+   "pass_rate": 1.0,
+   "runs_rate": 1.0,
+   "numbers_rate": 1.0,
+   "behaviour_rate": 1.0,
+   "checked_rate": null,
+   "first_pass_rate": 1.0,
+   "cost_total": 0.0022719380000000003,
+   "seconds_mean": 2.1375591329298915,
+   "turns_mean": 2.2
+  },
+  "102": {
+   "n": 5,
+   "infrastructure": 0,
+   "pass_rate": 0.0,
+   "runs_rate": 1.0,
+   "numbers_rate": 0.2,
+   "behaviour_rate": 0.4,
+   "checked_rate": 0.6,
+   "first_pass_rate": 0.4,
+   "cost_total": 0.00970027,
+   "seconds_mean": 7.286312516592443,
+   "turns_mean": 4.4
+  },
+  "103": {
+   "n": 5,
+   "infrastructure": 0,
+   "pass_rate": 0.4,
+   "runs_rate": 1.0,
+   "numbers_rate": 1.0,
+   "behaviour_rate": 0.4,
+   "checked_rate": 0.4,
+   "first_pass_rate": 0.2,
+   "cost_total": 0.008204738,
+   "seconds_mean": 7.326973125059157,
+   "turns_mean": 3.6
+  },
+  "104": {
+   "n": 5,
+   "infrastructure": 0,
+   "pass_rate": 0.6,
+   "runs_rate": 1.0,
+   "numbers_rate": 1.0,
+   "behaviour_rate": 0.6,
+   "checked_rate": 0.6,
+   "first_pass_rate": 0.0,
+   "cost_total": 0.013516414000000001,
+   "seconds_mean": 8.33006684994325,
+   "turns_mean": 4.2
+  }
+ },
+ "review": [],
+ "infrastructure": [],
+ "noise": "A round is 19 cases x 5 runs = 95 conversations: a difference between two rounds under about 10 percentage points is noise, and per case a change of 1 or 2 out of 5 is noise.",
+ "grades": [
+  {
+   "case_id": 101,
+   "transcript_id": "20261117T024147-d8c5f692",
+   "label": "NO NUMBERS TO CHECK",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": false,
+   "review": [],
+   "problems": [],
+   "cost": 0.0006327020000000001,
+   "seconds": 4.742546790745109,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 101,
+   "transcript_id": "20261117T024152-190c799b",
+   "label": "NO NUMBERS TO CHECK",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": false,
+   "review": [],
+   "problems": [],
+   "cost": 0.000156512,
+   "seconds": 1.0340404999442399,
+   "turns": 1,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 101,
+   "transcript_id": "20261117T024153-5f58e712",
+   "label": "NO NUMBERS TO CHECK",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": false,
+   "review": [],
+   "problems": [],
+   "cost": 0.000299894,
+   "seconds": 1.5808673747815192,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 101,
+   "transcript_id": "20261117T024155-5e0a72bc",
+   "label": "NO NUMBERS TO CHECK",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": false,
+   "review": [],
+   "problems": [],
+   "cost": 0.000402586,
+   "seconds": 1.6677491660229862,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 101,
+   "transcript_id": "20261117T024156-3add6d56",
+   "label": "NO NUMBERS TO CHECK",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": false,
+   "review": [],
+   "problems": [],
+   "cost": 0.000780244,
+   "seconds": 1.6625918331556022,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 102,
+   "transcript_id": "20261117T024158-6dc3ce1d",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": false,
+   "behaviour_ok": false,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [
+    "key number total_relief of run 0 not claimed",
+    "required phrase \"costs -> offloads -> triggers -> sectors\" missing"
+   ],
+   "cost": 0.001713934,
+   "seconds": 6.615715582855046,
+   "turns": 4,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": false
+  },
+  {
+   "case_id": 102,
+   "transcript_id": "20261117T024205-e93090cf",
+   "label": "NOT CHECKED",
+   "runs_ok": true,
+   "numbers_ok": false,
+   "behaviour_ok": false,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [
+    "key number effect_relief:costs of run 0 not claimed",
+    "key number effect_relief:offloads of run 0 not claimed",
+    "key number effect_relief:triggers of run 0 not claimed",
+    "key number effect_relief:sectors of run 0 not claimed",
+    "key number total_relief of run 0 not claimed",
+    "label NOT CHECKED not allowed"
+   ],
+   "cost": 0.002198392,
+   "seconds": 7.692147583235055,
+   "turns": 5,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": false
+  },
+  {
+   "case_id": 102,
+   "transcript_id": "20261117T024213-71e5698e",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": false,
+   "behaviour_ok": true,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [
+    "key number effect_relief:costs of run 0 not claimed",
+    "key number effect_relief:offloads of run 0 not claimed",
+    "key number effect_relief:triggers of run 0 not claimed",
+    "key number effect_relief:sectors of run 0 not claimed",
+    "key number total_relief of run 0 not claimed"
+   ],
+   "cost": 0.001650292,
+   "seconds": 6.075968625023961,
+   "turns": 4,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": false
+  },
+  {
+   "case_id": 102,
+   "transcript_id": "20261117T024219-33542b7c",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": false,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [
+    "key number effect_relief:costs of run 0 not claimed",
+    "key number effect_relief:offloads of run 0 not claimed",
+    "key number effect_relief:triggers of run 0 not claimed",
+    "key number effect_relief:sectors of run 0 not claimed",
+    "key number total_relief of run 0 not claimed"
+   ],
+   "cost": 0.001531674,
+   "seconds": 6.218279249966145,
+   "turns": 4,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": false
+  },
+  {
+   "case_id": 102,
+   "transcript_id": "20261117T024225-c6feaa2e",
+   "label": "NOT CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": false,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [
+    "label NOT CHECKED not allowed"
+   ],
+   "cost": 0.002605978,
+   "seconds": 9.829451541882008,
+   "turns": 5,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": false
+  },
+  {
+   "case_id": 103,
+   "transcript_id": "20261117T024236-26fcc19a",
+   "label": "NOT CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": false,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [
+    "label NOT CHECKED not allowed"
+   ],
+   "cost": 0.0018434760000000001,
+   "seconds": 6.5166460000909865,
+   "turns": 4,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": false
+  },
+  {
+   "case_id": 103,
+   "transcript_id": "20261117T024242-5de13dce",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.0023221039999999997,
+   "seconds": 9.3970754169859,
+   "turns": 5,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 103,
+   "transcript_id": "20261117T024252-e6b96c2e",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000721094,
+   "seconds": 4.705257915891707,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 103,
+   "transcript_id": "20261117T024257-e87d8964",
+   "label": "NOT CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": false,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [
+    "label NOT CHECKED not allowed"
+   ],
+   "cost": 0.0016136660000000001,
+   "seconds": 10.446108375210315,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": false
+  },
+  {
+   "case_id": 103,
+   "transcript_id": "20261117T024308-4d492fda",
+   "label": "NOT CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": false,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [
+    "label NOT CHECKED not allowed"
+   ],
+   "cost": 0.001704398,
+   "seconds": 5.56977791711688,
+   "turns": 4,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": false
+  },
+  {
+   "case_id": 104,
+   "transcript_id": "20261117T024313-fdcdc607",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.00654151,
+   "seconds": 13.3306257086806,
+   "turns": 5,
+   "providers": [
+    "Baidu",
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 104,
+   "transcript_id": "20261117T024327-985373f7",
+   "label": "NOT CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": false,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [
+    "label NOT CHECKED not allowed"
+   ],
+   "cost": 0.002340774,
+   "seconds": 9.718769166618586,
+   "turns": 5,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": false
+  },
+  {
+   "case_id": 104,
+   "transcript_id": "20261117T024337-408ba4f4",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.00190813,
+   "seconds": 5.691470874939114,
+   "turns": 4,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 104,
+   "transcript_id": "20261117T024343-7408b87d",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.001380094,
+   "seconds": 7.216438208241016,
+   "turns": 4,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 104,
+   "transcript_id": "20261117T024350-c778d705",
+   "label": "NOT CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": false,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [
+    "label NOT CHECKED not allowed"
+   ],
+   "cost": 0.001345906,
+   "seconds": 5.693030291236937,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": false
+  }
+ ]
+}

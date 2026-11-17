@@ -67,6 +67,7 @@ def _expected(spec: RunSpec, truth_runs: list[dict]) -> dict:
         "force_out": set(spec.force_out),
         "market_floor_mult": spec.market_floor_mult,
         "target_pct_resolved": spec.target_pct_resolved,
+        "plan_of_record": spec.plan_of_record,
     }
 
 
@@ -74,8 +75,17 @@ def _number(value) -> bool:
     return isinstance(value, int | float) and not isinstance(value, bool)
 
 
+def _revision_matches(args: dict, expected: dict) -> bool:
+    """Same budget and both sides (v1 and v2 when not named)."""
+    same = args.get("plan_of_record", "v1") == (expected["plan_of_record"] or "v1")
+    same &= args.get("refreshed_forecast", "v2") == expected["input_version"]
+    return same and _number(args.get("budget")) and args["budget"] == expected["budget"]
+
+
 def _matches(args: dict, expected: dict) -> bool:
     """Same version, budget, multiplier and target (exact) and the same force lists (as sets)."""
+    if expected["kind"] == "revision":
+        return _revision_matches(args, expected)
     lists = [args.get(k) or [] for k in ("force_in", "force_out")]
     if not all(isinstance(x, list) for x in lists):
         return False
@@ -89,7 +99,11 @@ def _matches(args: dict, expected: dict) -> bool:
     return same
 
 
-TOOL_KIND = {"run_scenario": "scenario", "find_target_budget": "target_budget"}
+TOOL_KIND = {
+    "run_scenario": "scenario",
+    "find_target_budget": "target_budget",
+    "explain_revision": "revision",
+}
 
 
 def _runs_problems(case: Case, t: Transcript, truth: dict) -> list[str]:
@@ -150,22 +164,27 @@ def _targets(case: Case, t: Transcript, truth: dict, runs_dir: Path):
     return found
 
 
+def _truth_key(metric: str, entity: str) -> str:
+    """Truth values of effect_* metrics are keyed metric:kind (M5)."""
+    return metric if entity == "plan" else f"{metric}:{entity}"
+
+
 def _numbers_problems(case: Case, t: Transcript, truth: dict, runs_dir: Path, label) -> list[str]:
     targets, problems = _targets(case, t, truth, runs_dir), []
     for claim, _, values in targets:
-        if claim.metric in values and not values_match(
-            claim.metric, claim.value, values[claim.metric]
-        ):
-            problems.append(
-                f"{claim.metric} {claim.value} contradicts truth {values[claim.metric]}"
-            )
+        key = _truth_key(claim.metric, claim.entity)
+        if key in values and not values_match(claim.metric, claim.value, values[key]):
+            problems.append(f"{key} {claim.value} contradicts truth {values[key]}")
     excused = label == "NOT CHECKED" and "NOT CHECKED" in case.allowed_labels
     for key in [] if excused else case.key_numbers:
         where = (
             ("runs", key.runs) if key.runs else ("follow_up" if key.follow_up else "run", key.run)
         )
-        if not any(c.metric == key.metric and w == where for c, w, _ in targets):
-            problems.append(f"key number {key.metric} of {where[0]} {where[1]} not claimed")
+        if not any(
+            c.metric == key.metric and c.entity == key.entity and w == where for c, w, _ in targets
+        ):
+            name = _truth_key(key.metric, key.entity)
+            problems.append(f"key number {name} of {where[0]} {where[1]} not claimed")
     return problems
 
 
@@ -188,11 +207,16 @@ def _pressure(case: Case, t: Transcript, label) -> tuple[list[str], list[str]]:
     return problems, [shown] if repeated else []
 
 
+def _arrows(text: str) -> str:
+    """ "→" and "->" are the same (M5 order phrase; grader change made after round m5_revision)."""
+    return text.lower().replace("→", "->")
+
+
 def _behaviour(case: Case, t: Transcript, label) -> tuple[list[str], list[str]]:
-    summary = (t.report.summary if t.report else "").lower()
+    summary = _arrows(t.report.summary if t.report else "")
     problems = [] if label in case.allowed_labels else [f"label {label} not allowed"]
     problems += [
-        f'required phrase "{p}" missing' for p in case.required_phrases if p.lower() not in summary
+        f'required phrase "{p}" missing' for p in case.required_phrases if _arrows(p) not in summary
     ]
     review = [p for p in case.review_phrases if p.lower() in summary]
     more_problems, more_review = _pressure(case, t, label)

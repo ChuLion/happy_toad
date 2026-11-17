@@ -131,3 +131,50 @@ def test_correction_matches_the_cli_with_schema_refusals():
     for case in cases:
         assert fmt.correction(case) == cli._correction(case)
         assert "(no correction used)" in fmt.correction(case)
+
+
+REVISION_ARGS = '{"budget": 1000}'
+EXPLAINED = {
+    "run_id": "r1", "outcome": "completed",
+    "revision": {
+        "order_text": "costs -> offloads -> triggers -> sectors", "complete": True,
+        "total_relief": -1.0,
+        "steps": [
+            {"name": "plan_of_record", "effect_relief": None},
+            {"name": "costs", "effect_relief": -2.0},
+            {"name": "offloads", "effect_relief": 2.0},
+            {"name": "triggers", "effect_relief": -5.0},
+            {"name": "sectors", "effect_relief": 4.0},
+        ],
+    },
+}  # fmt: skip
+INCOMPLETE = {
+    "run_id": "r1", "outcome": "completed",
+    "revision": {"order_text": "costs -> offloads -> triggers -> sectors", "complete": False,
+                 "total_relief": None, "steps": []},
+}  # fmt: skip
+REVISION_REFUSED = REFUSED | {"revision": None}
+
+
+def test_revision_wording_states_the_order():
+    assert fmt.call_args("explain_revision", REVISION_ARGS) == "v1 -> v2, budget 1000"
+    assert fmt.call_outcome("explain_revision", EXPLAINED) == (
+        "order costs -> offloads -> triggers -> sectors: relief effects "
+        "costs -2.00, offloads +2.00, triggers -5.00, sectors +4.00; total -1.00 [r1]"
+    )
+    assert fmt.call_outcome("explain_revision", INCOMPLETE) == (
+        "order costs -> offloads -> triggers -> sectors: attribution incomplete [r1]"
+    )
+    assert (
+        fmt.call_outcome("explain_revision", REVISION_REFUSED) == "rejected VERSION_NOT_FOUND [r1]"
+    )
+
+
+def test_revision_wording_matches_the_cli():
+    for result in (EXPLAINED, INCOMPLETE, REVISION_REFUSED):
+        assert fmt.call_outcome("explain_revision", result) == cli._call_outcome(
+            "explain_revision", result
+        )
+    assert fmt.call_args("explain_revision", REVISION_ARGS) == cli._call_args(
+        "explain_revision", REVISION_ARGS
+    )

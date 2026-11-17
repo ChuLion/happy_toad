@@ -1,0 +1,268 @@
+{
+ "note": "Ground truth for the M5 revision cases, computed by evals/truth.py with its own step construction and PuLP models, from docs/SPEC.md without the engine's code; compared with the engine by tests/test_revision_evals.py. Inputs: generated v1 and v2, seed 42.",
+ "inputs": {
+  "v1": "c53306104be69aef09b12c481c10739ca33d741e0be2e99e5706758974bd349c",
+  "v2": "a8ae789ce140d461d2d16655d0ffcd8ffcc187b941684bf06994f3273bd0900d"
+ },
+ "budgets": {
+  "v1|v2|1000": {
+   "complete": true,
+   "selected": [
+    [
+     "C002",
+     "C004",
+     "C005",
+     "C006",
+     "C007",
+     "C008",
+     "C013",
+     "C018",
+     "C019",
+     "C020",
+     "C021",
+     "C025",
+     "C027",
+     "C028",
+     "C030",
+     "C034",
+     "C043",
+     "C044",
+     "C046",
+     "C049"
+    ],
+    [
+     "C002",
+     "C004",
+     "C005",
+     "C006",
+     "C007",
+     "C008",
+     "C013",
+     "C016",
+     "C018",
+     "C019",
+     "C020",
+     "C021",
+     "C025",
+     "C027",
+     "C028",
+     "C030",
+     "C034",
+     "C038",
+     "C043",
+     "C044",
+     "C046",
+     "C049"
+    ],
+    [
+     "C002",
+     "C004",
+     "C005",
+     "C006",
+     "C007",
+     "C008",
+     "C013",
+     "C016",
+     "C018",
+     "C019",
+     "C020",
+     "C021",
+     "C025",
+     "C027",
+     "C028",
+     "C030",
+     "C034",
+     "C038",
+     "C043",
+     "C044",
+     "C046",
+     "C049"
+    ],
+    [
+     "C002",
+     "C004",
+     "C005",
+     "C007",
+     "C013",
+     "C018",
+     "C019",
+     "C020",
+     "C021",
+     "C025",
+     "C027",
+     "C028",
+     "C029",
+     "C030",
+     "C034",
+     "C038",
+     "C042",
+     "C043",
+     "C044",
+     "C046",
+     "C049"
+    ],
+    [
+     "C002",
+     "C004",
+     "C005",
+     "C007",
+     "C013",
+     "C018",
+     "C019",
+     "C020",
+     "C021",
+     "C025",
+     "C027",
+     "C028",
+     "C029",
+     "C030",
+     "C034",
+     "C038",
+     "C042",
+     "C043",
+     "C044",
+     "C046",
+     "C049"
+    ]
+   ],
+   "effect_relief": [
+    11.580000000000155,
+    -44.340000000000146,
+    -3.908333333333303,
+    23.920000000000073
+   ],
+   "total_relief": -12.748333333333221,
+   "values": {
+    "n_sectors_added": 3,
+    "n_sectors_removed": 0,
+    "n_triggers_moved": 6,
+    "n_costs_changed": 10,
+    "n_offloads_changed": 8,
+    "effect_relief:costs": 11.580000000000155,
+    "effect_spend:costs": -0.2599999999999909,
+    "effect_n_resolved:costs": 1,
+    "effect_relief:offloads": -44.340000000000146,
+    "effect_spend:offloads": 0.0,
+    "effect_n_resolved:offloads": -2,
+    "effect_relief:triggers": -3.908333333333303,
+    "effect_spend:triggers": -0.6200000000000045,
+    "effect_n_resolved:triggers": -1,
+    "effect_relief:sectors": 23.920000000000073,
+    "effect_spend:sectors": 0.0,
+    "effect_n_resolved:sectors": 1,
+    "total_relief": -12.748333333333221,
+    "total_spend": -0.8799999999999955,
+    "total_n_resolved": -1,
+    "n_sectors_shared": 80,
+    "n_resolved_shared_a": 27,
+    "n_resolved_shared_b": 25,
+    "n_sectors_new": 3,
+    "n_resolved_new": 1
+   }
+  }
+ },
+ "cases": {
+  "101": {
+   "runs": []
+  },
+  "102": {
+   "runs": [
+    {
+     "values": {
+      "n_sectors_added": 3,
+      "n_sectors_removed": 0,
+      "n_triggers_moved": 6,
+      "n_costs_changed": 10,
+      "n_offloads_changed": 8,
+      "effect_relief:costs": 11.580000000000155,
+      "effect_spend:costs": -0.2599999999999909,
+      "effect_n_resolved:costs": 1,
+      "effect_relief:offloads": -44.340000000000146,
+      "effect_spend:offloads": 0.0,
+      "effect_n_resolved:offloads": -2,
+      "effect_relief:triggers": -3.908333333333303,
+      "effect_spend:triggers": -0.6200000000000045,
+      "effect_n_resolved:triggers": -1,
+      "effect_relief:sectors": 23.920000000000073,
+      "effect_spend:sectors": 0.0,
+      "effect_n_resolved:sectors": 1,
+      "total_relief": -12.748333333333221,
+      "total_spend": -0.8799999999999955,
+      "total_n_resolved": -1,
+      "n_sectors_shared": 80,
+      "n_resolved_shared_a": 27,
+      "n_resolved_shared_b": 25,
+      "n_sectors_new": 3,
+      "n_resolved_new": 1
+     }
+    }
+   ]
+  },
+  "103": {
+   "runs": [
+    {
+     "values": {
+      "n_sectors_added": 3,
+      "n_sectors_removed": 0,
+      "n_triggers_moved": 6,
+      "n_costs_changed": 10,
+      "n_offloads_changed": 8,
+      "effect_relief:costs": 11.580000000000155,
+      "effect_spend:costs": -0.2599999999999909,
+      "effect_n_resolved:costs": 1,
+      "effect_relief:offloads": -44.340000000000146,
+      "effect_spend:offloads": 0.0,
+      "effect_n_resolved:offloads": -2,
+      "effect_relief:triggers": -3.908333333333303,
+      "effect_spend:triggers": -0.6200000000000045,
+      "effect_n_resolved:triggers": -1,
+      "effect_relief:sectors": 23.920000000000073,
+      "effect_spend:sectors": 0.0,
+      "effect_n_resolved:sectors": 1,
+      "total_relief": -12.748333333333221,
+      "total_spend": -0.8799999999999955,
+      "total_n_resolved": -1,
+      "n_sectors_shared": 80,
+      "n_resolved_shared_a": 27,
+      "n_resolved_shared_b": 25,
+      "n_sectors_new": 3,
+      "n_resolved_new": 1
+     }
+    }
+   ]
+  },
+  "104": {
+   "runs": [
+    {
+     "values": {
+      "n_sectors_added": 3,
+      "n_sectors_removed": 0,
+      "n_triggers_moved": 6,
+      "n_costs_changed": 10,
+      "n_offloads_changed": 8,
+      "effect_relief:costs": 11.580000000000155,
+      "effect_spend:costs": -0.2599999999999909,
+      "effect_n_resolved:costs": 1,
+      "effect_relief:offloads": -44.340000000000146,
+      "effect_spend:offloads": 0.0,
+      "effect_n_resolved:offloads": -2,
+      "effect_relief:triggers": -3.908333333333303,
+      "effect_spend:triggers": -0.6200000000000045,
+      "effect_n_resolved:triggers": -1,
+      "effect_relief:sectors": 23.920000000000073,
+      "effect_spend:sectors": 0.0,
+      "effect_n_resolved:sectors": 1,
+      "total_relief": -12.748333333333221,
+      "total_spend": -0.8799999999999955,
+      "total_n_resolved": -1,
+      "n_sectors_shared": 80,
+      "n_resolved_shared_a": 27,
+      "n_resolved_shared_b": 25,
+      "n_sectors_new": 3,
+      "n_resolved_new": 1
+     }
+    }
+   ]
+  }
+ }
+}

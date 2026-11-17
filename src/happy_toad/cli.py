@@ -161,6 +161,26 @@ def _target_outcome(result: dict) -> str:
     return _run_outcome(result)
 
 
+def _revision_args(args: dict) -> str:
+    a, b = args.get("plan_of_record", "v1"), args.get("refreshed_forecast", "v2")
+    return f"{a} -> {b}, budget {args.get('budget')}"
+
+
+def _revision_outcome(result: dict) -> str:
+    rev, run_id = result.get("revision"), result.get("run_id")
+    if rev is None:
+        return _run_outcome(result)
+    head = f"order {rev['order_text']}"
+    if not rev["complete"]:
+        return f"{head}: attribution incomplete [{run_id}]"
+    effects = ", ".join(
+        f"{s['name']} {s['effect_relief']:+.2f}"
+        for s in rev["steps"]
+        if s["name"] != "plan_of_record"
+    )
+    return f"{head}: relief effects {effects}; total {rev['total_relief']:+.2f} [{run_id}]"
+
+
 def _call_args(name: str, raw: str) -> str:
     try:
         args = json.loads(raw or "{}")
@@ -172,6 +192,8 @@ def _call_args(name: str, raw: str) -> str:
         return _scenario_args(args)
     if name == "find_target_budget":
         return _target_args(args)
+    if name == "explain_revision":
+        return _revision_args(args)
     if name == "submit_report":
         return f"{len(args.get('claims') or [])} claims"
     return " ".join(f"{v}" for v in args.values())
@@ -207,6 +229,8 @@ def _call_outcome(name: str, result: dict) -> str:
         return "accepted" if result.get("accepted") else f"refused ({problems})"
     if name == "find_target_budget" and "run_id" in result:
         return _target_outcome(result)
+    if name == "explain_revision" and "run_id" in result:
+        return _revision_outcome(result)
     if name in ("run_scenario", "get_run") and "run_id" in result:
         return _run_outcome(result)
     if result.get("error"):
@@ -429,9 +453,18 @@ def eval_round(
         Path | None, typer.Option("--regrade", help="Grade a stored round again, no new runs.")
     ] = None,
     note: Annotated[list[str] | None, typer.Option(help="A note for the report (repeat).")] = None,
+    revision: Annotated[
+        bool, typer.Option(help="M5: the revision cases 101-104 against revision truth.")
+    ] = False,
 ) -> None:
-    """Run the M4 evaluation cases, grade them against evals/truth.json and write the report."""
-    from happy_toad.evals.cases import load_cases  # here, not at the top: grade imports this module
+    """Run the evaluation cases, grade them against their truth and write the report.
+
+    The M4 cases use evals/truth.json; with --revision, the M5 cases use evals/revision_truth.json.
+    """
+    from happy_toad.evals.cases import (  # here, not at the top: grade imports this module
+        load_cases,
+        load_revision_cases,
+    )
     from happy_toad.evals.runner import (
         RoundRefused,
         check_round_allowed,
@@ -441,6 +474,8 @@ def eval_round(
         run_round,
     )
 
+    if revision and truth_path == Path("evals/truth.json"):
+        truth_path = Path("evals/revision_truth.json")
     truth = json.loads(truth_path.read_text())
     if regrade_path is not None:
         stored = json.loads(regrade_path.read_text())
@@ -454,10 +489,15 @@ def eval_round(
     except RoundRefused as err:
         typer.echo(f"Refused: {err}", err=True)
         raise typer.Exit(2) from err
-    chosen = load_cases()
+    chosen = load_revision_cases() if revision else load_cases()
     if cases:
         wanted = {int(x) for x in cases.split(",")}
         chosen = [c for c in chosen if c.id in wanted]
+    missing = [c.id for c in chosen if str(c.id) not in truth["cases"]]
+    if missing:
+        raise typer.BadParameter(
+            f"cases {missing} are not in {truth_path}", param_hint="--truth or --revision"
+        )
     model = PROFILES[profile]
 
     def show(g) -> None:

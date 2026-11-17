@@ -61,6 +61,11 @@ def read_run(run_id: str, runs_dir: Path = Path("runs")) -> RunRecord | None:
         raise InputError([f"run record {run_id} is malformed: {err}"]) from err
 
 
+def has_plan(record: RunRecord | None) -> bool:
+    """Whether a record exists and holds a plan (a selection, possibly empty)."""
+    return record is not None and record.result is not None and record.result.selected is not None
+
+
 def metrics(record: RunRecord) -> dict:
     """The comparable values of a run that has a plan."""
     r = record.result
@@ -77,7 +82,7 @@ def metrics(record: RunRecord) -> dict:
 def compare_runs(a: RunRecord, b: RunRecord) -> RunComparison:
     """Differences in status, spend, relief, resolved counts and selected candidates."""
     for r in (a, b):
-        if r.result is None or r.result.selected is None:
+        if not has_plan(r):
             raise CompareError(f"run {r.run_id} has no plan to compare")
     ma, mb = metrics(a), metrics(b)
     fields = {}

@@ -7,6 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict
 
 CASES = Path(__file__).with_name("cases.json")
+REVISION_CASES = Path(__file__).with_name("revision_cases.json")  # M5, ids 101-104
 Label = Literal["CHECKED", "NOT CHECKED", "NO NUMBERS TO CHECK"]
 
 
@@ -15,9 +16,13 @@ class Strict(BaseModel):
 
 
 class RunSpec(Strict):
-    """One scenario or target-budget search; force_in may be {"selected_at": run index}."""
+    """One scenario, target-budget search or revision; force_in may be {"selected_at": i}.
 
-    kind: Literal["scenario", "target_budget"] = "scenario"
+    A revision's input_version is the refreshed forecast; plan_of_record is its other side.
+    """
+
+    kind: Literal["scenario", "target_budget", "revision"] = "scenario"
+    plan_of_record: str | None = None
     input_version: str
     budget: float | None = None
     force_in: list[str] | dict[str, int] = []
@@ -40,6 +45,7 @@ class KeyNumber(Strict):
     run: int | None = None
     runs: tuple[int, int] | None = None
     follow_up: bool = False
+    entity: str = "plan"  # M5: the change kind of an effect_* metric
 
     def run_indexes(self) -> list[int]:
         return list(self.runs) if self.runs else [self.run]
@@ -69,3 +75,8 @@ class Case(Strict):
 def load_cases(path: Path = CASES) -> list[Case]:
     """All cases, in id order."""
     return [Case.model_validate(c) for c in json.loads(path.read_text())["cases"]]
+
+
+def load_revision_cases(path: Path = REVISION_CASES) -> list[Case]:
+    """The M5 revision cases, in id order; graded as their own group."""
+    return load_cases(path)

@@ -50,6 +50,26 @@ def _target_outcome(result: dict) -> str:
     return _run_outcome(result)
 
 
+def _revision_args(args: dict) -> str:
+    a, b = args.get("plan_of_record", "v1"), args.get("refreshed_forecast", "v2")
+    return f"{a} -> {b}, budget {args.get('budget')}"
+
+
+def _revision_outcome(result: dict) -> str:
+    rev, run_id = result.get("revision"), result.get("run_id")
+    if rev is None:
+        return _run_outcome(result)
+    head = f"order {rev['order_text']}"
+    if not rev["complete"]:
+        return f"{head}: attribution incomplete [{run_id}]"
+    effects = ", ".join(
+        f"{s['name']} {s['effect_relief']:+.2f}"
+        for s in rev["steps"]
+        if s["name"] != "plan_of_record"
+    )
+    return f"{head}: relief effects {effects}; total {rev['total_relief']:+.2f} [{run_id}]"
+
+
 def call_args(name: str, raw: str) -> str:
     try:
         args = json.loads(raw or "{}")
@@ -61,6 +81,8 @@ def call_args(name: str, raw: str) -> str:
         return _scenario_args(args)
     if name == "find_target_budget":
         return _target_args(args)
+    if name == "explain_revision":
+        return _revision_args(args)
     if name == "submit_report":
         return f"{len(args.get('claims') or [])} claims"
     return " ".join(f"{v}" for v in args.values())
@@ -96,6 +118,8 @@ def call_outcome(name: str, result: dict) -> str:
         return "accepted" if result.get("accepted") else f"refused ({problems})"
     if name == "find_target_budget" and "run_id" in result:
         return _target_outcome(result)
+    if name == "explain_revision" and "run_id" in result:
+        return _revision_outcome(result)
     if name in ("run_scenario", "get_run") and "run_id" in result:
         return _run_outcome(result)
     if result.get("error"):

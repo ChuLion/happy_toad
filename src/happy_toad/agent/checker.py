@@ -9,11 +9,19 @@ from pathlib import Path
 
 from pydantic import BaseModel, computed_field
 
-from happy_toad.agent.report import DIFF_BASE, PAIR_METRICS, Claim, Report
+from happy_toad.agent.report import (
+    ATTRIBUTION_METRICS,
+    DIFF_BASE,
+    EFFECT_METRICS,
+    PAIR_METRICS,
+    REVISION_METRICS,
+    Claim,
+    Report,
+)
 from happy_toad.constants import BASE_YEAR, HORIZON_YEARS
 from happy_toad.reasons import ReasonCode
 from happy_toad.services.run import RunRecord, load_version
-from happy_toad.services.runs import metrics, read_run
+from happy_toad.services.runs import has_plan, metrics, read_run
 
 MONEY_TOLERANCE = 0.005  # shown to 2 decimals
 PERCENT_TOLERANCE = 0.05  # shown to 1 decimal
@@ -27,6 +35,10 @@ MONEY_METRICS = (
     "target_budget",
     "diff_spend",
     "diff_weighted_relief",
+    "effect_relief",
+    "effect_spend",
+    "total_relief",
+    "total_spend",
 )
 TOLERANCE = {m: MONEY_TOLERANCE for m in MONEY_METRICS} | {
     "pct_resolved": PERCENT_TOLERANCE,
@@ -163,8 +175,7 @@ def input_value(record: RunRecord, metric: str, inputs_dir: Path):
 def difference(a: RunRecord, run_id_b: str, metric: str, runs_dir: Path):
     """Run b minus run a for a compared metric, as compare_runs reports it; None without plans."""
     b = read_run(run_id_b, runs_dir)
-    plans = [r for r in (a, b) if r is not None and r.result and r.result.selected is not None]
-    if len(plans) < 2:
+    if not (has_plan(a) and has_plan(b)):
         return None
     base = DIFF_BASE[metric]
     return metrics(b)[base] - metrics(a)[base]
@@ -175,11 +186,34 @@ def pair_value(a: RunRecord, run_id_b: str, metric: str, runs_dir: Path):
     if metric in DIFF_BASE:
         return difference(a, run_id_b, metric, runs_dir)
     b = read_run(run_id_b, runs_dir)
-    plans = [r for r in (a, b) if r is not None and r.result and r.result.selected is not None]
-    if len(plans) < 2:
+    if not (has_plan(a) and has_plan(b)):
         return None
     chosen_a, chosen_b = set(a.result.selected), set(b.result.selected)
     return len(chosen_b - chosen_a) if metric == "n_added" else len(chosen_a - chosen_b)
+
+
+INPUT_COUNTS = {
+    "n_sectors_added": "sectors_added",
+    "n_sectors_removed": "sectors_removed",
+    "n_triggers_moved": "triggers_moved",
+    "n_costs_changed": "costs_changed",
+    "n_offloads_changed": "offloads_changed",
+}
+
+
+def revision_value(record: RunRecord, claim: Claim):
+    """(value, reason when none) of a revision metric; effects are looked up by their kind."""
+    rev = record.revision
+    if rev is None:
+        return None, "the run has no value for this metric"
+    if claim.metric in ATTRIBUTION_METRICS and not rev.complete:
+        return None, "attribution incomplete: a step was not proven optimal"
+    if claim.metric in EFFECT_METRICS:
+        step = next(s for s in rev.steps if s.name == claim.entity)
+        return getattr(step, claim.metric), "the step has no effect"
+    if claim.metric in INPUT_COUNTS:
+        return len(getattr(rev.inputs, INPUT_COUNTS[claim.metric])), ""
+    return getattr(rev, claim.metric), "the run has no value for this metric"
 
 
 def values_match(metric: str, claimed, stored) -> bool:
@@ -192,7 +226,18 @@ def values_match(metric: str, claimed, stored) -> bool:
     return claimed == stored and type(claimed) is type(stored)
 
 
+def _sector_counts_differ(a: RunRecord, run_id_b: str, runs_dir: Path) -> bool:
+    b = read_run(run_id_b, runs_dir)
+    return has_plan(a) and has_plan(b) and a.result.total_sectors != b.result.total_sectors
+
+
 def _stored(claim: Claim, record: RunRecord, runs_dir: Path, inputs_dir: Path):
+    if claim.metric in REVISION_METRICS:
+        return revision_value(record, claim)
+    if claim.metric == "diff_pct_resolved" and _sector_counts_differ(
+        record, claim.run_id_b, runs_dir
+    ):
+        return None, "different sector counts; use the shared-sector counts"
     if claim.metric in PAIR_METRICS:
         return pair_value(record, claim.run_id_b, claim.metric, runs_dir), "both runs need a plan"
     if claim.metric in INPUT_METRICS:
@@ -247,7 +292,7 @@ def allowed_numbers(
         if isinstance(claim.value, int | float) and not isinstance(claim.value, bool):
             tol = TOLERANCE.get(claim.metric, 0.0)
             allowed.append((float(claim.value), tol))
-            if claim.metric in DIFF_BASE:
+            if claim.metric in DIFF_BASE or claim.metric in ATTRIBUTION_METRICS:
                 allowed.append((abs(float(claim.value)), tol))
     for run_id in dict.fromkeys([*_run_ids(report), *executed]):
         record = read_run(run_id, runs_dir)
@@ -280,6 +325,10 @@ def untraced_candidates(report: Report, runs_dir: Path, executed: Iterable[str] 
                 traced |= {str(x) for x in record.request[key]}
         if record.result is not None and record.result.selected:
             traced |= set(record.result.selected)
+        if record.revision is not None:
+            rev = record.revision
+            traced |= {c for s in rev.steps for c in s.selected or []}
+            traced |= set(rev.inputs.costs_changed) | {c for c, _ in rev.inputs.offloads_changed}
     named = dict.fromkeys(CANDIDATE_ID.findall(report.summary))
     return [
         f"candidate {cid} in the summary is not in the selection or force lists of a run in "

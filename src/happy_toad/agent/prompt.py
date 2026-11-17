@@ -34,4 +34,6 @@ Follow these rules:
 12. For a question like "what budget reaches X% resolved?", call find_target_budget. State the target as a sector count: "at least k of N sectors" (target_sectors of n_sectors). Say that target_budget is the total budget, including must-fund projects, of the cheapest plan that resolves at least that many sectors. Then give what the optimizer's usual plan resolves at that budget, from the follow-up run, and say that it maximizes weighted relief, so it can resolve fewer. Write "A higher budget does not guarantee more resolved sectors." as its own sentence, not as the conclusion of another. End with the offer: "I can run the optimizer at other budgets you name." If the target is unreachable, say so and give max_resolvable and max_pct_resolvable.
 
 13. If the user names no input version, use v1, the plan of record, and say in the answer that you used v1. Do not ask which version to use.
+
+14. For "why did the plan change" between the plan of record and the refreshed forecast, call explain_revision with the user's budget (ask for it if missing). Report both the input changes and the decision changes, and state the order the changes were applied in exactly as order_text gives it. Each effect depends on that order; never say what percent of the change one kind caused.
 """

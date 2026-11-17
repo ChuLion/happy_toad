@@ -31,7 +31,24 @@ Metric = Literal[
     "diff_pct_resolved",
     "n_added",
     "n_dropped",
+    "n_sectors_added",
+    "n_sectors_removed",
+    "n_triggers_moved",
+    "n_costs_changed",
+    "n_offloads_changed",
+    "effect_relief",
+    "effect_spend",
+    "effect_n_resolved",
+    "total_relief",
+    "total_spend",
+    "total_n_resolved",
+    "n_sectors_shared",
+    "n_resolved_shared_a",
+    "n_resolved_shared_b",
+    "n_sectors_new",
+    "n_resolved_new",
 ]
+Kind = Literal["costs", "offloads", "triggers", "sectors"]  # M5: the attribution order
 Unit = Literal["need_units", "cost_units", "count", "percent", "none"]
 
 DIFF_BASE = {
@@ -65,11 +82,26 @@ METRIC_UNITS |= {"n_added": "count", "n_dropped": "count"}
 SELECTION_PAIRS = {"n_added", "n_dropped"}  # candidates only in run_id_b, only in run_id
 PAIR_METRICS = set(DIFF_BASE) | SELECTION_PAIRS
 
-SIGNED_COUNTS = {"diff_n_selected", "diff_n_resolved"}
+EFFECT_METRICS = {"effect_relief", "effect_spend", "effect_n_resolved"}  # entity = a kind
+TOTAL_METRICS = {"total_relief", "total_spend", "total_n_resolved"}
+REVISION_COUNTS = {
+    "n_sectors_added", "n_sectors_removed", "n_triggers_moved", "n_costs_changed",
+    "n_offloads_changed", "n_sectors_shared", "n_resolved_shared_a", "n_resolved_shared_b",
+    "n_sectors_new", "n_resolved_new",
+}  # fmt: skip
+ATTRIBUTION_METRICS = EFFECT_METRICS | TOTAL_METRICS  # none when the attribution is incomplete
+REVISION_METRICS = ATTRIBUTION_METRICS | REVISION_COUNTS
+METRIC_UNITS |= {m: "count" for m in REVISION_COUNTS}
+METRIC_UNITS |= {f"{p}_relief": "need_units" for p in ("effect", "total")}
+METRIC_UNITS |= {f"{p}_spend": "cost_units" for p in ("effect", "total")}
+METRIC_UNITS |= {f"{p}_n_resolved": "count" for p in ("effect", "total")}
+
+SIGNED_COUNTS = {"diff_n_selected", "diff_n_resolved", "effect_n_resolved", "total_n_resolved"}
 COUNT_METRICS = {"n_selected", "n_resolved", "n_sectors", "target_sectors", "max_resolvable"}
 COUNT_METRICS |= {"n_unresolved"}
 COUNT_METRICS |= SELECTION_PAIRS
 COUNT_METRICS |= SIGNED_COUNTS
+COUNT_METRICS |= REVISION_COUNTS
 TEXT_METRICS = {"status", "target_met"}
 PLAIN_DECIMAL = re.compile(r"-?\d+(\.\d+)?", re.ASCII)
 WHOLE_NUMBER = re.compile(r"\d+", re.ASCII)
@@ -105,21 +137,33 @@ class Claim(BaseModel):
         "run_id; "
         "as compare_runs reports it.",
     )
-    entity: Literal["plan"] = "plan"
+    entity: Literal["plan"] | Kind = Field(
+        default="plan",
+        description="Only for effect_*: the change kind (costs, offloads, triggers, sectors); "
+        "set to plan for every other metric.",
+    )
 
     @model_validator(mode="before")
     @classmethod
     def _normalize(cls, data):
-        """Unit from the metric, entity "plan", plain-number strings and whole floats as numbers."""
+        """Unit from the metric, entity "plan" (kept for effect_*), plain numbers as numbers."""
         if not isinstance(data, dict) or data.get("metric") not in METRIC_UNITS:
             return data
         metric, value = data["metric"], data.get("value")
-        data = {**data, "unit": METRIC_UNITS[metric], "entity": "plan"}
+        data = {**data, "unit": METRIC_UNITS[metric]}
+        if metric not in EFFECT_METRICS:
+            data["entity"] = "plan"
         if metric not in TEXT_METRICS and isinstance(value, str):
             data["value"] = _plain_number(metric, value)
         if metric in COUNT_METRICS and isinstance(value, float) and value.is_integer():
             data["value"] = int(value)  # 2.0 is the count 2 (M4 fix a)
         return data
+
+    @model_validator(mode="after")
+    def _effects_name_a_kind(self):
+        if self.metric in EFFECT_METRICS and self.entity == "plan":
+            raise ValueError("effect_* claims need the change kind as entity")
+        return self
 
     @model_validator(mode="after")
     def _second_run_only_for_differences(self):

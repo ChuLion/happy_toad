@@ -5,6 +5,7 @@ import happy_toad.engine or happy_toad.services (tests/test_evals_truth.py enfor
 coding bug in the engine shows up as a disagreement. A SPEC error would be shared by both.
 
 Usage: uv run python evals/truth.py --inputs data/inputs --out evals/truth.json
+       uv run python evals/truth.py --inputs data/inputs --revision  (M5: evals/revision_truth.json)
 """
 
 import argparse
@@ -315,11 +316,149 @@ def compute(inputs: Path, cases_path: Path = CASES) -> dict:
     }
 
 
+# --- M5 revision -------------------------------------------------------------------------------
+
+REVISION_CASES = Path(__file__).parents[1] / "src/happy_toad/evals/revision_cases.json"
+KINDS = ("costs", "offloads", "triggers", "sectors")  # SPEC M5: the attribution order
+REVISION_NOTE = (
+    "Ground truth for the M5 revision cases, computed by evals/truth.py with its own step "
+    "construction and PuLP models, from docs/SPEC.md without the engine's code; compared with "
+    "the engine by tests/test_revision_evals.py. Inputs: generated v1 and v2, seed 42."
+)
+
+
+def _by_id(items: list[dict]) -> dict[str, dict]:
+    return {x["id"]: x for x in items}
+
+
+def changes(a: dict, b: dict) -> dict[str, list]:
+    """SPEC 5.1 from the data: ids per change kind (rows only on shared sectors)."""
+    sa, sb = _by_id(a["sectors"]), _by_id(b["sectors"])
+    shared = sa.keys() & sb.keys()
+    ca, cb = _by_id(a["candidates"]), _by_id(b["candidates"])
+
+    def rows(d):
+        return {(o["candidate_id"], o["sector_id"]): o["amount"] for o in d["offloads"]
+                if o["sector_id"] in shared}  # fmt: skip
+
+    ra, rb = rows(a), rows(b)
+    return {
+        "sectors_added": sorted(sb.keys() - sa.keys()),
+        "sectors_removed": sorted(sa.keys() - sb.keys()),
+        "triggers_moved": sorted(
+            s for s in shared if sa[s]["trigger_year"] != sb[s]["trigger_year"]
+        ),
+        "costs_changed": sorted(c for c in ca if ca[c]["cost"] != cb[c]["cost"]),
+        "offloads_changed": sorted(k for k in ra.keys() | rb.keys() if ra.get(k) != rb.get(k)),
+    }
+
+
+def step_data(a: dict, b: dict, kinds) -> dict:
+    """SPEC 5.3: a with the named kinds taken from b."""
+    sb = _by_id(b["sectors"])
+    shared = {s["id"] for s in a["sectors"]} & sb.keys()
+    cost = {c["id"]: c["cost"] for c in b["candidates"]}
+    candidates = [c | {"cost": cost[c["id"]]} if "costs" in kinds else c for c in a["candidates"]]
+    sectors = [
+        s | {"trigger_year": sb[s["id"]]["trigger_year"]}
+        if "triggers" in kinds and s["id"] in shared else s
+        for s in a["sectors"]
+    ]  # fmt: skip
+    source = b if "offloads" in kinds else a
+    offloads = [o for o in source["offloads"] if o["sector_id"] in shared]
+    rest = b if "sectors" in kinds else a
+    offloads += [o for o in rest["offloads"] if o["sector_id"] not in shared]
+    if "sectors" in kinds:
+        sectors = [s for s in sectors if s["id"] in shared]
+        sectors += [s for s in b["sectors"] if s["id"] not in shared]
+    return {"sectors": sectors, "candidates": candidates, "offloads": offloads,
+            "must_fund": a["must_fund"]}  # fmt: skip
+
+
+def _resolved_ids(data: dict, chosen: list[str]) -> set[str]:
+    have = supply(data, set(chosen))
+    return {
+        s["id"] for s in data["sectors"] if have[s["id"]] >= s["shortfall"] - RESOLVED_TOLERANCE
+    }
+
+
+def revision(a: dict, b: dict, budget: float) -> dict:
+    """The ordered attribution at one budget: selections, effects, totals and counts."""
+    steps = []
+    for i in range(len(KINDS) + 1):
+        data = step_data(a, b, KINDS[:i])
+        status, selected = optimize(data, {"budget": budget, "force_out": []}, [])
+        steps.append((status, selected, plan_values(data, selected)))
+    found = changes(a, b)
+    complete = all(status == "Optimal" for status, _, _ in steps)
+    values = {f"n_{k}": len(v) for k, v in found.items()}
+    keys = {"relief": "weighted_relief", "spend": "spend", "n_resolved": "n_resolved"}
+    for kind, (prev, step) in zip(KINDS, zip(steps, steps[1:], strict=False), strict=True):
+        for name, key in keys.items():
+            values[f"effect_{name}:{kind}"] = step[2][key] - prev[2][key]
+    for name, key in keys.items():
+        values[f"total_{name}"] = steps[-1][2][key] - steps[0][2][key]
+    shared = {s["id"] for s in a["sectors"]} & {s["id"] for s in b["sectors"]}
+    new = set(found["sectors_added"])
+    values |= {
+        "n_sectors_shared": len(shared),
+        "n_resolved_shared_a": len(_resolved_ids(a, steps[0][1]) & shared),
+        "n_resolved_shared_b": len(_resolved_ids(b, steps[-1][1]) & shared),
+        "n_sectors_new": len(new),
+        "n_resolved_new": len(_resolved_ids(b, steps[-1][1]) & new),
+    }
+    return {
+        "complete": complete,
+        "selected": [selected for _, selected, _ in steps],
+        "effect_relief": [values[f"effect_relief:{k}"] for k in KINDS],
+        "total_relief": values["total_relief"],
+        "values": values,
+    }
+
+
+def revision_key(spec: dict) -> str:
+    """One attribution per (plan of record, refreshed forecast, budget), e.g. "v1|v2|1000"."""
+    return f"{spec.get('plan_of_record') or 'v1'}|{spec['input_version']}|{spec['budget']:g}"
+
+
+def compute_revision(inputs: Path, cases_path: Path = REVISION_CASES) -> dict:
+    """Truth for the revision cases: one attribution per pair of versions and budget."""
+    cases = json.loads(cases_path.read_text())["cases"]
+    budgets = {}
+    for case in cases:
+        for spec in case.get("runs", []):
+            key = revision_key(spec)
+            if key not in budgets:
+                a = load_version(spec.get("plan_of_record") or "v1", inputs)
+                b = load_version(spec["input_version"], inputs)
+                budgets[key] = revision(a, b, spec["budget"])
+    hashes = {
+        v: json.loads((inputs / f"{v}.json").read_text())["content_hash"] for v in ("v1", "v2")
+    }
+    return {
+        "note": REVISION_NOTE,
+        "inputs": hashes,
+        "budgets": budgets,
+        "cases": {
+            str(c["id"]): {
+                "runs": [{"values": budgets[revision_key(s)]["values"]} for s in c.get("runs", [])]
+            }
+            for c in cases
+        },
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--inputs", type=Path, default=Path("data/inputs"))
     parser.add_argument("--out", type=Path, default=Path("evals/truth.json"))
+    parser.add_argument("--revision", action="store_true", help="M5: write revision truth only")
     args = parser.parse_args()
+    if args.revision:
+        out = Path("evals/revision_truth.json")
+        out.write_text(json.dumps(compute_revision(args.inputs), indent=1) + "\n")
+        print(f"Wrote revision truth to {out}")
+        return
     truth = compute(args.inputs)
     sha = subprocess.run(
         ["git", "rev-parse", "HEAD"], capture_output=True, text=True

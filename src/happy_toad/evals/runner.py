@@ -10,7 +10,7 @@ from happy_toad.agent.config import Profile
 from happy_toad.agent.loop import ask
 from happy_toad.agent.provenance import provenance
 from happy_toad.agent.transcript import Transcript
-from happy_toad.evals.cases import Case, load_cases
+from happy_toad.evals.cases import Case, load_cases, load_revision_cases
 from happy_toad.evals.grade import Grade, grade
 
 NOISE = (
@@ -93,11 +93,33 @@ def _rates(all_grades: list[Grade]) -> dict:
     }
 
 
-def summarize(grades: list[Grade]) -> dict:
-    """Overall and per-case rates, the manual-review list and the noise statement."""
-    ids = sorted({g.case_id for g in grades})
+REVISION_FIRST_ID = 101  # M5 cases are a separate group, outside the 19-case headline
+
+
+def _counts(all_grades: list[Grade]) -> dict:
+    """Counts for a small group (M5: 20 conversations are too few for rates)."""
+    grades = [g for g in all_grades if not g.infrastructure]
+    allows = [g for g in grades if g.allows_checked]
     return {
-        "overall": _rates(grades),
+        "n": len(grades),
+        "passed": sum(g.passed for g in grades),
+        "runs_ok": sum(g.runs_ok for g in grades),
+        "numbers_ok": sum(g.numbers_ok for g in grades),
+        "behaviour_ok": sum(g.behaviour_ok for g in grades),
+        "checked": sum(g.label == "CHECKED" for g in allows),
+        "allows_checked": len(allows),
+    }
+
+
+def summarize(grades: list[Grade]) -> dict:
+    """Overall (cases 1-19) and per-case rates, the revision group when present, the manual-review
+    list and the noise statement."""
+    ids = sorted({g.case_id for g in grades})
+    revision = [g for g in grades if g.case_id >= REVISION_FIRST_ID]
+    group = {"revision": _rates(revision) | {"counts": _counts(revision)}} if revision else {}
+    return {
+        "overall": _rates([g for g in grades if g.case_id < REVISION_FIRST_ID]),
+        **group,
         "per_case": {str(i): _rates([g for g in grades if g.case_id == i]) for i in ids},
         "review": [
             {"case": g.case_id, "transcript_id": g.transcript_id, "phrases": g.review}
@@ -132,7 +154,7 @@ def regrade(
     stored: dict, truth: dict, runs_dir: Path, transcripts_dir: Path, notes: list[str]
 ) -> dict:
     """Grade a stored round's transcripts again (no new conversations); keep its header."""
-    cases = {c.id: c for c in load_cases()}
+    cases = {c.id: c for c in [*load_cases(), *load_revision_cases()]}
     grades = []
     for row in stored["grades"]:
         path = transcripts_dir / f"{row['transcript_id']}.json"
@@ -158,6 +180,15 @@ def _pct(rate: float | None) -> str:
     return "-" if rate is None else f"{100 * rate:.0f}%"
 
 
+def _revision_line(c: dict) -> str:
+    n = c["n"]
+    return (
+        f"Revision group (M5, not in the headline; counts): passed {c['passed']} of {n} | "
+        f"runs {c['runs_ok']} of {n} | numbers {c['numbers_ok']} of {n} | "
+        f"behaviour {c['behaviour_ok']} of {n} | checked {c['checked']} of {c['allows_checked']}"
+    )
+
+
 def markdown(r: dict) -> str:
     """A short Markdown summary of a round report."""
     h, o = r["header"], r["overall"]
@@ -177,6 +208,7 @@ def markdown(r: dict) -> str:
         f"cost {'-' if o['cost_total'] is None else f'${o["cost_total"]:.4f}'} | "
         f"mean {_num(o['seconds_mean'])} s, {_num(o['turns_mean'])} turns",
         "",
+        *([_revision_line(r["revision"]["counts"]), ""] if "revision" in r else []),
         r["noise"],
         "",
         "| case | n | infra | pass | runs | numbers | behaviour | checked | first pass |",

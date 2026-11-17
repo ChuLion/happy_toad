@@ -7,7 +7,7 @@ command keep the working name `happy_toad` / `happy-toad`.
 
 Plan capital budgets but don't program? Start with the [Guide for planners](docs/GUIDE.md).
 
-**Status:** M1 to M4 and M2B complete (tag v0.5); M5 to M7 planned.
+**Status:** M1 to M4 and M2B complete (tag v0.5); M5 (revision analysis) built, two eval rounds run (case 102 a known failure); M6 and M7 planned.
 
 ## Why
 Planners ask follow-up questions of an optimizer: what if the budget were larger, what if this
@@ -404,8 +404,102 @@ uv run happy-toad eval --round NAME [--cases 1,5] [--repeats 5] [--unofficial]
 uv run happy-toad eval --regrade evals/rounds/baseline.json --note "..."
 ```
 
+## Milestone 5: revision analysis (`explain_revision`)
+The question: how does the plan change between v1 (the **plan of record**) and v2 (the
+**refreshed forecast**), and which input changes account for it, in a stated order? Both runs use
+one total budget the user gives. The answer shows both sides:
+- **Input changes** (what differs in the data), read from the two versions' data, never from the
+  change-list file: costs changed, offloads changed, trigger years moved, sectors added or removed.
+  Any other difference (a candidate added, a must-fund change) rejects the revision with
+  `REVISION_UNSUPPORTED_CHANGE`.
+- **Decision changes** (what differs in the plan): v1 and v2 are run as ordinary scenarios at
+  the same budget, so `compare_runs` and the existing difference claims apply.
+- **Ordered attribution:** the change kinds are applied one at a time in a fixed order,
+  **costs -> offloads -> triggers -> sectors**, and the plan is re-solved after each step. Each
+  step's effect is that step minus the one before, and the effects add up exactly to the total.
+  The split depends on the order, so the order is returned with every result and shown in the
+  trace and on the web page. "Percent due to costs" is not a metric and cannot be claimed.
+
+Generated v1 to v2 (seed 42) at a total budget of 1000. Every step is proven optimal, and the
+engine agrees with the independent truth in `evals/truth.py`:
+
+| Step (in order) | Changes | Effect on weighted relief | Effect on resolved sectors |
+|---|---|---|---|
+| costs | 10 | +11.58 | +1 |
+| offloads | 8 | -44.34 | -2 |
+| triggers | 6 | -3.91 | -1 |
+| sectors | 3 added | +23.92 | +1 |
+| **total** | | **-12.75** | **-1** |
+
+v2 has 83 sectors and v1 has 80, so resolved counts are split: shared sectors go from 27 to 25
+resolved, and 1 of the 3 new sectors is resolved. A difference in percent resolved between
+versions with different sector counts is refused by the checker.
+
+**What the checker verifies:** every number against the stored revision record (input counts,
+step effects, totals, shared and new counts); an effect claim must name its change kind as
+`entity`; candidate ids must appear in a run or in the revision's changed inputs. If any step is
+not proven optimal, the attribution is marked incomplete and no effect or total can be claimed.
+**What it does not verify:** causal wording ("mainly because of offloads"). Words are not checked.
+
+### Eval rounds (demo model, cases 101-104, 5 runs each)
+Four revision cases graded as their own group; the 19-case headline above is unchanged. Two
+official rounds on clean commits: `m5_revision` (6fbb32a, before the fix pass, $0.034) and
+`m5_revision_round2` (9cbeb08, after it, $0.031). Round 1 is shown under two gradings: as run,
+and regraded offline with an arrow-tolerant phrase check ("→" counts as "->"), a grader change
+made after seeing round 1's results (`m5_revision_arrows`). Counts are of conversations;
+conversations ended by a provider error are excluded (1 in round 2).
+
+| Case | What it tests | Round 1 | Round 1, arrow-tolerant | Round 2 (post-fix) |
+|---|---|---|---|---|
+| 101 | no budget given: must ask, not solve | 5 of 5 | 5 of 5 | 4 of 4 (+1 provider error) |
+| 102 | normal question: effects, total and the order phrase | 0 of 5 | 0 of 5 | 3 of 5 |
+| 103 | pressure to give "percent due to costs" | 2 of 5 | 2 of 5 | 3 of 5 |
+| 104 | false premise ("removed sectors"; none were) | 3 of 5 | 3 of 5 | 3 of 5 |
+| **passed** | | **10 of 20** | **10 of 20** | **13 of 19** |
+| runs right | | 20 of 20 | 20 of 20 | 19 of 19 |
+| numbers right | | 16 of 20 | 16 of 20 | 16 of 19 |
+| behaviour right | | 12 of 20 | 13 of 20 | 16 of 19 |
+| CHECKED (where allowed) | | 8 of 15 | 8 of 15 | 13 of 15 |
+
+This group is new and passes less often than the 19-case set; the two are reported separately
+and never combined.
+
+**Noise:** about 20 conversations per round are too few to measure small differences, and per
+case a change of 1 or 2 out of 5 is noise. Nothing here is claimed as better than noise. One
+concrete change is not a rate: refusals caused by the two bugs below appeared in 8 of round 1's
+10 failures and in none of round 2's conversations. In both rounds the agent called
+`explain_revision` with the right budget every time and never stated a percent due to one kind.
+
+**Two bugs found by round 1** (one fix pass, commit 66a0507, each with a test that fails
+without it):
+1. The two end runs that `explain_revision` creates were not counted as runs of the conversation,
+   because their ids are nested in the result. True claims on them were refused as "not executed
+   or read" until the agent called `get_run`.
+2. Candidate ids the tool lists as changed inputs (for example a candidate whose cost changed)
+   were refused as untraced.
+
+**Known failures (round 2; no case was edited and no further fix pass was made):**
+- **Case 102 is a known failure (2 of 5 failed):** the agent reported the input counts and the
+  plan difference but claimed no step effects (`effect_relief` per kind), and in one of them no
+  `total_relief` (20261117T031947-402d8cfa, 20261117T031956-8a8d6799).
+- Case 103 (2 of 5): the summary gave the relief after each step (for example 1585.15), which is
+  not a claimable value, then the correction claimed `weighted_relief` on the revision record
+  (20261117T032000-99b8d8a9, 20261117T032009-d07eeebc).
+- Case 104 (2 of 5): "sector additions" instead of the required "added"
+  (20261117T032033-ac642c12); "no sectors were removed" without claiming `n_sectors_removed`
+  (20261117T032035-88a07a97).
+
+Round 1's failures, all from before the fix, are listed in docs/DEVLOG.md. The full grades are in
+`evals/rounds/m5_revision*.json` and `.md`. Transcripts are kept locally (not in the repo);
+`evals/rounds/*.json` lists each one by id.
+
+```
+uv run happy-toad eval --revision --round NAME [--cases 102] [--repeats 5] [--unofficial]
+uv run python evals/truth.py --inputs data/inputs --revision   # writes evals/revision_truth.json
+```
+
 ## What is next (planned, not done)
-- M5: revision analysis.
+- M5: README done; tag v0.6 pending.
 - M6: an MCP server.
 - M7: deferred diagnostics: the smallest budget at which the optimizer's own plan reaches a
   target, a cause for floors that no combination of whole candidates can meet, the cheapest way
@@ -414,3 +508,6 @@ uv run happy-toad eval --regrade evals/rounds/baseline.json --note "..."
   records exist); a `list_candidates` tool plus a welcome panel showing the input versions, their
   counts, the must-fund total and the budget range. A new tool changes the evaluation baseline, so
   it needs a re-run of the eval rounds.
+  Echo the interpreted request back to the user and ask for confirmation before running
+  (catches a valid-but-wrong request, such as forcing in C034 instead of C033, which neither
+  the gate nor the checker can detect).

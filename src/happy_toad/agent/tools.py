@@ -1,4 +1,4 @@
-"""The six tools: their descriptions (SPEC, M3 and M2B) and the code behind five of them.
+"""The seven tools: their descriptions (SPEC, M3, M2B and M5) and the code behind six of them.
 
 `submit_report` is handled by the loop, because accepting it ends the conversation.
 """
@@ -10,6 +10,7 @@ from pydantic import ValidationError
 
 from happy_toad.agent.report import Report
 from happy_toad.services.request import SolveRequest
+from happy_toad.services.revision import ORDER_TEXT, RevisionRequest, run_revision
 from happy_toad.services.run import RunRecord, record_invalid_request, run_request
 from happy_toad.services.runs import (
     CompareError,
@@ -84,6 +85,19 @@ TOOLS = [
         _object({"run_id_a": _RUN_ID, "run_id_b": _RUN_ID}, ["run_id_a", "run_id_b"]),
     ),
     _tool(
+        "explain_revision",
+        "Compare the plan of record (v1) with the refreshed forecast (v2) at one total budget the "
+        "user gives, including must-fund projects; never guess a budget, ask for it. Returns the "
+        "input changes (`inputs`), the decision changes between the two plans (`decisions`, "
+        "with `run_id_a` and `run_id_b` for compare_runs), and an ordered attribution: the "
+        f"change kinds are applied one at a time in the order {ORDER_TEXT} (`order`), each step "
+        "re-solved, and each step's effect is that step minus the one before. The effects "
+        "depend on this order: state the order, and never state a percent of the change due to "
+        "one kind. Claim effect_* with the change kind as `entity`. If `complete` is false, a "
+        "step was not proven optimal and no effect or total can be claimed.",
+        RevisionRequest.model_json_schema(),
+    ),
+    _tool(
         "submit_report",
         "Submit the final answer. Every number in `summary` must also be a claim "
         "`{metric, value, unit, run_id, entity}` taken from a run you executed or read, or be a "
@@ -115,6 +129,23 @@ def run_view(record: RunRecord) -> dict:
     return view
 
 
+def revision_view(record: RunRecord, runs_dir: Path) -> dict:
+    """What the model sees of a revision: inputs, decisions and steps without hashes."""
+    view = record.model_dump(
+        mode="json", include={"run_id", "outcome", "reasons", "error", "warnings"}
+    )
+    rev = record.revision
+    if rev is None:
+        return view | {"revision": None}
+    a, b = read_run(rev.run_id_a, runs_dir), read_run(rev.run_id_b, runs_dir)
+    shown = rev.model_dump(mode="json", exclude={"steps": {"__all__": {"content_hash", "applied"}}})
+    try:
+        shown["decisions"] = compare_runs(a, b).model_dump(mode="json")
+    except CompareError as err:
+        shown["decisions"] = {"error": str(err)}
+    return view | {"revision": shown}
+
+
 def _fields_in(error: ValidationError) -> str:
     return "; ".join(
         f"{'.'.join(map(str, e['loc'])) or 'input'}: {e['msg']}" for e in error.errors()
@@ -135,8 +166,12 @@ class ToolRunner:
             args = json.loads(arguments or "{}")
         except json.JSONDecodeError:
             args = None
-        if name in ("run_scenario", "find_target_budget"):
-            run = self.run_scenario if name == "run_scenario" else self.find_target_budget
+        if name in ("run_scenario", "find_target_budget", "explain_revision"):
+            run = {
+                "run_scenario": self.run_scenario,
+                "find_target_budget": self.find_target_budget,
+                "explain_revision": self.explain_revision,
+            }[name]
             return run(args if isinstance(args, dict) else {"_raw_arguments": arguments})
         if not isinstance(args, dict):
             return {"error": "arguments are not a JSON object"}
@@ -178,6 +213,19 @@ class ToolRunner:
         if record.follow_up_run_id:
             view["follow_up"] = run_view(read_run(record.follow_up_run_id, self.runs_dir))
         return view
+
+    def explain_revision(self, args: dict) -> dict:
+        try:
+            request = RevisionRequest.model_validate(args)
+        except ValidationError as err:
+            record = record_invalid_request(
+                args, _fields_in(err), self.runs_dir, "revision", self.transcript_id
+            )
+            return revision_view(record, self.runs_dir)
+        record = run_revision(
+            request, self.inputs_dir, self.runs_dir, transcript_id=self.transcript_id
+        )
+        return revision_view(record, self.runs_dir)
 
     def get_run(self, run_id: str) -> dict:
         record = read_run(run_id, self.runs_dir)

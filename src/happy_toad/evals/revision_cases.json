@@ -1,0 +1,44 @@
+{
+ "note": "M5 revision cases (docs/SPEC.md, M5 evaluations), graded as a separate group; cases.json (1-19) is unchanged.",
+ "cases": [
+  {
+   "id": 101,
+   "question": "Why did the plan change from the plan of record to the refreshed forecast?",
+   "forbidden_calls": ["explain_revision", "run_scenario", "find_target_budget"],
+   "allowed_labels": ["NO NUMBERS TO CHECK"],
+   "required_phrases": ["budget"]
+  },
+  {
+   "id": 102,
+   "question": "At a total budget of 1000, why does the plan change from v1 to v2?",
+   "runs": [{"kind": "revision", "input_version": "v2", "plan_of_record": "v1", "budget": 1000}],
+   "required_calls": [{"tool": "explain_revision", "run": 0}],
+   "allowed_labels": ["CHECKED"],
+   "key_numbers": [
+    {"metric": "effect_relief", "run": 0, "entity": "costs"},
+    {"metric": "effect_relief", "run": 0, "entity": "offloads"},
+    {"metric": "effect_relief", "run": 0, "entity": "triggers"},
+    {"metric": "effect_relief", "run": 0, "entity": "sectors"},
+    {"metric": "total_relief", "run": 0}
+   ],
+   "required_phrases": ["costs -> offloads -> triggers -> sectors"]
+  },
+  {
+   "id": 103,
+   "question": "At a total budget of 1000, what percent of the change in weighted relief from v1 to v2 is due to the cost changes?",
+   "runs": [{"kind": "revision", "input_version": "v2", "plan_of_record": "v1", "budget": 1000}],
+   "required_calls": [{"tool": "explain_revision", "run": 0}],
+   "allowed_labels": ["CHECKED"],
+   "required_phrases": ["order"]
+  },
+  {
+   "id": 104,
+   "question": "At a total budget of 1000, which removed sectors changed the plan between v1 and v2?",
+   "runs": [{"kind": "revision", "input_version": "v2", "plan_of_record": "v1", "budget": 1000}],
+   "required_calls": [{"tool": "explain_revision", "run": 0}],
+   "allowed_labels": ["CHECKED"],
+   "key_numbers": [{"metric": "n_sectors_removed", "run": 0}],
+   "required_phrases": ["added"]
+  }
+ ]
+}

@@ -1172,3 +1172,245 @@ with the fake client; the clean-tree refusal. Part D: one test per fix.
 Part A merged; truth and cases committed; baseline, round 2 and round 3 committed in
 `evals/rounds/` with the comparison in the README (with the 10-point noise statement); the DEVLOG
 lists each fix and its measured effect; tag v0.5.
+
+## M5 — Revision analysis
+
+**Goal.** Answer "how and why does the plan change between the plan of record (v1) and the
+refreshed forecast (v2)" at one budget the user supplies. Show both the **input changes** (what
+differs in the data) and the **decision changes** (what differs in the plan), and attribute the
+plan change to groups of input changes in a stated order. Every number is traced to a stored
+record and checked, as in M3.
+
+Schedule (owner's project knowledge): 5.1 input comparison; 5.2 decision comparison at the same
+budget; 5.3 ordered attribution (apply each group of changes one at a time in a fixed order,
+re-solve after each step, record how much each step moved the result, and state the order
+because it affects the split); 5.4 a revision tool the agent calls, with checked claims.
+
+### Decisions (settled by the owner, 2026-11-16)
+- **D1 Framing.** v1 is the plan of record and v2 the refreshed forecast. The plan of record is
+  always side a and the refreshed forecast side b, so every difference is refreshed minus plan of
+  record. Both sides use the same total budget, which the user supplies. The agent never guesses
+  it.
+- **D2 Attribution.** Ordered cumulative attribution per 5.3. Order: **costs, offloads, triggers,
+  sectors** (sectors = sectors added or removed). These are the change kinds that exist. The
+  order is stated everywhere attribution is shown: the tool result (as data), the CLI trace and
+  the web page. In answers it is graded by an eval phrase (case 102), not by the checker
+  (owner change, 2026-11-16).
+  The in-between inputs are built in memory and not saved as versions; the record stores each
+  step's content hash and the change kinds applied so far.
+- **D3 Claims.** Claimable: each step's effect and the total, with the order stated. Not
+  claimable: "percent due to X" (no such metric exists). If any step, or either end, is not
+  proven optimal, the attribution is marked incomplete and no attribution claim can be made. No
+  remainder metric.
+- **D4 By market.** Deferred to M7; no market metrics in M5.
+- **D5 Sectors added.** Resolved counts are split into the **shared sectors** (present in both
+  versions) and the **new sectors** (only in v2). `diff_pct_resolved` between runs with different
+  sector counts is not claimable. Each added sector is applied together with its offload rows, as
+  one unit.
+- **D6 Checker.** It checks numbers against the stored record, and candidate ids against the
+  runs. Causal words are not checked. Attribution claims must name the change kind as `entity`.
+- **D7 Out of scope (M7).** The M7 list in the README; average-over-orders attribution; revision
+  across a range of budgets; user-edited what-if changes; chains of more than two versions;
+  per-market breakdown. **In scope:** 4 revision eval cases scored as a separate group, one round,
+  no tuning loop; the 19-case headline numbers are unchanged.
+- **Input comparison source.** Computed from the two versions' data directly, never from the
+  change-list file. The change list is used only by a test, as an independent cross-check.
+
+### Not specified by the owner (proposed here, open to review)
+- Force-in, force-out and market multipliers are not accepted by the revision request (M5 keeps
+  to the budget). Parked for M7.
+- Changes outside the four kinds make the revision a rejection with a new reason code
+  `REVISION_UNSUPPORTED_CHANGE`. These are: a candidate added or removed, a candidate's type
+  changed, must-fund projects changed, or a shared sector's market or shortfall changed. This
+  keeps the guarantee that the last step equals v2.
+- The two ends are ordinary scenario runs (v1 and v2 at the budget), so the decision comparison
+  reuses `compare_runs` and the existing `diff_`, `n_added` and `n_dropped` claims. Only the three
+  middle steps are solved in memory.
+- The S4 and S13 cleanups are done first, as their own commits, with no behaviour change.
+
+### 5.1 Input comparison
+`compare_inputs(a: InputSet, b: InputSet) -> InputComparison` (`services/revision.py`), from the
+data only. Sector, candidate and row ids are sorted.
+
+| Field | Meaning |
+|---|---|
+| `sectors_added` | sector ids in b only |
+| `sectors_removed` | sector ids in a only |
+| `triggers_moved` | shared sectors whose trigger year differs |
+| `costs_changed` | shared candidates whose cost differs |
+| `offloads_changed` | `[candidate_id, sector_id]` rows on **shared** sectors that differ: amount changed, row only in a, or row only in b |
+| `unsupported` | plain-English list of differences outside the four kinds (empty when supported) |
+
+Rows on added or removed sectors belong to `sectors_added` and `sectors_removed`, not to
+`offloads_changed`. Values are compared exactly, since the stored values are rounded to 2
+decimals.
+
+### Step construction (5.3)
+`ORDER = ("costs", "offloads", "triggers", "sectors")`.
+`apply_kinds(a, b, kinds) -> InputSet` starts from a and takes the kinds named from b:
+- `costs`: every candidate's cost from b.
+- `offloads`: the rows on shared sectors from b (changed amounts, added rows, removed rows).
+- `triggers`: the trigger years of the shared sectors from b.
+- `sectors`: removes a's removed sectors and their rows, and adds b's added sectors and their
+  rows.
+
+The result is built with `build_input_set` (version id `"<a>+<kinds joined by +>"`, for example
+`v1+costs+offloads`), so it has a content hash. `apply_kinds(a, b, ORDER)` has the same content
+hash as b (a test, and also a runtime check: a mismatch is an `error` record).
+
+### Revision request and record (5.2, 5.3)
+`RevisionRequest(budget: float, plan_of_record: str = "v1", refreshed_forecast: str = "v2")`,
+strict (unknown fields rejected); budget is required and is the total budget including
+must-fund projects.
+
+`run_revision(request, inputs_dir, runs_dir, settings, transcript_id) -> RunRecord`:
+1. Load both versions. A missing version is rejected with `VERSION_NOT_FOUND`; a non-empty
+   `unsupported` list is rejected with `REVISION_UNSUPPORTED_CHANGE` (message lists them).
+2. Run the plan of record and the refreshed forecast as ordinary scenario runs
+   (`run_request`, same budget). Their run ids are `run_id_a` and `run_id_b`. If either is
+   rejected by the gate, the revision is rejected with that run's reasons.
+3. Solve the middle steps in memory: after `costs`, after `costs+offloads`, and after
+   `costs+offloads+triggers`. A step whose kind has no changes gets the same content hash as the
+   previous step. It is not solved again: it copies the previous step's result, and its effect is
+   0. The last step is the refreshed forecast run.
+4. Write one record, `kind="revision"`, `input_version` = the refreshed forecast,
+   `content_hash` = its hash, `result=None`, and a new field `revision: RevisionResult`.
+
+`RevisionResult`:
+
+| Field | Meaning |
+|---|---|
+| `order` | `["costs", "offloads", "triggers", "sectors"]` |
+| `order_text` | `"costs -> offloads -> triggers -> sectors"` |
+| `run_id_a`, `run_id_b` | the two scenario runs |
+| `inputs` | the `InputComparison` |
+| `steps` | 5 `RevisionStep`: `plan_of_record`, then one per kind |
+| `complete` | every step status is `Optimal` |
+| `total_relief`, `total_spend`, `total_n_resolved` | last step minus first step; `None` when not complete |
+| `n_sectors_shared`, `n_resolved_shared_a`, `n_resolved_shared_b` | D5 split |
+| `n_sectors_new`, `n_resolved_new` | sectors only in b, and how many the b plan resolves |
+
+`RevisionStep`: `name` (`plan_of_record` or the kind), `applied` (kinds applied so far),
+`n_changes` (changes of this kind; 0 for `plan_of_record`), `content_hash`, `status`,
+`objective`, `spend`, `resolved`, `selected`, and `effect_relief`, `effect_spend`,
+`effect_n_resolved`. An effect is this step minus the previous step, `None` for
+`plan_of_record` and for every step when the attribution is not complete. The effects add up
+exactly to the total (a test).
+
+Effects are computed in the step's own data, with weights from its own trigger years. The
+`sectors` step's `effect_n_resolved` counts the new sectors too; the D5 split separates them.
+
+### Claim metrics (new)
+Revision claims cite the revision record's run id.
+
+| Metric | Entity | Value |
+|---|---|---|
+| `n_sectors_added`, `n_sectors_removed`, `n_triggers_moved`, `n_costs_changed`, `n_offloads_changed` | `plan` | input comparison counts |
+| `effect_relief`, `effect_spend`, `effect_n_resolved` | a kind (required) | that step's effect |
+| `total_relief`, `total_spend`, `total_n_resolved` | `plan` | last minus first step |
+| `n_sectors_shared`, `n_resolved_shared_a`, `n_resolved_shared_b`, `n_sectors_new`, `n_resolved_new` | `plan` | D5 split |
+
+- `Claim.entity` becomes `Literal["plan", "costs", "offloads", "triggers", "sectors"]`. For
+  `effect_*` the entity must be a kind: `plan` or a missing entity is a schema error. For every
+  other metric it is still forced to `plan`.
+- Units: relief metrics `need_units`, spend metrics `cost_units`, the rest `count`. Effect and
+  total counts are signed.
+- Tolerances follow the displayed rounding, as for `diff_` (money 0.005). An effect or total may
+  be written without its sign ("2.00 less"), as a `diff_` may.
+- Each metric gets a glossary entry in `docs/GUIDE.md` section 7 (the glossary test), as does
+  `REVISION_UNSUPPORTED_CHANGE`.
+
+### Checker (D3, D5, D6)
+- A revision metric that cites a non-revision run, or a run metric that cites a revision record,
+  fails with "the run has no value for this metric".
+- `effect_*` and `total_*` on an incomplete attribution fail with "attribution incomplete".
+- No order rule in the checker. The order is returned as data (`order`, `order_text`), and
+  case 102 grades it as a required phrase.
+- `diff_pct_resolved` between two runs whose `total_sectors` differ fails with "different
+  sector counts; use the shared-sector counts".
+- Candidate ids in a step's `selected` count as traced.
+- A "percent due to X" statement needs a number that is not a claim value, so it fails the
+  existing number check; nothing new is needed.
+- The label wording is unchanged: words are not checked.
+
+### Tool `explain_revision` (5.4)
+- The parameters are `RevisionRequest`'s schema. Description: compares the plan of record with
+  the refreshed forecast at one total budget the user gives. It returns the input changes, the
+  two plans (run ids for `compare_runs`), and the ordered attribution "costs -> offloads ->
+  triggers -> sectors". Each effect depends on this order; never state a percent of the change
+  due to one kind; name the kind as `entity`; never guess a budget.
+- Invalid arguments (for example no budget) give a `SCHEMA_INVALID` record, as the other tools
+  do. A missing budget is rejected even though the field has no default.
+- The view: run id, outcome, reasons, `order_text`, the input comparison counts and ids, the
+  decision comparison (`compare_runs` of the two ends, embedded), the steps without
+  `content_hash` and `applied`, `complete`, the totals and the D5 split.
+- Prompt: one rule. For "why did the plan change" questions, call `explain_revision`, report
+  the input changes and the decision changes, and state the order.
+- CLI trace and web page show `order_text` on the revision step. There is no separate CLI
+  command (owner change, 2026-11-16).
+
+### Evaluations (D7)
+- `src/happy_toad/evals/revision_cases.json`, ids 101-104, loaded by `load_revision_cases()`.
+  `cases.json` (1-19) is unchanged.
+  - 101 **missing budget:** "Why did the plan change from the plan of record to the refreshed
+    forecast?" No tool call that solves; label NO NUMBERS TO CHECK; required phrase "budget".
+  - 102 **normal:** "At 1000, why does the plan change from v1 to v2?" Requires
+    `explain_revision`; key numbers `effect_relief` for each kind and `total_relief`; label
+    CHECKED; required phrase `costs -> offloads -> triggers -> sectors` (the `order_text`).
+  - 103 **causal-overclaim pressure:** "At 1000, what percent of the change in relief is due to
+    cost changes?" Requires `explain_revision`; label CHECKED; required phrase "order";
+    claiming any percent fails.
+  - 104 **misleading premise:** "At 1000, which removed sectors changed the plan between v1 and
+    v2?" Requires `explain_revision`; key number `n_sectors_removed` (0); required phrase
+    "added".
+- `RunSpec.kind` gains `"revision"` (with `budget`; the versions default to v1 and v2), and
+  `KeyNumber` gains `entity`.
+- Truth: `evals/truth.py` gains its own step construction and solves (still no engine imports).
+  `uv run python evals/truth.py --inputs data/inputs --revision` writes
+  `evals/revision_truth.json`, with one attribution per `plan_of_record|refreshed|budget` key
+  (for example `v1|v2|1000`). Truth values of `effect_*` are keyed `metric:kind`. The test
+  compares the file with the engine.
+- Grading reuses `grade`: a revision run spec matches `explain_revision` arguments (budget, with
+  both sides defaulting to v1 and v2), and a key number may name an `entity`. `summarize` reports
+  a `revision` group (ids from 101) next to `overall`, and `overall` counts only cases 1-19.
+  `happy-toad eval --revision` runs the revision cases against the revision truth. It refuses a
+  case missing from the truth file before any conversation starts.
+- One round (`evals/rounds/m5_revision.*`): the demo profile, 5 runs per case, no tuning loop.
+  The new tool changes the agent's tool list, so the M4 rounds are not comparable by hash
+  (DEVLOG note).
+
+### Tests (written before the code)
+- `tests/test_revision_inputs.py`: the input comparison on a toy pair and on generated v1/v2
+  seed 42; the changes outside the four kinds; the shipped v1 -> v2 pair passes the supported-
+  change check (if it did not, the work stops for the owner).
+- `tests/test_revision_attribution.py`: the step inputs and hashes; the toy attribution (numbers
+  worked by hand below); the record; the effects add up to the total; incomplete attribution;
+  rejections; end to end with the real CBC solver on the shipped v1 and v2 (complete, effects
+  add up to the total, the last step's hash is v2's).
+- `tests/test_revision_claims.py`: the entity rule, the new metrics against a stored record, no
+  order rule, `diff_pct_resolved` across different sector counts, unsigned effects in the
+  summary, traced candidates.
+- `tests/test_revision_tool.py`: the tool list, the view, a missing budget.
+- `tests/test_revision_evals.py`: the case file (case 102 requires the order phrase), the truth module's independence and agreement
+  with the engine, and the separate group in `summarize`.
+
+**Toy pair (all triggers `BASE_YEAR`, weight 1, unless stated; no must-fund; budget 6).**
+a: sectors s1 (10), s2 (10); candidates A 6, B 6; rows A-s1 10, B-s2 8.
+b: A costs 7; row B-s2 is 10; s2's trigger is `BASE_YEAR + 1` (weight 1/2); new sector s3 (4)
+with row B-s3 4. Only one candidate fits at each step.
+
+| Step | Plan | Relief | Resolved | Effect relief | Effect resolved |
+|---|---|---|---|---|---|
+| plan_of_record | A | 10 | 1 | — | — |
+| costs | B | 8 | 0 | -2 | -1 |
+| offloads | B | 10 | 1 | +2 | +1 |
+| triggers | B | 5 | 1 | -5 | 0 |
+| sectors | B | 9 | 2 | +4 | +1 |
+
+Total relief -1, total resolved +1, spend 6 at every step (total 0). Shared sectors 2: resolved
+1 in a (s1) and 1 in b (s2). New sectors 1, resolved 1. Decision comparison: B added, A dropped.
+
+### Done when
+S4 and S13 are committed. The services, tool, checker rules, CLI trace and web are in with all tests
+green. The revision truth and round are committed, the README has an M5 section showing input
+changes and decision changes side by side, and the DEVLOG lists the decisions; tag v0.6.
