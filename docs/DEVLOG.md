@@ -1776,3 +1776,15 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   other than direct and mcp.
 - Not done yet: the two official rounds (cost, API key, clean tree), the Desktop test (6.2), the
   README section.
+
+## 2026-11-18 — M6 A4 live rounds
+- Owner asked for: official direct round, then official MCP round, then the revision group via
+  MCP, all at the clean commit 8ae5633 (prompt a46431581249); no tuning, no edited cases.
+- Rounds `m6_direct` (90 of 95 passed), `m6_mcp` (94 of 95), `m6_mcp_revision` (18 of 20); no
+  provider errors. Full counts in SPEC M6 "Results of the A4 live rounds". Verdict: within noise
+  (10-point rule); not claimed equal.
+- `m6_direct` is the baseline for prompt hash a46431581249 (no 19-case round existed at it).
+- Manual review pending (owner): case 19 transcripts 20261118T192250-7568ef11,
+  20261118T192309-a7d79eb1 (direct), 20261118T203308-8911a679, 20261118T203315-85c540da (MCP).
+- Gap against A4 as written: A4 named 19 + 4 cases on each path; the owner asked for the
+  revision group via MCP only, so the revision group has no direct round at this commit.

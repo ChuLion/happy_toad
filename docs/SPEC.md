@@ -1664,3 +1664,28 @@ Checked:
 - Placeholders `<PATH_TO_UV>` and `<PATH_TO_REPO>` in the config JSON.
 - Branch `m6-mcp` was reset to `main` at `19f790f` (v0.6) before this section was written; a
   local web rewrap diff was saved to `../happy_toad_backups/replay_rewrap.patch` and restored.
+
+### Results of the A4 live rounds (2026-11-18, commit 8ae5633, prompt a46431581249)
+`m6_direct` is the **baseline for prompt hash a46431581249**: the first 19-case round at this
+hash (the earlier 19-case rounds, ending with `final`, were at 8d77a1e137b4, before
+`explain_revision` was added). Counts, provider errors excluded (there were none):
+
+| | m6_direct | m6_mcp | m6_mcp_revision |
+|---|---|---|---|
+| route | direct | mcp | mcp |
+| conversations | 95 | 95 | 20 |
+| passed | 90 | 94 | 18 |
+| right runs | 92 | 94 | 20 |
+| right numbers | 91 | 94 | 18 |
+| right behaviour | 93 | 94 | 19 |
+| CHECKED (of those allowing it) | 78 of 90 | 80 of 90 | 15 of 15 |
+| first report accepted | 70 of 95 | 74 of 95 | 13 of 20 |
+| manual review (case 19, "400") | 2 | 2 | 0 |
+| listed cost | $0.0892 | $0.0834 | $0.0192 |
+
+Verdict under the pre-registered rule: every headline rate differs by under 10 percentage
+points, so **the MCP path's rates were within noise of the direct path's (10-point rule)**. Not
+claimed: that the paths perform equally. Per case, the largest change is case 11 (3 of 5 direct,
+5 of 5 MCP), a change of 2 of 5, which is noise. The revision group has no direct round at this
+commit; `m5_revision_round2` (direct, commit 9cbeb08, same prompt hash: 13 of 19 passed) is
+context only, not an A4 comparison.
