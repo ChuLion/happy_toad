@@ -1426,7 +1426,7 @@ Framing for the README and interviews: MCP is a protocol, not an agent framework
 decides when to call tools. We claim only what we tested ("tested with Claude Desktop", never
 "works with any client"). The server runs locally and exposes only the listed tools.
 
-### Decisions to settle (proposed 2026-11-17; owner to answer before tests or code)
+### Decisions (Q1-Q8 approved by the owner, 2026-11-17, with additions A1-A5 below)
 
 **Q1. Dependency.** *Recommend:* the official SDK, PyPI package `mcp`, pinned `mcp>=2.3,<3`
 (2.3.0, released 2026-10-02; Python >=3.10, we use 3.12). Why: it is the reference
@@ -1442,14 +1442,15 @@ use.
 starts the server as a child process; nothing listens on a port. Launched by a new CLI command
 `happy-toad mcp` (options `--inputs-dir`, `--runs-dir`, `--transcripts-dir`, default to the repo
 folders). Desktop starts the process with an unknown working directory, so the config entry uses
-absolute paths and `uv --directory`:
+absolute paths and `uv --directory` (which makes the repo the working directory, so the default
+folders resolve). The SPEC and README show placeholders only, never a real local path (A3):
 
 ```json
 {
   "mcpServers": {
     "happy-toad": {
-      "command": "/absolute/path/to/uv",
-      "args": ["--directory", "/absolute/path/to/happy_toad_v2", "run", "happy-toad", "mcp"]
+      "command": "<PATH_TO_UV>",
+      "args": ["--directory", "<PATH_TO_REPO>", "run", "happy-toad", "mcp"]
     }
   }
 }
@@ -1475,11 +1476,8 @@ there is no loop of ours, so the **server process owns the report check**:
   final, and the accepted `summary`. Our own loop never reads these two added fields (the
   conversation ends on a final verdict), so the direct path is unaffected.
 - **Conversation boundary.** Desktop keeps one server process for many chats and does not tell
-  the server when a chat starts. So in the Desktop path: runs known to the checker are all runs
-  made or read by this server process (looser than the direct path, where it is one
-  conversation); the correction counter resets after every final verdict (accepted, or a second
-  failure). In the eval path (Q5) there is one server process per conversation, so the rules are
-  exactly the direct path's.
+  the server when a chat starts. The exact rules and their limits are in A1. In the eval path
+  (Q5) there is one server process per conversation, so the rules are exactly the direct path's.
 - **What the label covers.** The label applies to the report submitted through `submit_report`.
   Whatever Claude Desktop writes after that call is the client's own text and is not checked. We
   say this wherever Desktop is mentioned.
@@ -1491,7 +1489,8 @@ existing `TOOLS` list (name, description, and `parameters` as the MCP input sche
 decorated functions, because the SDK's decorator style would regenerate the schemas from Python
 signatures and change them. A test asserts that the tools the server lists, converted back,
 equal `TOOLS`, so `prompt_sha256` is the same on both paths. The system prompt is sent as the
-server's `instructions` text, unchanged. Whether Desktop uses it is not tested and not claimed.
+server's `instructions` text, unchanged (supported by the SDK; see A2 and A5). Whether Desktop
+uses it is not tested and not claimed.
 
 **Q5. Evaluations through the server.** *Recommend:* our loop becomes an MCP client behind a
 switch, `happy-toad eval --via mcp`.
@@ -1544,7 +1543,113 @@ IDEs) beyond what we test; a Desktop extension package; new tools (`list_candida
 summary, the welcome panel); the M7 diagnostics list; changing tool text or the prompt for
 Desktop.
 
+### A1. One process, many chats (Desktop path): rules and limits
+Desktop starts one server process and reuses it for every chat until Desktop quits; the protocol
+gives the server no "chat started" signal. One session object lives for the whole process.
+
+**Correction counter.** The session holds one state: *fresh* or *correction pending*.
+- Fresh: a report that fails the check returns the errors and "fix and resubmit once"; the state
+  becomes correction pending. A report that passes is final (CHECKED or NO NUMBERS TO CHECK).
+- Correction pending: the next `submit_report`, from whatever chat, is the correction. Its
+  verdict is final (CHECKED, NO NUMBERS TO CHECK, or NOT CHECKED); the state returns to fresh.
+- A report that does not fit the schema does not move the state (as in the direct path).
+
+**Known-runs rule** (the checker's "run executed or read in this conversation", and fix k's
+numbers from executed runs). Known runs are every run made, read or compared by this server
+process, in any chat, since it started.
+
+**Transcript provenance.** `git_sha`, `git_dirty` and `prompt_sha256` are computed once, when
+the server starts, and written in the session log header. The log also records the client name
+and version that Desktop sends in the handshake, when it sends them.
+
+**Limits of the Desktop path** (stated in the README wherever Desktop is mentioned):
+1. A chat abandoned after a failed report leaves a correction pending; the first report in the
+   next chat is then treated as the correction: it gets no second chance.
+2. A report in one chat may cite a run made in an earlier chat of the same process and pass the
+   known-runs rule; in the direct path it would fail with "run was not executed or read in this
+   conversation".
+3. Run records made through Desktop all carry the session id as `transcript_id`, so which chat
+   made a run cannot be told from the record.
+4. Provenance is the server's start time state: after a code change, Desktop must be restarted
+   (it keeps the old process); a log written by an old process names the old commit.
+5. Two `submit_report` calls in one Desktop turn are seen as a report and its correction; the
+   direct path's "only one submit_report per turn" rule cannot apply (the server sees calls, not
+   turns).
+
+**Tests** (in-process, no Desktop): two "chats" in one session showing limit 1 (pending carried
+across) and limit 2 (a run from chat 1 accepted in chat 2); the state returning to fresh after
+a final verdict; a schema failure leaving the state unchanged; provenance fixed at session
+start.
+
+### A2. Server instructions, and what Desktop does not inherit
+The SDK supports server instructions (A5): the low-level `Server(..., instructions=...)` sends
+them in the handshake on every protocol version it speaks. The server sends `SYSTEM_PROMPT`
+byte for byte. The hash test checks, through a real stdio connection, that the client receives
+instructions equal to `SYSTEM_PROMPT` and tools equal to `TOOLS`, and that `prompt_sha256` over
+what the client received equals `provenance()["prompt_sha256"]`.
+
+The protocol says a client *may* use instructions. What Desktop does **not** inherit from our
+loop, whatever it does with them:
+- our system prompt as the system message (Desktop has its own; ours is at most added to it);
+- our model, profile, provider pinning, reasoning setting and token/cost accounting;
+- the nudge when the model answers without calling `submit_report`, and the 10-step cap;
+- the end of the conversation on a final verdict: Desktop's model keeps writing after it, and
+  that text is not checked (Q3);
+- the per-turn single-submit rule (A1, limit 5);
+- the CLI's verdict panel and exit code: the label reaches Desktop only as data in the
+  `submit_report` result.
+
+### A4. Equivalence (pre-registered, before any round runs)
+**Scripted equivalence (pass or fail).** One fixed script of tool calls, played through the
+direct backend and the MCP backend with a fake model client. It covers all seven tools; a
+valid, a rejected and an infeasible scenario; an invalid request; unparseable arguments; an
+unknown tool; a missing run id; a report that fails then passes on correction; a report that
+fails twice; a claimless report. Equivalent means: every tool result is equal as JSON after
+replacing run ids by their order of first appearance, and the check results, transcript status
+and label are equal. Any other difference fails the test. Unparseable or non-object arguments
+reach the server inside `{"_raw_arguments": "<text>"}` and the server hands the raw text to
+`ToolRunner` unchanged, so both paths see the same input.
+
+**Live rounds (reported, not claimed equal).** One official round per path, same commit, same
+`prompt_sha256`, same profile, back to back; 19 cases plus the 4 revision cases, 5 repeats; the
+existing infrastructure rule; no re-runs and no tuning between them. Reported side by side: pass,
+runs, numbers, behaviour, checked and first-pass rates, cost, turns. Wording fixed in advance:
+if every headline rate differs by under 10 percentage points, "the MCP path's rates were within
+noise of the direct path's (10-point rule)"; otherwise "the MCP path differed by more than the
+noise level on <rate>", followed by what the transcripts show. Never "equal", "identical
+performance" or "no difference". Revision group in counts; a change of 1 or 2 of 5 per case is
+noise.
+
+### A5. SDK verification (2026-11-17, before the first test)
+Checked:
+- **PyPI:** package `mcp`, version 2.3.0 (latest; released 2026-10-02), MIT, maintainer
+  "Model Context Protocol a Series of LF Projects, LLC", repository
+  `github.com/modelcontextprotocol/python-sdk`, docs `py.sdk.modelcontextprotocol.io` ("This
+  documents v2, the current stable release line"). Added with `uv add "mcp>=2.3,<3"`; it brings
+  `mcp-types` 2.3.0, starlette, uvicorn, sse-starlette, jsonschema, opentelemetry-api, pyjwt,
+  cryptography and others. `uv.lock` is committed.
+- **Docs (low-level server, client transports, migration guide):** v2 replaces v1's decorators
+  with keyword-only `on_*` constructor arguments; handlers are `async (ctx, params)`; `Tool`
+  uses `input_schema`, `CallToolResult` uses `structured_content` and `is_error`; `FastMCP` is
+  now `MCPServer`; the recommended client is `Client(StdioServerParameters(...))`.
+- **Installed source (2.3.0):** `mcp.server.lowlevel.Server(name, *, instructions=...,
+  on_list_tools=..., on_call_tool=...)`; `mcp.server.stdio.stdio_server()` (while serving, fd 1
+  points at stderr, so stray prints cannot corrupt the protocol); `server.run(read, write,
+  server.create_initialization_options())`; instructions are carried in both `InitializeResult`
+  (protocol up to 2025-11-25) and `DiscoverResult` (2026-07-28); the client reads them as
+  `Client.instructions`.
+- **Probe (scratch script, not committed):** a low-level server serving all seven `TOOLS` and
+  `SYSTEM_PROMPT`, reached through `Client` over stdio. Instructions identical: true; listed
+  tools converted back equal `TOOLS`: true (7); `call_tool` returned structured content with
+  `is_error` false; `lsof -a -p <server pid> -i` listed no network socket, while the same command
+  on a process with a listening socket did list it (control). So stdio opens no network port.
+  A test repeats the port check on the real server.
+
 ### Not specified by the owner (proposed here, open to review)
 - The tool count is seven including `submit_report`; six are run by `ToolRunner`.
+- A1's state machine (correction pending carried across chats) is the simplest rule that keeps
+  "one correction"; the alternative, a time-out that resets the state, was not chosen.
+- The `{"_raw_arguments": ...}` envelope for unparseable arguments (A4).
+- Placeholders `<PATH_TO_UV>` and `<PATH_TO_REPO>` in the config JSON.
 - Branch `m6-mcp` was reset to `main` at `19f790f` (v0.6) before this section was written; a
   local web rewrap diff was saved to `../happy_toad_backups/replay_rewrap.patch` and restored.

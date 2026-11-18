@@ -1735,3 +1735,17 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
 - Not specified by the owner: proposed `mcp>=2.3,<3`; the server owning the report check through
   an agent-layer session class; one server process per eval conversation; six Desktop
   questions; a session log under `transcripts/mcp/`.
+
+## 2026-11-17 — M6 decisions approved; SDK verified; dependency added
+- Owner approved Q1-Q8 with additions: A1 the correction counter and the known-runs and
+  provenance rules when one process serves many chats, tested and documented as Desktop limits;
+  A2 server instructions (same prompt text, hash test, what Desktop does not inherit); A3
+  placeholder paths only in config JSON; A4 a pre-registered equivalence definition; A5 verify
+  the package, version and 2.x API before the first test, commit `uv.lock`, confirm stdio opens
+  no network port.
+- A5 done: PyPI metadata, the official docs (low-level server, client transports, migration
+  guide) and the installed 2.3.0 source; a scratch probe confirmed instructions and tool
+  definitions arrive unchanged and the server process has no network socket (with a control).
+  Recorded in SPEC A5. `uv add "mcp>=2.3,<3"`; `uv.lock` committed.
+- Not specified by the owner: the A1 state machine (pending correction carries across chats),
+  the `_raw_arguments` envelope, the `<PATH_TO_UV>` / `<PATH_TO_REPO>` placeholders.
