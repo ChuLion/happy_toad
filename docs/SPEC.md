@@ -1414,3 +1414,137 @@ Total relief -1, total resolved +1, spend 6 at every step (total 0). Shared sect
 S4 and S13 are committed. The services, tool, checker rules, CLI trace and web are in with all tests
 green. The revision truth and round are committed, the README has an M5 section showing input
 changes and decision changes side by side, and the DEVLOG lists the decisions; tag v0.6.
+
+## M6 — MCP server
+
+**Goal.** Expose the same tools over MCP so they work from Claude Desktop as well as from our own
+code. Schedule (owner): 6.1 wrap the existing tool layer with the MCP Python SDK; the server only
+translates, no business logic lives in it. 6.2 connect Claude Desktop and run the demo questions.
+6.3 route the M4 evaluations through the MCP server so the integration path is tested too.
+
+Framing for the README and interviews: MCP is a protocol, not an agent framework; the client
+decides when to call tools. We claim only what we tested ("tested with Claude Desktop", never
+"works with any client"). The server runs locally and exposes only the listed tools.
+
+### Decisions to settle (proposed 2026-11-17; owner to answer before tests or code)
+
+**Q1. Dependency.** *Recommend:* the official SDK, PyPI package `mcp`, pinned `mcp>=2.3,<3`
+(2.3.0, released 2026-10-02; Python >=3.10, we use 3.12). Why: it is the reference
+implementation from the protocol's maintainers, it ships both the stdio server and the stdio
+client we need for 6.3, and its types are pydantic v2 like ours. Cost: it pulls in transitive
+packages we do not use directly (starlette, uvicorn, httpx2, sse-starlette, jsonschema,
+opentelemetry-api, pyjwt). Added as a normal dependency, because `happy-toad mcp` is a CLI
+command. Before the first test of 6.1, the exact 2.3 server and client calls are read from the
+SDK's own docs and source (v2 renamed parts of the 1.x API), and the DEVLOG records which ones we
+use.
+
+**Q2. Transport, launch, Desktop config.** *Recommend:* stdio only, local only. Claude Desktop
+starts the server as a child process; nothing listens on a port. Launched by a new CLI command
+`happy-toad mcp` (options `--inputs-dir`, `--runs-dir`, `--transcripts-dir`, default to the repo
+folders). Desktop starts the process with an unknown working directory, so the config entry uses
+absolute paths and `uv --directory`:
+
+```json
+{
+  "mcpServers": {
+    "happy-toad": {
+      "command": "/absolute/path/to/uv",
+      "args": ["--directory", "/absolute/path/to/happy_toad_v2", "run", "happy-toad", "mcp"]
+    }
+  }
+}
+```
+
+File: `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS). The README gets
+this entry with placeholder paths, never the owner's real paths. No API key: Desktop uses its own
+model, so the server needs no secrets and never reads `.env`. Stdout belongs to the protocol:
+the server prints nothing to it (no rich output); any log goes to stderr.
+
+**Q3. Which tools, and who checks.** The tool layer has seven tools: six that `ToolRunner` runs
+(list_input_versions, run_scenario, find_target_budget, get_run, compare_runs, explain_revision)
+and `submit_report`, which today the loop handles. *Recommend:* expose all seven. With Desktop
+there is no loop of ours, so the **server process owns the report check**:
+- The submit flow now inside `Conversation.submit` (schema, `check_report`, one correction,
+  status) and the run-id tracking in `Conversation.run_call` move, unchanged, into one small
+  agent-layer class (for example `agent/session.py`). The loop and the server both use it; the
+  server only forwards. This is a refactor with no behaviour change, proven by the existing loop
+  tests staying green before any MCP code is written.
+- `verdict()` moves from `cli.py` into the agent layer, so the label has one definition.
+- `submit_report` over MCP returns what the loop returns today (`accepted`, `errors`,
+  `instruction`), plus `label` (CHECKED, NOT CHECKED or NO NUMBERS TO CHECK) once the verdict is
+  final, and the accepted `summary`. Our own loop never reads these two added fields (the
+  conversation ends on a final verdict), so the direct path is unaffected.
+- **Conversation boundary.** Desktop keeps one server process for many chats and does not tell
+  the server when a chat starts. So in the Desktop path: runs known to the checker are all runs
+  made or read by this server process (looser than the direct path, where it is one
+  conversation); the correction counter resets after every final verdict (accepted, or a second
+  failure). In the eval path (Q5) there is one server process per conversation, so the rules are
+  exactly the direct path's.
+- **What the label covers.** The label applies to the report submitted through `submit_report`.
+  Whatever Claude Desktop writes after that call is the client's own text and is not checked. We
+  say this wherever Desktop is mentioned.
+- Tool results go back as JSON text plus structured content. A tool's own `{"error": ...}`
+  stays a normal result (as in the direct path), not an MCP protocol error.
+
+**Q4. Names and descriptions.** *Recommend:* identical. The server builds its tool list from the
+existing `TOOLS` list (name, description, and `parameters` as the MCP input schema), not from
+decorated functions, because the SDK's decorator style would regenerate the schemas from Python
+signatures and change them. A test asserts that the tools the server lists, converted back,
+equal `TOOLS`, so `prompt_sha256` is the same on both paths. The system prompt is sent as the
+server's `instructions` text, unchanged. Whether Desktop uses it is not tested and not claimed.
+
+**Q5. Evaluations through the server.** *Recommend:* our loop becomes an MCP client behind a
+switch, `happy-toad eval --via mcp`.
+- `ask()` takes a tool backend: the direct one (today's code) or an MCP one that starts
+  `happy-toad mcp` over stdio for each conversation, lists its tools, and sends every tool call,
+  including `submit_report`, through `call_tool`. The SDK is async and the loop is sync, so the
+  MCP backend runs the client session in a blocking portal (anyio, already a dependency of the
+  SDK); the loop itself is unchanged.
+- The client passes its transcript id to the server (a `--transcript-id` option), so run records
+  carry it as on the direct path. The transcript's `source` gains `"eval-mcp"`; provenance
+  gains `via: "direct" | "mcp"`.
+- **Compared:** (1) deterministic: a test plays the same scripted tool calls (fake client)
+  through both backends and asserts identical tool results apart from run ids and times, and
+  identical check results and labels; (2) live: one official round on each path at the same
+  commit, back to back, 19 cases plus the 4 revision cases, 5 repeats. Needed because no
+  19-case round exists at the current prompt hash (`final` was before `explain_revision`).
+  Pass and checked rates are compared under the 10-point noise rule; the revision group in counts.
+- **Cost:** `final` cost $0.0746 for 94 conversations; with the revision group, about
+  $0.10-0.15 per path, so about $0.20-0.30 for both, plus about 1 second of server start-up per
+  conversation (about 2 minutes per round).
+
+**Q6. What "tested with Claude Desktop" means.** *Recommend:* six questions, each asked once in a
+fresh Desktop chat, with the server started from the config in Q2:
+demo a, demo b, demo c (rejected, minimum budget), case 5 (target budget), case 102
+("At a total budget of 1000, why does the plan change from v1 to v2?") and case 9 (a decline).
+Recorded in the DEVLOG and a `docs/desktop_test.md`: date, Desktop version, the model Desktop
+showed, commit, for each question the tool calls made, the label returned, and whether
+Desktop's reply matches the submitted summary; plus a server session log (Q7) and one screenshot
+per question in `docs/images/` (synthetic data only). The README then says "tested with Claude
+Desktop (version, macOS, date) on six questions". **Not claimed:** other MCP clients; other
+models or a rate (one try per question is not a measurement); that Desktop follows the system
+prompt; that Desktop's own text after `submit_report` is checked; Windows or Linux; remote use.
+
+**Q7. Security and where things are written.** *Recommend:*
+- The server reaches only three folders, given at launch: inputs (read), runs (read and write),
+  transcripts (write). No other path comes from a tool argument.
+- Inputs stay restricted by the existing code paths, unchanged: version names must match
+  `[A-Za-z0-9_-]+` and change lists are refused (`load_version`), run ids must match the run-id
+  pattern (`read_run`), and every request goes through the same pydantic models and gate.
+- Only the seven tools are listed; no resources, prompts, sampling, shell or file tools.
+- No network listener (stdio), no secrets, no model calls from the server.
+- Run records go to `runs/` as today. Desktop sessions write one session log per server process
+  to `transcripts/mcp/<session id>.json` (tool calls, arguments, results, checks, labels; source
+  `"mcp"`); both folders stay gitignored. In the eval path the client writes the transcript as
+  today and the server writes no session log.
+
+**Q8. Out of scope (parked for M7).** HTTP or any remote transport; authentication; MCP
+resources, prompts and sampling; tool annotations (read-only hints); other clients (Claude Code,
+IDEs) beyond what we test; a Desktop extension package; new tools (`list_candidates`, the runs
+summary, the welcome panel); the M7 diagnostics list; changing tool text or the prompt for
+Desktop.
+
+### Not specified by the owner (proposed here, open to review)
+- The tool count is seven including `submit_report`; six are run by `ToolRunner`.
+- Branch `m6-mcp` was reset to `main` at `19f790f` (v0.6) before this section was written; a
+  local web rewrap diff was saved to `../happy_toad_backups/replay_rewrap.patch` and restored.

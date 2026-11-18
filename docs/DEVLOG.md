@@ -1723,3 +1723,15 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   ask for confirmation before running (catches a valid-but-wrong request, such as forcing in
   C034 instead of C033, which neither the gate nor the checker can detect). Docs only; not
   built.
+
+## 2026-11-17 — M6 start: branch reset, decisions to settle
+- Branch `m6-mcp` had been cut from a stale local `main` (`1a6748e`, before M5). Owner approved:
+  saved the uncommitted `web/replay.*` rewrap diff to `../happy_toad_backups/replay_rewrap.patch`,
+  restored both files, fast-forwarded `main` to `19f790f` (v0.6) and reset `m6-mcp` to it.
+- Docs commit: CLAUDE.md current milestone M6; README status "M1 to M5 and M2B complete (tag
+  v0.6); M6 and M7 planned."
+- SPEC M6 section with eight decisions to settle (Q1-Q8), each with a recommendation. No code.
+  Waiting for the owner's answers.
+- Not specified by the owner: proposed `mcp>=2.3,<3`; the server owning the report check through
+  an agent-layer session class; one server process per eval conversation; six Desktop
+  questions; a session log under `transcripts/mcp/`.
