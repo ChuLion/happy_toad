@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Annotated
 
+import anyio
 import typer
 from pydantic import ValidationError
 from rich.console import Console
@@ -18,6 +19,7 @@ from happy_toad.data.checks import InputError
 from happy_toad.data.files import write_inputs
 from happy_toad.data.loader import load_input_set
 from happy_toad.engine.sweep import default_budgets, parse_budgets, run_sweep
+from happy_toad.mcp_server import McpSession, serve
 from happy_toad.reasons import ReasonCode
 from happy_toad.services.runs import read_run
 from happy_toad.services.target import TargetBudgetRequest, run_target
@@ -544,3 +546,17 @@ def ask(
     else:
         compact_outcome(t, console)
     raise typer.Exit(exit_code(t))
+
+
+@app.command("mcp")
+def mcp_serve(
+    inputs_dir: Annotated[Path, typer.Option()] = Path("data/inputs"),
+    runs_dir: Annotated[Path, typer.Option()] = Path("runs"),
+    transcripts_dir: Annotated[Path, typer.Option()] = Path("transcripts"),
+    transcript_id: Annotated[
+        str | None, typer.Option(help="Eval path: the client's transcript id; no session log.")
+    ] = None,
+) -> None:
+    """Serve the seven tools over MCP on stdio (Claude Desktop, `eval --via mcp`). Local only."""
+    session = McpSession(inputs_dir, runs_dir, transcripts_dir, transcript_id)
+    anyio.run(serve, session)

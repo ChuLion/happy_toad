@@ -1650,6 +1650,16 @@ Checked:
 - A1's state machine (correction pending carried across chats) is the simplest rule that keeps
   "one correction"; the alternative, a time-out that resets the state, was not chosen.
 - The `{"_raw_arguments": ...}` envelope for unparseable arguments (A4).
+- The server is one module, `src/happy_toad/mcp_server.py`; the Desktop session log is a
+  `SessionLog` (a `Transcript` plus `tool_calls` and `client`). Transcript `source` gains `"mcp"`
+  and `"eval-mcp"`.
+- Eval path: the server keeps the check state, so every `submit_report` result carries the
+  check record (checks, report, status, report_accepted, coercions, defaults) in the result's
+  `_meta` under `happy_toad/record`; our client copies it into its transcript. The model never
+  sees `_meta`. This keeps Q7's "no session log in the eval path".
+- A4 scripted comparison: the `label` and `summary` fields added to a final `submit_report`
+  result are compared as the label (and the transcript's report), not as part of the tool
+  result, because the direct path returns no such fields and our loop ends on a final verdict.
 - Placeholders `<PATH_TO_UV>` and `<PATH_TO_REPO>` in the config JSON.
 - Branch `m6-mcp` was reset to `main` at `19f790f` (v0.6) before this section was written; a
   local web rewrap diff was saved to `../happy_toad_backups/replay_rewrap.patch` and restored.

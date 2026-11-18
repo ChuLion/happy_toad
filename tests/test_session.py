@@ -58,7 +58,7 @@ def test_a_schema_failure_does_not_move_the_state(session) -> None:
 
 
 def test_runs_returned_by_tools_become_known(session) -> None:
-    result = session.call("run_scenario", json.dumps({"input_version": "test", "budget": 100}))
+    result = session.call("run_scenario", json.dumps({"input_version": "test", "budget": 12}))
     assert session.runs == [result["run_id"]]
     session.call("get_run", json.dumps({"run_id": result["run_id"]}))
     assert session.runs == [result["run_id"]]

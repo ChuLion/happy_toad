@@ -48,7 +48,9 @@ class Transcript(BaseModel):
     total_tokens: dict[str, int] = {"prompt": 0, "completion": 0, "reasoning": 0}
     cost: float | None = None
     elapsed_seconds: float = 0.0
-    source: Literal["cli", "web", "eval", "bakeoff"] | None = None  # None: before M4, or a test
+    source: Literal["cli", "web", "eval", "bakeoff", "mcp", "eval-mcp"] | None = (
+        None  # None: pre-M4
+    )
     provenance: dict | None = None  # git_sha, git_dirty, prompt_sha256 (agent/provenance.py)
     report_accepted: bool | None = None  # None: saved before M4
 
