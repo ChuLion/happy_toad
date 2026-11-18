@@ -73,7 +73,7 @@ def test_the_bakeoff_provenance_adds_the_frozen_file_hashes():
 
 def test_every_transcript_records_provenance_and_its_source(dirs):
     t = ask("q", FakeClient(run_then_report()), SMOKE, source="eval", **dirs)
-    assert t.provenance == provenance()
+    assert t.provenance == provenance() | {"via": "direct"}  # M6: the route of the tool calls
     assert t.source == "eval"
     saved = Transcript.model_validate_json(next(dirs["transcripts_dir"].glob("*.json")).read_text())
     assert saved.provenance == t.provenance and saved.source == "eval"

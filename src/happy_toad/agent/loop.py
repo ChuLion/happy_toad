@@ -3,11 +3,14 @@
 import json
 import time
 from collections.abc import Callable
+from contextlib import nullcontext
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Literal
 
 from happy_toad.agent.client import ChatClient, Completion, ProviderError
 from happy_toad.agent.config import MAX_STEPS, Profile
+from happy_toad.agent.mcp_client import mcp_tools
 from happy_toad.agent.prompt import SYSTEM_PROMPT
 from happy_toad.agent.provenance import provenance, redact_error
 from happy_toad.agent.session import ToolSession
@@ -43,6 +46,14 @@ def _assistant_message(done: Completion) -> tuple[dict, bool]:
     return message, sanitized
 
 
+def direct_tools(inputs_dir: Path, runs_dir: Path, record: Transcript):
+    """The tools in this process: a ToolSession, nothing to open or close."""
+    return nullcontext(ToolSession(inputs_dir, runs_dir, record))
+
+
+OPEN_TOOLS = {"direct": direct_tools, "mcp": mcp_tools}
+
+
 def _sum_cost(turns: list[TurnRecord]) -> float | None:
     costs = [t.cost for t in turns]
     return None if not costs or any(c is None for c in costs) else sum(costs)
@@ -51,7 +62,7 @@ def _sum_cost(turns: list[TurnRecord]) -> float | None:
 class Conversation:
     """State of one question: messages, transcript and its tool session."""
 
-    def __init__(self, question, profile, runs_dir, inputs_dir, on_event, source, tools) -> None:
+    def __init__(self, question, profile, on_event, source, tools, via) -> None:
         self.on_event = on_event
         self.transcript = Transcript(
             transcript_id=new_run_id(datetime.now(UTC)),
@@ -59,10 +70,10 @@ class Conversation:
             profile=profile.name,
             model=profile.model,
             source=source,
-            provenance=provenance(tools),
+            provenance=provenance(tools) | {"via": via},
             report_accepted=False,
         )
-        self.session = ToolSession(inputs_dir, runs_dir, self.transcript)
+        self.session = None  # set by ask() while the tools are open
         self.messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": question},
@@ -119,19 +130,24 @@ def ask(
     tools: list[dict] = TOOLS,
     on_event: Callable[[str, dict], None] = lambda kind, payload: None,
     source: str | None = None,
+    via: Literal["direct", "mcp"] = "direct",
 ) -> Transcript:
-    """Answer one question. Every outcome, including failures, leaves a saved transcript."""
+    """Answer one question. Every outcome, including failures, leaves a saved transcript.
+
+    `via="mcp"` sends every tool call through a `happy-toad mcp` server process (SPEC, M6 Q5).
+    """
     started = time.perf_counter()
-    convo = Conversation(question, profile, runs_dir, inputs_dir, on_event, source, tools)
+    convo = Conversation(question, profile, on_event, source, tools, via)
     t = convo.transcript
     t.status = "step_cap"
     try:
-        for _ in range(MAX_STEPS):
-            turn_start = time.perf_counter()
-            done = client.complete(convo.messages, tools)
-            convo.take_turn(done, time.perf_counter() - turn_start)
-            if convo.finished:
-                break
+        with OPEN_TOOLS[via](inputs_dir, runs_dir, t) as convo.session:
+            for _ in range(MAX_STEPS):
+                turn_start = time.perf_counter()
+                done = client.complete(convo.messages, tools)
+                convo.take_turn(done, time.perf_counter() - turn_start)
+                if convo.finished:
+                    break
     except ProviderError as err:
         t.status = "api_error"
         t.api_error = {"status": err.status, "body": err.body, "step": len(t.turns) + 1}

@@ -1605,7 +1605,8 @@ direct backend and the MCP backend with a fake model client. It covers all seven
 valid, a rejected and an infeasible scenario; an invalid request; unparseable arguments; an
 unknown tool; a missing run id; a report that fails then passes on correction; a report that
 fails twice; a claimless report. Equivalent means: every tool result is equal as JSON after
-replacing run ids by their order of first appearance, and the check results, transcript status
+replacing run ids by their order of first appearance and blanking `solve_time` (wall clock;
+it differs between any two solves, even on one path), and the check results, transcript status
 and label are equal. Any other difference fails the test. Unparseable or non-object arguments
 reach the server inside `{"_raw_arguments": "<text>"}` and the server hands the raw text to
 `ToolRunner` unchanged, so both paths see the same input.
