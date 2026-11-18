@@ -83,4 +83,4 @@ def test_default_output_is_compact(invoke) -> None:
 
 def test_eval_refuses_an_unknown_route() -> None:
     result = CliRunner().invoke(cli.app, ["eval", "--via", "carrier-pigeon", "--unofficial"])
-    assert result.exit_code == 2 and "--via" in result.output
+    assert result.exit_code == 2 and "unknown route" in result.output  # option names are styled
