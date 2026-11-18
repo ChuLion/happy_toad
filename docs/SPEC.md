@@ -1689,3 +1689,21 @@ claimed: that the paths perform equally. Per case, the largest change is case 11
 5 of 5 MCP), a change of 2 of 5, which is noise. The revision group has no direct round at this
 commit; `m5_revision_round2` (direct, commit 9cbeb08, same prompt hash: 13 of 19 passed) is
 context only, not an A4 comparison.
+
+**Direct revision group (added at the owner's request, 2026-11-18).** `m6_direct_revision` ran at
+d2b7b3f, not 8ae5633: the commits between them change only tests and docs (no `src` change) and
+the prompt hash is the same, a46431581249. Per case, passed of 5:
+
+| Case | direct (d2b7b3f) | MCP (8ae5633) |
+|---|---|---|
+| 101 | 5 | 5 |
+| 102 | 1 | 4 |
+| 103 | 4 | 5 |
+| 104 | 5 | 4 |
+| total | 15 of 20 | 18 of 20 |
+
+Under the pre-registered rule, case 102 differs by more than the noise level (3 of 5). What the
+transcripts show: `explain_revision` returned the same result in all ten case-102 conversations
+on both paths (compared after renumbering run ids and blanking solve times); the failing direct
+reports carried 0 to 8 effect or total claims, the MCP reports 7 to 15. This matches the known
+case-102 failure recorded in M5, whose published text is unchanged.

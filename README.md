@@ -371,6 +371,10 @@ rates. Official rounds run on a clean, committed tree; reports are in `evals/rou
 | Round 3 | group 2: prompt, tool text, gate message, `n_unresolved` | 89% | 99% | 100% | 91% | 82% | 78% | $0.088 |
 | Final | change lists listed apart; checker wording rule dropped; "0.5x" | 95% | 97% | 96% | 97% | 82% | 82% | $0.075 |
 
+**Current baseline:** the `m6_direct` round (commit 8ae5633, prompt a46431581249; see Milestone 6).
+The rounds in this table belong to earlier prompt hashes (`final`: 8d77a1e137b4, before
+`explain_revision` was added).
+
 **Noise:** a round is 95 conversations (19 x 5), so a difference between two rounds under about 10
 percentage points is noise, and per case a change of 1 or 2 out of 5 is noise. From baseline to
 final, only first pass (+16) is clearly beyond that line; overall pass (+9) is just under it, so
@@ -498,9 +502,119 @@ uv run happy-toad eval --revision --round NAME [--cases 102] [--repeats 5] [--un
 uv run python evals/truth.py --inputs data/inputs --revision   # writes evals/revision_truth.json
 ```
 
+## Milestone 6: the tools over MCP (`happy-toad mcp`)
+The same seven tools, served over the Model Context Protocol so that an MCP client such as
+Claude Desktop can call them. MCP is a protocol, not an agent framework: the client and its model
+decide when to call a tool. The server runs locally over stdio (it opens no network port), lists
+only the seven tools, and only translates. The tool definitions come unchanged from the same list
+our own loop uses, every call goes to the same code, and the checker and its one correction run
+inside the server.
+
+**Claude Desktop: test pending.** The server has been tested with our own MCP client (below). The
+Claude Desktop test (six questions) has not been run yet, so nothing here claims that it works
+with Claude Desktop or with any other client.
+
+```
+uv run happy-toad mcp        # serves on stdin/stdout; started by the client, not by hand
+```
+
+Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json` on
+macOS). Replace the two placeholders with absolute paths; Desktop starts the server with an unknown
+working directory, and `--directory` makes the repo the working directory:
+
+```json
+{
+  "mcpServers": {
+    "happy-toad": {
+      "command": "<PATH_TO_UV>",
+      "args": ["--directory", "<PATH_TO_REPO>", "run", "happy-toad", "mcp"]
+    }
+  }
+}
+```
+
+The server needs no API key: the client brings its own model. Run records go to `runs/`; a Desktop
+session logs every tool call, check and label to `transcripts/mcp/<session id>.json` (both
+gitignored).
+
+### Limits of the Desktop path
+Desktop keeps one server process for all its chats, and the protocol does not tell the server when
+a chat starts. So:
+- **Provenance is per process.** Commit, uncommitted-changes flag and prompt hash are taken once,
+  when the server starts. After a code change Desktop must be restarted; a log written by an old
+  process names the old commit. Every run made through Desktop carries the session id, so which
+  chat made it cannot be told from the record.
+- **Correction counting is per process, not per chat.** A report that fails the check gets one
+  correction: the next report, from whatever chat, is final. A chat abandoned after a failed
+  report leaves the next chat's first report with no second chance. Two reports in one Desktop
+  turn count as a report and its correction (the server sees calls, not turns).
+- **Known runs are per process.** A report may cite a run made in an earlier chat of the same
+  process; our own loop would refuse it as "not executed or read in this conversation".
+- **The label covers only the submitted report.** CHECKED, NOT CHECKED or NO NUMBERS TO CHECK
+  comes back in the `submit_report` result and applies to that report's summary and claims. Any
+  text Desktop's model writes after that call is its own and is not checked.
+- **Desktop uses its own model**, not the demo model, with its own settings and no token or cost
+  record on our side.
+- **The behaviour rules are sent as instructions.** The system prompt goes to the client word for
+  word as the server's instructions; the protocol lets a client use them or not, and Desktop's use
+  of them is not tested. Desktop does not get our loop's reminder to call `submit_report`, its
+  10-step cap, or the end of the conversation at a final verdict.
+
+### Our loop as an MCP client (`happy-toad eval --via mcp`)
+Each eval conversation starts its own server process and sends every tool call through it, so the
+integration path is graded with the same cases and truth. Equivalence was defined before any round
+ran:
+- **Scripted (pass or fail):** one fixed model script through both paths, covering all seven tools,
+  rejected, infeasible and invalid requests, unparseable arguments, an unknown tool, and reports
+  that fail twice, fail then pass, or have no numbers. Tool results, checks and labels are
+  identical once run ids are renumbered and solve times blanked. This is a test in the suite.
+- **Live rounds (reported, not claimed equal):** one official round per path, same profile, no
+  tuning or edited cases between them, provider errors excluded (there were none).
+
+19-case set, 5 runs each (95 conversations per round):
+
+| | `m6_direct` | `m6_mcp` |
+|---|---|---|
+| commit, prompt | 8ae5633, a46431581249 | 8ae5633, a46431581249 |
+| passed | 90 of 95 | 94 of 95 |
+| runs right | 92 of 95 | 94 of 95 |
+| numbers right | 91 of 95 | 94 of 95 |
+| behaviour right | 93 of 95 | 94 of 95 |
+| CHECKED (where allowed) | 78 of 90 | 80 of 90 |
+| first report accepted | 70 of 95 | 74 of 95 |
+| listed cost | $0.089 | $0.083 |
+
+The two paths are **within noise of each other**: every rate differs by under 10 percentage points,
+and per case by at most 2 of 5. No equality and no improvement is claimed.
+
+Revision cases 101-104, 5 runs each:
+
+| Case | `m6_direct_revision` (d2b7b3f, a46431581249) | `m6_mcp_revision` (8ae5633, a46431581249) |
+|---|---|---|
+| 101 | 5 of 5 | 5 of 5 |
+| 102 | 1 of 5 | 4 of 5 |
+| 103 | 4 of 5 | 5 of 5 |
+| 104 | 5 of 5 | 4 of 5 |
+| **passed** | **15 of 20** | **18 of 20** |
+| CHECKED (where allowed) | 12 of 15 | 15 of 15 |
+
+The direct revision round ran at d2b7b3f, not 8ae5633: the commits between them change only tests
+and docs, and the prompt hash is the same. On case 102 the paths differ by 3 of 5, more than the
+per-case noise level. The transcripts show `explain_revision` returning the same result in all ten
+conversations on both paths. The difference is in what the model put in its report: the failing
+direct reports carried 0 to 8 effect or total claims, the MCP reports 7 to 15. This is the known
+case-102 failure described in Milestone 5. About 20 conversations per round are too few to
+measure the difference between the groups.
+
+```
+uv run happy-toad eval --via mcp --round NAME [--cases 1,5] [--repeats 5] [--unofficial]
+uv run happy-toad eval --via mcp --revision --round NAME
+```
+
 ## What is next (planned, not done)
 - M5: README done; tagged v0.6.
-- M6: an MCP server.
+- M6: the Claude Desktop test (six questions) is pending; then the README states exactly what was
+  tested.
 - M7: deferred diagnostics: the smallest budget at which the optimizer's own plan reaches a
   target, a cause for floors that no combination of whole candidates can meet, the cheapest way
   to resolve each still-short sector, and a CLI table of target against cheapest budget.

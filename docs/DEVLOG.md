@@ -1788,3 +1788,18 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   20261118T192309-a7d79eb1 (direct), 20261118T203308-8911a679, 20261118T203315-85c540da (MCP).
 - Gap against A4 as written: A4 named 19 + 4 cases on each path; the owner asked for the
   revision group via MCP only, so the revision group has no direct round at this commit.
+
+## 2026-11-18 — M6 direct revision group; README M6 section
+- Owner asked for the direct revision group: `m6_direct_revision` at d2b7b3f (tests and docs only
+  since 8ae5633, same prompt hash a46431581249; stated in the round's notes). Passed 15 of 20;
+  per case 101 5, 102 1, 103 4, 104 5 (MCP: 5, 4, 5, 4; 18 of 20).
+- Case 102 differs between the paths by 3 of 5, above the per-case noise level. Checked in the
+  transcripts: `explain_revision` returned the same result in all ten case-102 conversations on
+  both paths; the difference is in the claims the model put in its report. Reported as such in
+  the SPEC and the README; the M5 text on case 102 is unchanged.
+- README: M6 section (placeholder config, the Desktop-path limits from A1 and A2, the round
+  tables with commit and prompt hash, "within noise of each other", Desktop test pending);
+  M4 section names `m6_direct` as the current baseline; "What is next" says the Desktop test is
+  pending.
+- Not specified by the owner: the README describes the scripted equivalence test and gives the
+  `--via mcp` commands.
