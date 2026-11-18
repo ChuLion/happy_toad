@@ -1,0 +1,2223 @@
+{
+ "header": {
+  "round": "m6_mcp",
+  "date": "2026-11-18T20:33:37+00:00",
+  "official": true,
+  "via": "mcp",
+  "provenance": {
+   "git_sha": "8ae563308c6eae466d9a32158e10774271b5850e",
+   "git_dirty": false,
+   "prompt_sha256": "a464315812492ee67a421c9c688c128a02be74f2985bd0e6df5fe9199e027223"
+  },
+  "profile": "demo",
+  "model": "deepseek/deepseek-v4-flash-0731",
+  "providers": [
+   "Baidu",
+   "BaseTen"
+  ],
+  "notes": []
+ },
+ "overall": {
+  "n": 95,
+  "infrastructure": 0,
+  "pass_rate": 0.9894736842105263,
+  "runs_rate": 0.9894736842105263,
+  "numbers_rate": 0.9894736842105263,
+  "behaviour_rate": 0.9894736842105263,
+  "checked_rate": 0.8888888888888888,
+  "first_pass_rate": 0.7789473684210526,
+  "cost_total": 0.08337674129599999,
+  "seconds_mean": 8.438123913589669,
+  "turns_mean": 2.9368421052631577
+ },
+ "per_case": {
+  "1": {
+   "n": 5,
+   "infrastructure": 0,
+   "pass_rate": 1.0,
+   "runs_rate": 1.0,
+   "numbers_rate": 1.0,
+   "behaviour_rate": 1.0,
+   "checked_rate": 1.0,
+   "first_pass_rate": 0.6,
+   "cost_total": 0.00877292512,
+   "seconds_mean": 10.999082091636955,
+   "turns_mean": 3.4
+  },
+  "2": {
+   "n": 5,
+   "infrastructure": 0,
+   "pass_rate": 1.0,
+   "runs_rate": 1.0,
+   "numbers_rate": 1.0,
+   "behaviour_rate": 1.0,
+   "checked_rate": 1.0,
+   "first_pass_rate": 1.0,
+   "cost_total": 0.006127516912,
+   "seconds_mean": 7.716307875048369,
+   "turns_mean": 3.0
+  },
+  "3": {
+   "n": 5,
+   "infrastructure": 0,
+   "pass_rate": 1.0,
+   "runs_rate": 1.0,
+   "numbers_rate": 1.0,
+   "behaviour_rate": 1.0,
+   "checked_rate": 1.0,
+   "first_pass_rate": 0.8,
+   "cost_total": 0.006503702672,
+   "seconds_mean": 8.054861216805875,
+   "turns_mean": 3.2
+  },
+  "4": {
+   "n": 5,
+   "infrastructure": 0,
+   "pass_rate": 1.0,
+   "runs_rate": 1.0,
+   "numbers_rate": 1.0,
+   "behaviour_rate": 1.0,
+   "checked_rate": 1.0,
+   "first_pass_rate": 0.8,
+   "cost_total": 0.002498629584,
+   "seconds_mean": 6.422707474976778,
+   "turns_mean": 2.6
+  },
+  "5": {
+   "n": 5,
+   "infrastructure": 0,
+   "pass_rate": 1.0,
+   "runs_rate": 1.0,
+   "numbers_rate": 1.0,
+   "behaviour_rate": 1.0,
+   "checked_rate": 1.0,
+   "first_pass_rate": 1.0,
+   "cost_total": 0.00278504,
+   "seconds_mean": 4.523694583401084,
+   "turns_mean": 2.0
+  },
+  "6": {
+   "n": 5,
+   "infrastructure": 0,
+   "pass_rate": 1.0,
+   "runs_rate": 1.0,
+   "numbers_rate": 1.0,
+   "behaviour_rate": 1.0,
+   "checked_rate": 1.0,
+   "first_pass_rate": 1.0,
+   "cost_total": 0.002533462512,
+   "seconds_mean": 4.3404758750461045,
+   "turns_mean": 2.0
+  },
+  "7": {
+   "n": 5,
+   "infrastructure": 0,
+   "pass_rate": 1.0,
+   "runs_rate": 1.0,
+   "numbers_rate": 1.0,
+   "behaviour_rate": 1.0,
+   "checked_rate": null,
+   "first_pass_rate": 1.0,
+   "cost_total": 0.001769716,
+   "seconds_mean": 4.295581283327192,
+   "turns_mean": 2.6
+  },
+  "8": {
+   "n": 5,
+   "infrastructure": 0,
+   "pass_rate": 1.0,
+   "runs_rate": 1.0,
+   "numbers_rate": 1.0,
+   "behaviour_rate": 1.0,
+   "checked_rate": 0.8,
+   "first_pass_rate": 0.8,
+   "cost_total": 0.002841487872,
+   "seconds_mean": 6.273278733622282,
+   "turns_mean": 3.0
+  },
+  "9": {
+   "n": 5,
+   "infrastructure": 0,
+   "pass_rate": 1.0,
+   "runs_rate": 1.0,
+   "numbers_rate": 1.0,
+   "behaviour_rate": 1.0,
+   "checked_rate": 0.0,
+   "first_pass_rate": 0.0,
+   "cost_total": 0.002425506576,
+   "seconds_mean": 8.741474108211696,
+   "turns_mean": 3.0
+  },
+  "10": {
+   "n": 5,
+   "infrastructure": 0,
+   "pass_rate": 1.0,
+   "runs_rate": 1.0,
+   "numbers_rate": 1.0,
+   "behaviour_rate": 1.0,
+   "checked_rate": 1.0,
+   "first_pass_rate": 1.0,
+   "cost_total": 0.002896800192,
+   "seconds_mean": 7.748234975058585,
+   "turns_mean": 2.2
+  },
+  "11": {
+   "n": 5,
+   "infrastructure": 0,
+   "pass_rate": 1.0,
+   "runs_rate": 1.0,
+   "numbers_rate": 1.0,
+   "behaviour_rate": 1.0,
+   "checked_rate": 1.0,
+   "first_pass_rate": 0.8,
+   "cost_total": 0.013841874944,
+   "seconds_mean": 25.04429599987343,
+   "turns_mean": 5.4
+  },
+  "12": {
+   "n": 5,
+   "infrastructure": 0,
+   "pass_rate": 1.0,
+   "runs_rate": 1.0,
+   "numbers_rate": 1.0,
+   "behaviour_rate": 1.0,
+   "checked_rate": 1.0,
+   "first_pass_rate": 1.0,
+   "cost_total": 0.00210371,
+   "seconds_mean": 4.959322974737733,
+   "turns_mean": 2.0
+  },
+  "13": {
+   "n": 5,
+   "infrastructure": 0,
+   "pass_rate": 0.8,
+   "runs_rate": 0.8,
+   "numbers_rate": 0.8,
+   "behaviour_rate": 0.8,
+   "checked_rate": 0.8,
+   "first_pass_rate": 0.8,
+   "cost_total": 0.003101566,
+   "seconds_mean": 9.480143466871231,
+   "turns_mean": 2.6
+  },
+  "14": {
+   "n": 5,
+   "infrastructure": 0,
+   "pass_rate": 1.0,
+   "runs_rate": 1.0,
+   "numbers_rate": 1.0,
+   "behaviour_rate": 1.0,
+   "checked_rate": 1.0,
+   "first_pass_rate": 1.0,
+   "cost_total": 0.0024409419999999998,
+   "seconds_mean": 6.265308816637844,
+   "turns_mean": 2.6
+  },
+  "15": {
+   "n": 5,
+   "infrastructure": 0,
+   "pass_rate": 1.0,
+   "runs_rate": 1.0,
+   "numbers_rate": 1.0,
+   "behaviour_rate": 1.0,
+   "checked_rate": 1.0,
+   "first_pass_rate": 1.0,
+   "cost_total": 0.002390092,
+   "seconds_mean": 7.432163949683309,
+   "turns_mean": 2.2
+  },
+  "16": {
+   "n": 5,
+   "infrastructure": 0,
+   "pass_rate": 1.0,
+   "runs_rate": 1.0,
+   "numbers_rate": 1.0,
+   "behaviour_rate": 1.0,
+   "checked_rate": 1.0,
+   "first_pass_rate": 1.0,
+   "cost_total": 0.0054841460000000005,
+   "seconds_mean": 12.603360191639513,
+   "turns_mean": 3.8
+  },
+  "17": {
+   "n": 5,
+   "infrastructure": 0,
+   "pass_rate": 1.0,
+   "runs_rate": 1.0,
+   "numbers_rate": 1.0,
+   "behaviour_rate": 1.0,
+   "checked_rate": 0.8,
+   "first_pass_rate": 0.8,
+   "cost_total": 0.007490608,
+   "seconds_mean": 11.957575699966402,
+   "turns_mean": 3.8
+  },
+  "18": {
+   "n": 5,
+   "infrastructure": 0,
+   "pass_rate": 1.0,
+   "runs_rate": 1.0,
+   "numbers_rate": 1.0,
+   "behaviour_rate": 1.0,
+   "checked_rate": 1.0,
+   "first_pass_rate": 0.4,
+   "cost_total": 0.003156874912,
+   "seconds_mean": 6.525874141603708,
+   "turns_mean": 3.4
+  },
+  "19": {
+   "n": 5,
+   "infrastructure": 0,
+   "pass_rate": 1.0,
+   "runs_rate": 1.0,
+   "numbers_rate": 1.0,
+   "behaviour_rate": 1.0,
+   "checked_rate": 0.6,
+   "first_pass_rate": 0.0,
+   "cost_total": 0.00421214,
+   "seconds_mean": 6.940610900055617,
+   "turns_mean": 3.0
+  }
+ },
+ "review": [
+  {
+   "case": 19,
+   "transcript_id": "20261118T203308-8911a679",
+   "phrases": [
+    "400"
+   ]
+  },
+  {
+   "case": 19,
+   "transcript_id": "20261118T203315-85c540da",
+   "phrases": [
+    "400"
+   ]
+  }
+ ],
+ "infrastructure": [],
+ "noise": "A round is 19 cases x 5 runs = 95 conversations: a difference between two rounds under about 10 percentage points is noise, and per case a change of 1 or 2 out of 5 is noise.",
+ "grades": [
+  {
+   "case_id": 1,
+   "transcript_id": "20261118T201952-1e6094a3",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.00161185112,
+   "seconds": 10.44009687518701,
+   "turns": 3,
+   "providers": [
+    "Baidu",
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 1,
+   "transcript_id": "20261118T202003-62d6bbf6",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.001684232,
+   "seconds": 6.606535749975592,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 1,
+   "transcript_id": "20261118T202011-8db2b038",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.002101776,
+   "seconds": 10.755283375270665,
+   "turns": 4,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 1,
+   "transcript_id": "20261118T202022-d2c639b2",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.001924542,
+   "seconds": 18.1733984160237,
+   "turns": 4,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 1,
+   "transcript_id": "20261118T202040-6fc930c5",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.001450524,
+   "seconds": 9.020096041727811,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 2,
+   "transcript_id": "20261118T202049-21642f82",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.001290714,
+   "seconds": 8.084700958803296,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 2,
+   "transcript_id": "20261118T202058-65895b98",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.00117845488,
+   "seconds": 7.749041416216642,
+   "turns": 3,
+   "providers": [
+    "Baidu",
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 2,
+   "transcript_id": "20261118T202106-82e055f2",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000915006,
+   "seconds": 8.266416917089373,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 2,
+   "transcript_id": "20261118T202114-d2a8920d",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.001428814,
+   "seconds": 6.6645724582485855,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 2,
+   "transcript_id": "20261118T202121-629e7e9a",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.001314528032,
+   "seconds": 7.81680762488395,
+   "turns": 3,
+   "providers": [
+    "Baidu",
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 3,
+   "transcript_id": "20261118T202130-fd247e16",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000975104672,
+   "seconds": 9.429977166932076,
+   "turns": 3,
+   "providers": [
+    "Baidu",
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 3,
+   "transcript_id": "20261118T202140-41add291",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000999376,
+   "seconds": 7.538890624884516,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 3,
+   "transcript_id": "20261118T202148-e2f08fb1",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.002103242,
+   "seconds": 11.148026125039905,
+   "turns": 4,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 3,
+   "transcript_id": "20261118T202159-8c760fe5",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.001452994,
+   "seconds": 6.405736874789,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 3,
+   "transcript_id": "20261118T202206-6077a80d",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000972986,
+   "seconds": 5.751675292383879,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 4,
+   "transcript_id": "20261118T202212-dce4b313",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000542856,
+   "seconds": 6.147149458993226,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 4,
+   "transcript_id": "20261118T202218-6b51074a",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000595509584,
+   "seconds": 8.126774040982127,
+   "turns": 3,
+   "providers": [
+    "Baidu",
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 4,
+   "transcript_id": "20261118T202226-e53a6314",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000589656,
+   "seconds": 8.520357457920909,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 4,
+   "transcript_id": "20261118T202236-a9cb225e",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000377634,
+   "seconds": 3.729056542273611,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 4,
+   "transcript_id": "20261118T202240-64cf95d1",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.00039297400000000004,
+   "seconds": 5.590199874714017,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 5,
+   "transcript_id": "20261118T202246-660d7b01",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.0005519640000000001,
+   "seconds": 4.734205625019968,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 5,
+   "transcript_id": "20261118T202251-affa3b84",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000541824,
+   "seconds": 4.307615582831204,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 5,
+   "transcript_id": "20261118T202255-62b5604c",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000548584,
+   "seconds": 4.220381709281355,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 5,
+   "transcript_id": "20261118T202300-593023b4",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000535324,
+   "seconds": 4.286856750026345,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 5,
+   "transcript_id": "20261118T202305-1ff81f35",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000607344,
+   "seconds": 5.069413249846548,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 6,
+   "transcript_id": "20261118T202311-c103429c",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000379194,
+   "seconds": 4.308209416922182,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 6,
+   "transcript_id": "20261118T202315-727ba61b",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000364374,
+   "seconds": 4.71939133387059,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 6,
+   "transcript_id": "20261118T202320-3a9912d5",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000742032,
+   "seconds": 3.8191448748111725,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 6,
+   "transcript_id": "20261118T202324-0bd7b761",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.00030960051199999995,
+   "seconds": 3.8039860418066382,
+   "turns": 2,
+   "providers": [
+    "Baidu",
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 6,
+   "transcript_id": "20261118T202328-63d0321f",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000738262,
+   "seconds": 5.051647707819939,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 7,
+   "transcript_id": "20261118T202333-5804de69",
+   "label": "NO NUMBERS TO CHECK",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": false,
+   "review": [],
+   "problems": [],
+   "cost": 0.000402976,
+   "seconds": 3.7822957918979228,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 7,
+   "transcript_id": "20261118T202337-c0d38774",
+   "label": "NO NUMBERS TO CHECK",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": false,
+   "review": [],
+   "problems": [],
+   "cost": 0.00040869599999999995,
+   "seconds": 5.8175974590703845,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 7,
+   "transcript_id": "20261118T202343-7da8342c",
+   "label": "NO NUMBERS TO CHECK",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": false,
+   "review": [],
+   "problems": [],
+   "cost": 0.000286764,
+   "seconds": 4.039631958119571,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 7,
+   "transcript_id": "20261118T202348-574aebf4",
+   "label": "NO NUMBERS TO CHECK",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": false,
+   "review": [],
+   "problems": [],
+   "cost": 0.000270774,
+   "seconds": 2.9489100826904178,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 7,
+   "transcript_id": "20261118T202351-3e42a0b4",
+   "label": "NO NUMBERS TO CHECK",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": false,
+   "review": [],
+   "problems": [],
+   "cost": 0.000400506,
+   "seconds": 4.889471124857664,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 8,
+   "transcript_id": "20261118T202356-900a81fd",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000745276,
+   "seconds": 7.978323250077665,
+   "turns": 4,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 8,
+   "transcript_id": "20261118T202404-27622103",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000444747872,
+   "seconds": 6.578569459263235,
+   "turns": 3,
+   "providers": [
+    "Baidu",
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 8,
+   "transcript_id": "20261118T202411-8ad8bde9",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.0004947560000000001,
+   "seconds": 5.096952999942005,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 8,
+   "transcript_id": "20261118T202416-f30b95d6",
+   "label": "NO NUMBERS TO CHECK",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.00030977399999999997,
+   "seconds": 4.29530629189685,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 8,
+   "transcript_id": "20261118T202421-6893c050",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000846934,
+   "seconds": 7.417241666931659,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 9,
+   "transcript_id": "20261118T202428-e5e47b7f",
+   "label": "NO NUMBERS TO CHECK",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.00074049848,
+   "seconds": 13.133876957930624,
+   "turns": 3,
+   "providers": [
+    "Baidu",
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 9,
+   "transcript_id": "20261118T202442-2d12363a",
+   "label": "NO NUMBERS TO CHECK",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000299486688,
+   "seconds": 7.130524292122573,
+   "turns": 3,
+   "providers": [
+    "Baidu"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 9,
+   "transcript_id": "20261118T202449-bf668916",
+   "label": "NO NUMBERS TO CHECK",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000355059408,
+   "seconds": 8.884299375116825,
+   "turns": 3,
+   "providers": [
+    "Baidu",
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 9,
+   "transcript_id": "20261118T202458-f1e2bcdb",
+   "label": "NO NUMBERS TO CHECK",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000516726,
+   "seconds": 7.12866404093802,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 9,
+   "transcript_id": "20261118T202505-7ef27dcf",
+   "label": "NO NUMBERS TO CHECK",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000513736,
+   "seconds": 7.430005874950439,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 10,
+   "transcript_id": "20261118T202513-83bac053",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.00043674419199999997,
+   "seconds": 7.97506345808506,
+   "turns": 2,
+   "providers": [
+    "Baidu",
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 10,
+   "transcript_id": "20261118T202521-5fcc3cfe",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000508544,
+   "seconds": 5.099802624899894,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 10,
+   "transcript_id": "20261118T202526-43d6afee",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.00045758400000000003,
+   "seconds": 8.492572917137295,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 10,
+   "transcript_id": "20261118T202535-cf4177de",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000654396,
+   "seconds": 9.97286737523973,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 10,
+   "transcript_id": "20261118T202545-4c819839",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000839532,
+   "seconds": 7.200868499930948,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 11,
+   "transcript_id": "20261118T202553-f875bfde",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.002586466,
+   "seconds": 21.815837582573295,
+   "turns": 5,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 11,
+   "transcript_id": "20261118T202615-d077179a",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.004188754944,
+   "seconds": 51.54345687478781,
+   "turns": 6,
+   "providers": [
+    "Baidu",
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 11,
+   "transcript_id": "20261118T202706-7666f7cd",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.002303376,
+   "seconds": 17.58093412499875,
+   "turns": 5,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 11,
+   "transcript_id": "20261118T202724-89d348dc",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.002244558,
+   "seconds": 16.24739958392456,
+   "turns": 5,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 11,
+   "transcript_id": "20261118T202741-eff6b06c",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.00251872,
+   "seconds": 18.033851833082736,
+   "turns": 6,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 12,
+   "transcript_id": "20261118T202759-8db53a33",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000430934,
+   "seconds": 5.839974916074425,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 12,
+   "transcript_id": "20261118T202805-8f2c006f",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000407534,
+   "seconds": 4.524480958003551,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 12,
+   "transcript_id": "20261118T202810-85f03edd",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000419364,
+   "seconds": 4.0194112081080675,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 12,
+   "transcript_id": "20261118T202814-9ab5e340",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000392844,
+   "seconds": 6.397508666384965,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 12,
+   "transcript_id": "20261118T202820-94af4a85",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000453034,
+   "seconds": 4.01523912511766,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 13,
+   "transcript_id": "20261118T202825-f65f25dd",
+   "label": "NO NUMBERS TO CHECK",
+   "runs_ok": false,
+   "numbers_ok": false,
+   "behaviour_ok": false,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [
+    "required call run_scenario (run 0) missing or wrong",
+    "key number spend of run 0 not claimed",
+    "key number weighted_relief of run 0 not claimed",
+    "label NO NUMBERS TO CHECK not allowed"
+   ],
+   "cost": 0.000629956,
+   "seconds": 7.533080541994423,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": false
+  },
+  {
+   "case_id": 13,
+   "transcript_id": "20261118T202832-ce05d237",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000686376,
+   "seconds": 6.015425333287567,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 13,
+   "transcript_id": "20261118T202839-4a1596d4",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.0005875839999999999,
+   "seconds": 11.214111874811351,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 13,
+   "transcript_id": "20261118T202850-a1fc64f7",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000527654,
+   "seconds": 15.314347208943218,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 13,
+   "transcript_id": "20261118T202905-375eb852",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000669996,
+   "seconds": 7.3237523753196,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 14,
+   "transcript_id": "20261118T202913-82659a82",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000342924,
+   "seconds": 4.797063457779586,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 14,
+   "transcript_id": "20261118T202918-eff74bc6",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000581206,
+   "seconds": 7.686750291381031,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 14,
+   "transcript_id": "20261118T202926-8208d196",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000524266,
+   "seconds": 6.488452291116118,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 14,
+   "transcript_id": "20261118T202933-df8a61a8",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000414814,
+   "seconds": 4.593805708922446,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 14,
+   "transcript_id": "20261118T202937-f0e9f482",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000577732,
+   "seconds": 7.760472333990037,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 15,
+   "transcript_id": "20261118T202945-c5ff87d1",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.00044978399999999995,
+   "seconds": 4.817198916338384,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 15,
+   "transcript_id": "20261118T202950-77792e90",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.00043041399999999995,
+   "seconds": 5.388530916068703,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 15,
+   "transcript_id": "20261118T202956-a89ba7e1",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.00041650400000000005,
+   "seconds": 5.562736790627241,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 15,
+   "transcript_id": "20261118T203002-6996b0ac",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000448224,
+   "seconds": 8.580151292029768,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 15,
+   "transcript_id": "20261118T203011-c713e6f2",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000645166,
+   "seconds": 12.812201833352447,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 16,
+   "transcript_id": "20261118T203024-3c5a6669",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.001223972,
+   "seconds": 18.56993087520823,
+   "turns": 4,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 16,
+   "transcript_id": "20261118T203042-1c4fb0af",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000534414,
+   "seconds": 11.338521665893495,
+   "turns": 2,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 16,
+   "transcript_id": "20261118T203054-68a04b95",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.001077646,
+   "seconds": 13.70303845917806,
+   "turns": 4,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 16,
+   "transcript_id": "20261118T203108-dbbd8734",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.001435842,
+   "seconds": 11.424445874989033,
+   "turns": 5,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 16,
+   "transcript_id": "20261118T203119-34abebbb",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.001212272,
+   "seconds": 7.980864082928747,
+   "turns": 4,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 17,
+   "transcript_id": "20261118T203127-44270b4f",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.001936066,
+   "seconds": 15.42387333419174,
+   "turns": 4,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 17,
+   "transcript_id": "20261118T203143-d1caa4b5",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.001971556,
+   "seconds": 10.240093707572669,
+   "turns": 4,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 17,
+   "transcript_id": "20261118T203153-22f8dbf3",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.001540338,
+   "seconds": 15.094985499978065,
+   "turns": 4,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 17,
+   "transcript_id": "20261118T203208-e516c2aa",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.001432842,
+   "seconds": 10.696290333289653,
+   "turns": 4,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 17,
+   "transcript_id": "20261118T203219-0febdc45",
+   "label": "NO NUMBERS TO CHECK",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000609806,
+   "seconds": 8.332635624799877,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 18,
+   "transcript_id": "20261118T203228-dc2c1ab3",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000756882,
+   "seconds": 9.171600374858826,
+   "turns": 4,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 18,
+   "transcript_id": "20261118T203237-bd9af4e0",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000866548,
+   "seconds": 8.865154957864434,
+   "turns": 4,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 18,
+   "transcript_id": "20261118T203246-48e58564",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.00046877400000000004,
+   "seconds": 3.9757907083258033,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 18,
+   "transcript_id": "20261118T203250-cc65f307",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000622676,
+   "seconds": 4.987197167240083,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 18,
+   "transcript_id": "20261118T203256-ea4c2a88",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": true,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.00044199491199999996,
+   "seconds": 5.629627499729395,
+   "turns": 3,
+   "providers": [
+    "Baidu",
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 19,
+   "transcript_id": "20261118T203301-f2a552b2",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000830156,
+   "seconds": 6.841370875015855,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 19,
+   "transcript_id": "20261118T203308-8911a679",
+   "label": "NOT CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [
+    "400"
+   ],
+   "problems": [],
+   "cost": 0.000823916,
+   "seconds": 5.719766833819449,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 19,
+   "transcript_id": "20261118T203315-85c540da",
+   "label": "NOT CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [
+    "400"
+   ],
+   "problems": [],
+   "cost": 0.0008769559999999999,
+   "seconds": 7.4822758748196065,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 19,
+   "transcript_id": "20261118T203322-8d0988f5",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000831846,
+   "seconds": 5.9457602496258914,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  },
+  {
+   "case_id": 19,
+   "transcript_id": "20261118T203328-5ef4fa0f",
+   "label": "CHECKED",
+   "runs_ok": true,
+   "numbers_ok": true,
+   "behaviour_ok": true,
+   "first_pass": false,
+   "allows_checked": true,
+   "review": [],
+   "problems": [],
+   "cost": 0.000849266,
+   "seconds": 8.713880666997284,
+   "turns": 3,
+   "providers": [
+    "BaseTen"
+   ],
+   "infrastructure": false,
+   "passed": true
+  }
+ ]
+}

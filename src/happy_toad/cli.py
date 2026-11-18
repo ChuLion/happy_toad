@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Annotated
 
+import anyio
 import typer
 from pydantic import ValidationError
 from rich.console import Console
@@ -11,12 +12,14 @@ from rich.panel import Panel
 from rich.text import Text
 
 from happy_toad.agent.config import PROFILES
+from happy_toad.agent.label import NO_FIGURES, verdict
 from happy_toad.agent.loop import ask as run_ask
 from happy_toad.agent.transcript import redact
 from happy_toad.data.checks import InputError
 from happy_toad.data.files import write_inputs
 from happy_toad.data.loader import load_input_set
 from happy_toad.engine.sweep import default_budgets, parse_budgets, run_sweep
+from happy_toad.mcp_server import McpSession, serve
 from happy_toad.reasons import ReasonCode
 from happy_toad.services.runs import read_run
 from happy_toad.services.target import TargetBudgetRequest, run_target
@@ -297,26 +300,12 @@ def _counts(check) -> list[str]:
     return [head] + [f"  {e}" for e in errors]
 
 
-NO_FIGURES = "NO NUMBERS TO CHECK"
 BADGE_STYLE = {
     "CHECKED": "bold reverse green",
     "NOT CHECKED": "bold reverse red",
     NO_FIGURES: "bold reverse",
 }
 EXIT_CODE = {"CHECKED": 0, NO_FIGURES: 3}  # anything else: 1
-
-
-def verdict(t) -> str | None:
-    """The one verdict for both outputs and the exit code; None when there is no report to show.
-
-    CHECKED needs a verified claim or number; an answer with neither is NO NUMBERS TO CHECK.
-    """
-    if t.report is None or t.status not in ("checked", "unverified"):
-        return None
-    if t.status != "checked":
-        return "NOT CHECKED"
-    last = t.checks[-1]
-    return NO_FIGURES if not last.claims and not last.numbers else "CHECKED"
 
 
 def exit_code(t) -> int:
@@ -456,6 +445,9 @@ def eval_round(
     revision: Annotated[
         bool, typer.Option(help="M5: the revision cases 101-104 against revision truth.")
     ] = False,
+    via: Annotated[
+        str, typer.Option(help="direct, or mcp: every tool call through `happy-toad mcp` (M6).")
+    ] = "direct",
 ) -> None:
     """Run the evaluation cases, grade them against their truth and write the report.
 
@@ -474,6 +466,8 @@ def eval_round(
         run_round,
     )
 
+    if via not in ("direct", "mcp"):
+        raise typer.BadParameter(f"unknown route {via!r}; valid: direct, mcp", param_hint="--via")
     if revision and truth_path == Path("evals/truth.json"):
         truth_path = Path("evals/revision_truth.json")
     truth = json.loads(truth_path.read_text())
@@ -509,8 +503,9 @@ def eval_round(
     grades = run_round(
         chosen, lambda case: make_eval_client(model), model, repeats=repeats, truth=truth,
         inputs_dir=inputs_dir, runs_dir=runs_dir, transcripts_dir=transcripts_dir, on_grade=show,
+        via=via,
     )  # fmt: skip
-    result = report(grades, round_name, not unofficial, prov, model)
+    result = report(grades, round_name, not unofficial, prov, model, via)
     result["header"]["notes"] = note or []
     out_dir.mkdir(parents=True, exist_ok=True)
     stem = round_name if not unofficial else f"{round_name}.unofficial"
@@ -557,3 +552,17 @@ def ask(
     else:
         compact_outcome(t, console)
     raise typer.Exit(exit_code(t))
+
+
+@app.command("mcp")
+def mcp_serve(
+    inputs_dir: Annotated[Path, typer.Option()] = Path("data/inputs"),
+    runs_dir: Annotated[Path, typer.Option()] = Path("runs"),
+    transcripts_dir: Annotated[Path, typer.Option()] = Path("transcripts"),
+    transcript_id: Annotated[
+        str | None, typer.Option(help="Eval path: the client's transcript id; no session log.")
+    ] = None,
+) -> None:
+    """Serve the seven tools over MCP on stdio (Claude Desktop, `eval --via mcp`). Local only."""
+    session = McpSession(inputs_dir, runs_dir, transcripts_dir, transcript_id)
+    anyio.run(serve, session)

@@ -49,8 +49,9 @@ def run_round(
     runs_dir: Path,
     transcripts_dir: Path,
     on_grade: Callable[[Grade], None] = lambda g: None,
+    via: str = "direct",
 ) -> list[Grade]:
-    """Each case `repeats` times, as source "eval", graded against its truth."""
+    """Each case `repeats` times, as source "eval" ("eval-mcp" through the server), graded."""
     grades = []
     for case in cases:
         for _ in range(repeats):
@@ -61,7 +62,8 @@ def run_round(
                 inputs_dir=inputs_dir,
                 runs_dir=runs_dir,
                 transcripts_dir=transcripts_dir,
-                source="eval",
+                source="eval-mcp" if via == "mcp" else "eval",
+                via=via,
             )
             grades.append(grade(case, t, truth["cases"][str(case.id)], runs_dir))
             on_grade(grades[-1])
@@ -135,12 +137,20 @@ def summarize(grades: list[Grade]) -> dict:
     }
 
 
-def report(grades: list[Grade], name: str, official: bool, prov: dict, profile: Profile) -> dict:
+def report(
+    grades: list[Grade],
+    name: str,
+    official: bool,
+    prov: dict,
+    profile: Profile,
+    via: str = "direct",
+) -> dict:
     """The round report: header, summary and every grade."""
     header = {
         "round": name,
         "date": datetime.now(UTC).isoformat(timespec="seconds"),
         "official": official,
+        "via": via,  # M6: the route of the tool calls
         "provenance": prov,
         "profile": profile.name,
         "model": profile.model,
@@ -199,7 +209,8 @@ def markdown(r: dict) -> str:
         "",
         f"{h['date']} | commit {p['git_sha']}{' (uncommitted changes)' if p['git_dirty'] else ''}"
         f" | prompt {p['prompt_sha256'][:12]} | "
-        f"{h['model']} | {', '.join(h['providers']) or 'no provider'}",
+        f"{h['model']} | {', '.join(h['providers']) or 'no provider'}"
+        f" | via {h.get('via', 'direct')}",
         "",
         f"Pass {_pct(o['pass_rate'])} | runs {_pct(o['runs_rate'])} | numbers "
         f"{_pct(o['numbers_rate'])} | behaviour {_pct(o['behaviour_rate'])} | checked "

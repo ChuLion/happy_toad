@@ -3,18 +3,18 @@
 import json
 import time
 from collections.abc import Callable
+from contextlib import nullcontext
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Literal
 
-from pydantic import ValidationError
-
-from happy_toad.agent.checker import check_report
-from happy_toad.agent.client import ChatClient, Completion, ProviderError, ToolCall
+from happy_toad.agent.client import ChatClient, Completion, ProviderError
 from happy_toad.agent.config import MAX_STEPS, Profile
+from happy_toad.agent.mcp_client import mcp_tools
 from happy_toad.agent.prompt import SYSTEM_PROMPT
 from happy_toad.agent.provenance import provenance, redact_error
-from happy_toad.agent.report import Report, coercions, defaults
-from happy_toad.agent.tools import TOOLS, ToolRunner
+from happy_toad.agent.session import ToolSession
+from happy_toad.agent.tools import TOOLS
 from happy_toad.agent.transcript import Transcript, TurnRecord
 from happy_toad.services.run import new_run_id
 
@@ -46,65 +46,38 @@ def _assistant_message(done: Completion) -> tuple[dict, bool]:
     return message, sanitized
 
 
+def direct_tools(inputs_dir: Path, runs_dir: Path, record: Transcript):
+    """The tools in this process: a ToolSession, nothing to open or close."""
+    return nullcontext(ToolSession(inputs_dir, runs_dir, record))
+
+
+OPEN_TOOLS = {"direct": direct_tools, "mcp": mcp_tools}
+
+
 def _sum_cost(turns: list[TurnRecord]) -> float | None:
     costs = [t.cost for t in turns]
     return None if not costs or any(c is None for c in costs) else sum(costs)
 
 
 class Conversation:
-    """State of one question: messages, transcript, tool runner and the checker flow."""
+    """State of one question: messages, transcript and its tool session."""
 
-    def __init__(self, question, profile, runs_dir, inputs_dir, on_event, source, tools) -> None:
-        self.runs_dir, self.on_event = runs_dir, on_event
-        self.inputs_dir = inputs_dir
-        self.runs: list[str] = []  # run ids the agent executed, read or compared
+    def __init__(self, question, profile, on_event, source, tools, via) -> None:
+        self.on_event = on_event
         self.transcript = Transcript(
             transcript_id=new_run_id(datetime.now(UTC)),
             question=question,
             profile=profile.name,
             model=profile.model,
             source=source,
-            provenance=provenance(tools),
+            provenance=provenance(tools) | {"via": via},
             report_accepted=False,
         )
-        self.runner = ToolRunner(inputs_dir, runs_dir, self.transcript.transcript_id)
+        self.session = None  # set by ask() while the tools are open
         self.messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": question},
         ]
-
-    def submit(self, call: ToolCall) -> dict:
-        """Handle submit_report: schema, then the checker, with one chance to correct."""
-        try:
-            report = Report.model_validate_json(call.arguments)
-        except ValidationError as err:
-            return {"accepted": False, "error": f"report does not fit the schema: {err}"}
-        t = self.transcript
-        t.coercions += coercions(call.arguments, report)
-        t.defaults += defaults(call.arguments, report)
-        result = check_report(report, self.runs_dir, self.inputs_dir, self.runs)
-        t.checks.append(result)
-        t.report = report
-        if result.ok:
-            t.status, t.report_accepted = "checked", True
-            return {"accepted": True}
-        if len(t.checks) == 1:
-            errors = result.errors()
-            return {"accepted": False, "errors": errors, "instruction": "fix and resubmit once"}
-        t.status = "unverified"
-        return {"accepted": False, "errors": result.errors()}
-
-    def run_call(self, call: ToolCall) -> dict:
-        if call.name == "submit_report":
-            return self.submit(call)
-        result = self.runner.call(call.name, call.arguments)
-        revision = result.get("revision") or {}  # M5: the two end runs are nested
-        found = [result.get(k) for k in ("run_id", "run_id_a", "run_id_b", "follow_up_run_id")]
-        found += [revision.get(k) for k in ("run_id_a", "run_id_b")]
-        for run_id in found:
-            if isinstance(run_id, str) and run_id not in self.runs:
-                self.runs.append(run_id)
-        return result
 
     def take_turn(self, done: Completion, seconds: float) -> None:
         t = self.transcript
@@ -115,7 +88,9 @@ class Conversation:
         for call in done.tool_calls:
             again = submitted and call.name == "submit_report"
             submitted |= call.name == "submit_report"
-            result = {"error": ONE_SUBMIT} if again else self.run_call(call)
+            result = (
+                {"error": ONE_SUBMIT} if again else self.session.call(call.name, call.arguments)
+            )
             calls.append({"name": call.name, "arguments": call.arguments, "result": result})
             self.on_event("tool_call", calls[-1])
             content = json.dumps(result, default=str)
@@ -155,19 +130,24 @@ def ask(
     tools: list[dict] = TOOLS,
     on_event: Callable[[str, dict], None] = lambda kind, payload: None,
     source: str | None = None,
+    via: Literal["direct", "mcp"] = "direct",
 ) -> Transcript:
-    """Answer one question. Every outcome, including failures, leaves a saved transcript."""
+    """Answer one question. Every outcome, including failures, leaves a saved transcript.
+
+    `via="mcp"` sends every tool call through a `happy-toad mcp` server process (SPEC, M6 Q5).
+    """
     started = time.perf_counter()
-    convo = Conversation(question, profile, runs_dir, inputs_dir, on_event, source, tools)
+    convo = Conversation(question, profile, on_event, source, tools, via)
     t = convo.transcript
     t.status = "step_cap"
     try:
-        for _ in range(MAX_STEPS):
-            turn_start = time.perf_counter()
-            done = client.complete(convo.messages, tools)
-            convo.take_turn(done, time.perf_counter() - turn_start)
-            if convo.finished:
-                break
+        with OPEN_TOOLS[via](inputs_dir, runs_dir, t) as convo.session:
+            for _ in range(MAX_STEPS):
+                turn_start = time.perf_counter()
+                done = client.complete(convo.messages, tools)
+                convo.take_turn(done, time.perf_counter() - turn_start)
+                if convo.finished:
+                    break
     except ProviderError as err:
         t.status = "api_error"
         t.api_error = {"status": err.status, "body": err.body, "step": len(t.turns) + 1}

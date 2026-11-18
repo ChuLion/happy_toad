@@ -1723,3 +1723,83 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   ask for confirmation before running (catches a valid-but-wrong request, such as forcing in
   C034 instead of C033, which neither the gate nor the checker can detect). Docs only; not
   built.
+
+## 2026-11-17 — M6 start: branch reset, decisions to settle
+- Branch `m6-mcp` had been cut from a stale local `main` (`1a6748e`, before M5). Owner approved:
+  saved the uncommitted `web/replay.*` rewrap diff to `../happy_toad_backups/replay_rewrap.patch`,
+  restored both files, fast-forwarded `main` to `19f790f` (v0.6) and reset `m6-mcp` to it.
+- Docs commit: CLAUDE.md current milestone M6; README status "M1 to M5 and M2B complete (tag
+  v0.6); M6 and M7 planned."
+- SPEC M6 section with eight decisions to settle (Q1-Q8), each with a recommendation. No code.
+  Waiting for the owner's answers.
+- Not specified by the owner: proposed `mcp>=2.3,<3`; the server owning the report check through
+  an agent-layer session class; one server process per eval conversation; six Desktop
+  questions; a session log under `transcripts/mcp/`.
+
+## 2026-11-17 — M6 decisions approved; SDK verified; dependency added
+- Owner approved Q1-Q8 with additions: A1 the correction counter and the known-runs and
+  provenance rules when one process serves many chats, tested and documented as Desktop limits;
+  A2 server instructions (same prompt text, hash test, what Desktop does not inherit); A3
+  placeholder paths only in config JSON; A4 a pre-registered equivalence definition; A5 verify
+  the package, version and 2.x API before the first test, commit `uv.lock`, confirm stdio opens
+  no network port.
+- A5 done: PyPI metadata, the official docs (low-level server, client transports, migration
+  guide) and the installed 2.3.0 source; a scratch probe confirmed instructions and tool
+  definitions arrive unchanged and the server process has no network socket (with a control).
+  Recorded in SPEC A5. `uv add "mcp>=2.3,<3"`; `uv.lock` committed.
+- Not specified by the owner: the A1 state machine (pending correction carries across chats),
+  the `_raw_arguments` envelope, the `<PATH_TO_UV>` / `<PATH_TO_REPO>` placeholders.
+
+## 2026-11-18 — M6 implementation: shared session, server, eval path
+- **Refactor first** (no behaviour change, loop tests green before any MCP code): the submit and
+  checker flow moved from `Conversation` into `agent/session.py` (`ToolSession`), with an explicit
+  correction-pending flag in place of `len(checks) == 1`; `verdict()` moved from `cli.py` to
+  `agent/label.py`.
+- **6.1 server** `src/happy_toad/mcp_server.py`, `happy-toad mcp`: low-level SDK server over
+  stdio; tools built from `TOOLS`; `SYSTEM_PROMPT` as instructions; a final `submit_report`
+  adds `label` and `summary`; `_meta` carries the check record; Desktop sessions log to
+  `transcripts/mcp/`. Tests: A1 limits 1 and 2, the counter resetting after a final verdict,
+  provenance fixed at start; over real stdio, the same instructions, tools and prompt hash, and
+  no network socket (`lsof`). Started by hand with stdin closed: exit 0, nothing on stdout.
+- **6.3 eval path** `agent/mcp_client.py`, `ask(via="mcp")`, `happy-toad eval --via mcp`: one
+  server per conversation through the SDK `Client` in an anyio blocking portal; transcript
+  `source` `"eval-mcp"`, provenance `via`; round header and Markdown name the route. A4 scripted
+  equivalence passes for NOT CHECKED, CHECKED and NO NUMBERS TO CHECK endings.
+- Found while testing: (1) `solve_time` is a wall-clock field that differs between any two
+  solves, so A4 now blanks it as well as renumbering run ids (SPEC amended); (2) the server's
+  status before a final verdict is its default, so the client copies the status only on a final
+  verdict, otherwise a step-capped conversation would end as "error" instead of "step_cap".
+- An automated security review flagged that the client copied every `_meta` key into the
+  transcript; it now copies only the check-record fields (tested).
+- Not specified by the owner: module names and places (`mcp_server.py`, `agent/mcp_client.py`,
+  `agent/label.py`, `agent/session.py`); `_meta` for the check record; `--via` refuses values
+  other than direct and mcp.
+- Not done yet: the two official rounds (cost, API key, clean tree), the Desktop test (6.2), the
+  README section.
+
+## 2026-11-18 — M6 A4 live rounds
+- Owner asked for: official direct round, then official MCP round, then the revision group via
+  MCP, all at the clean commit 8ae5633 (prompt a46431581249); no tuning, no edited cases.
+- Rounds `m6_direct` (90 of 95 passed), `m6_mcp` (94 of 95), `m6_mcp_revision` (18 of 20); no
+  provider errors. Full counts in SPEC M6 "Results of the A4 live rounds". Verdict: within noise
+  (10-point rule); not claimed equal.
+- `m6_direct` is the baseline for prompt hash a46431581249 (no 19-case round existed at it).
+- Manual review pending (owner): case 19 transcripts 20261118T192250-7568ef11,
+  20261118T192309-a7d79eb1 (direct), 20261118T203308-8911a679, 20261118T203315-85c540da (MCP).
+- Gap against A4 as written: A4 named 19 + 4 cases on each path; the owner asked for the
+  revision group via MCP only, so the revision group has no direct round at this commit.
+
+## 2026-11-18 — M6 direct revision group; README M6 section
+- Owner asked for the direct revision group: `m6_direct_revision` at d2b7b3f (tests and docs only
+  since 8ae5633, same prompt hash a46431581249; stated in the round's notes). Passed 15 of 20;
+  per case 101 5, 102 1, 103 4, 104 5 (MCP: 5, 4, 5, 4; 18 of 20).
+- Case 102 differs between the paths by 3 of 5, above the per-case noise level. Checked in the
+  transcripts: `explain_revision` returned the same result in all ten case-102 conversations on
+  both paths; the difference is in the claims the model put in its report. Reported as such in
+  the SPEC and the README; the M5 text on case 102 is unchanged.
+- README: M6 section (placeholder config, the Desktop-path limits from A1 and A2, the round
+  tables with commit and prompt hash, "within noise of each other", Desktop test pending);
+  M4 section names `m6_direct` as the current baseline; "What is next" says the Desktop test is
+  pending.
+- Not specified by the owner: the README describes the scripted equivalence test and gives the
+  `--via mcp` commands.

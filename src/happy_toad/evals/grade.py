@@ -9,8 +9,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from happy_toad.agent.checker import find_numbers, values_match
+from happy_toad.agent.label import verdict
 from happy_toad.agent.transcript import Transcript
-from happy_toad.cli import verdict
 from happy_toad.evals.cases import Case, RunSpec
 from happy_toad.services.run import RunRecord
 from happy_toad.services.runs import read_run

@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "AI agent layer over a budget-constrained capital-allocation optimizer (synthetic data)."
 requires-python = ">=3.12"
 dependencies = [
+    "mcp>=2.3,<3",
     "numpy>=2.5.4",
     "openai>=3.51.0",
     "pulp[cbc]>=4.2.0",

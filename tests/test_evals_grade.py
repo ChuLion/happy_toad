@@ -10,11 +10,19 @@ from typer.testing import CliRunner
 import happy_toad.cli as cli
 from happy_toad.agent.config import SMOKE
 from happy_toad.agent.loop import ask
+from happy_toad.agent.provenance import provenance
 from happy_toad.data.files import write_inputs
 from happy_toad.evals import runner as runner_module
 from happy_toad.evals.cases import load_cases
 from happy_toad.evals.grade import grade
-from happy_toad.evals.runner import RoundRefused, check_round_allowed, run_round, summarize
+from happy_toad.evals.runner import (
+    RoundRefused,
+    check_round_allowed,
+    markdown,
+    report,
+    run_round,
+    summarize,
+)
 from happy_toad.services.runs import read_run
 
 TRUTH = json.loads((Path(__file__).parents[1] / "evals/truth.json").read_text())
@@ -251,6 +259,19 @@ def test_run_round_runs_each_case_n_times_as_eval_and_grades_them(dirs):
     for g in grades:
         saved = json.loads((dirs["transcripts_dir"] / f"{g.transcript_id}.json").read_text())
         assert saved["source"] == "eval"
+
+
+def test_run_round_via_mcp_grades_through_the_server_and_says_so(dirs):
+    def make_client(case):
+        return Script(dirs["runs_dir"], [RUN_V2_1000], v2_1000_report)
+
+    grades = run_round([CASES[12]], make_client, SMOKE, repeats=1, truth=TRUTH, via="mcp", **dirs)
+    assert grades[0].passed
+    saved = json.loads((dirs["transcripts_dir"] / f"{grades[0].transcript_id}.json").read_text())
+    assert saved["source"] == "eval-mcp" and saved["provenance"]["via"] == "mcp"
+    r = report(grades, "m6_mcp", True, provenance(), SMOKE, via="mcp")
+    assert r["header"]["via"] == "mcp"
+    assert "via mcp" in markdown(r).splitlines()[2]
 
 
 def test_summarize_reports_the_rates_and_the_review_list(dirs):
