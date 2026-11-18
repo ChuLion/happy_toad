@@ -14,7 +14,7 @@ from anyio.from_thread import BlockingPortal, start_blocking_portal
 from mcp import Client, StdioServerParameters
 
 from happy_toad.agent.transcript import Transcript
-from happy_toad.mcp_server import META_KEY, RAW
+from happy_toad.mcp_server import META_KEY, RAW, RECORD_FIELDS
 
 SERVER = str(Path(sys.executable).parent / "happy-toad")
 FINAL = ("checked", "unverified")
@@ -51,11 +51,12 @@ class McpTools:
     def _copy_record(self, fields: dict) -> None:
         """The server's check record, copied into this conversation's transcript.
 
-        The status is copied only when final: before that the server's is its default, and the
-        loop keeps its own ("step_cap" until a verdict).
+        Only the check-record fields are copied, never ids or provenance. The status is copied
+        only when final: before that the server's is its default, and the loop keeps its own
+        ("step_cap" until a verdict).
         """
-        if fields["status"] not in FINAL:
-            fields = {k: v for k, v in fields.items() if k != "status"}
+        keep = RECORD_FIELDS if fields["status"] in FINAL else RECORD_FIELDS - {"status"}
+        fields = {k: v for k, v in fields.items() if k in keep}
         fresh = Transcript.model_validate(self.record.model_dump() | fields)
         for name in fields:
             setattr(self.record, name, getattr(fresh, name))

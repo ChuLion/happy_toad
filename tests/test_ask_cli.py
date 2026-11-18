@@ -79,3 +79,8 @@ def test_default_output_is_compact(invoke) -> None:
     assert "run_scenario test, budget 12 -> Optimal" in result.output
     assert "NO NUMBERS TO CHECK" in result.output and "Which budget?" in result.output
     assert "tokens" not in result.output and '"result"' not in result.output
+
+
+def test_eval_refuses_an_unknown_route() -> None:
+    result = CliRunner().invoke(cli.app, ["eval", "--via", "carrier-pigeon", "--unofficial"])
+    assert result.exit_code == 2 and "--via" in result.output

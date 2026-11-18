@@ -1749,3 +1749,30 @@ checkpoint and before M4. Several touch frozen files, so they go between bake-of
   Recorded in SPEC A5. `uv add "mcp>=2.3,<3"`; `uv.lock` committed.
 - Not specified by the owner: the A1 state machine (pending correction carries across chats),
   the `_raw_arguments` envelope, the `<PATH_TO_UV>` / `<PATH_TO_REPO>` placeholders.
+
+## 2026-11-18 — M6 implementation: shared session, server, eval path
+- **Refactor first** (no behaviour change, loop tests green before any MCP code): the submit and
+  checker flow moved from `Conversation` into `agent/session.py` (`ToolSession`), with an explicit
+  correction-pending flag in place of `len(checks) == 1`; `verdict()` moved from `cli.py` to
+  `agent/label.py`.
+- **6.1 server** `src/happy_toad/mcp_server.py`, `happy-toad mcp`: low-level SDK server over
+  stdio; tools built from `TOOLS`; `SYSTEM_PROMPT` as instructions; a final `submit_report`
+  adds `label` and `summary`; `_meta` carries the check record; Desktop sessions log to
+  `transcripts/mcp/`. Tests: A1 limits 1 and 2, the counter resetting after a final verdict,
+  provenance fixed at start; over real stdio, the same instructions, tools and prompt hash, and
+  no network socket (`lsof`). Started by hand with stdin closed: exit 0, nothing on stdout.
+- **6.3 eval path** `agent/mcp_client.py`, `ask(via="mcp")`, `happy-toad eval --via mcp`: one
+  server per conversation through the SDK `Client` in an anyio blocking portal; transcript
+  `source` `"eval-mcp"`, provenance `via`; round header and Markdown name the route. A4 scripted
+  equivalence passes for NOT CHECKED, CHECKED and NO NUMBERS TO CHECK endings.
+- Found while testing: (1) `solve_time` is a wall-clock field that differs between any two
+  solves, so A4 now blanks it as well as renumbering run ids (SPEC amended); (2) the server's
+  status before a final verdict is its default, so the client copies the status only on a final
+  verdict, otherwise a step-capped conversation would end as "error" instead of "step_cap".
+- An automated security review flagged that the client copied every `_meta` key into the
+  transcript; it now copies only the check-record fields (tested).
+- Not specified by the owner: module names and places (`mcp_server.py`, `agent/mcp_client.py`,
+  `agent/label.py`, `agent/session.py`); `_meta` for the check record; `--via` refuses values
+  other than direct and mcp.
+- Not done yet: the two official rounds (cost, API key, clean tree), the Desktop test (6.2), the
+  README section.

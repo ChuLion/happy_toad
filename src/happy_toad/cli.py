@@ -445,6 +445,9 @@ def eval_round(
     revision: Annotated[
         bool, typer.Option(help="M5: the revision cases 101-104 against revision truth.")
     ] = False,
+    via: Annotated[
+        str, typer.Option(help="direct, or mcp: every tool call through `happy-toad mcp` (M6).")
+    ] = "direct",
 ) -> None:
     """Run the evaluation cases, grade them against their truth and write the report.
 
@@ -463,6 +466,8 @@ def eval_round(
         run_round,
     )
 
+    if via not in ("direct", "mcp"):
+        raise typer.BadParameter(f"unknown route {via!r}; valid: direct, mcp", param_hint="--via")
     if revision and truth_path == Path("evals/truth.json"):
         truth_path = Path("evals/revision_truth.json")
     truth = json.loads(truth_path.read_text())
@@ -498,8 +503,9 @@ def eval_round(
     grades = run_round(
         chosen, lambda case: make_eval_client(model), model, repeats=repeats, truth=truth,
         inputs_dir=inputs_dir, runs_dir=runs_dir, transcripts_dir=transcripts_dir, on_grade=show,
+        via=via,
     )  # fmt: skip
-    result = report(grades, round_name, not unofficial, prov, model)
+    result = report(grades, round_name, not unofficial, prov, model, via)
     result["header"]["notes"] = note or []
     out_dir.mkdir(parents=True, exist_ok=True)
     stem = round_name if not unofficial else f"{round_name}.unofficial"

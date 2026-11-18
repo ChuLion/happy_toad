@@ -121,3 +121,15 @@ def test_runs_made_through_the_server_carry_the_client_transcript_id(tmp_path) -
     _, mcp = run_both(tmp_path, claimless)
     records = [json.loads(p.read_text()) for p in (tmp_path / "mcp" / "runs").glob("*.json")]
     assert records and {r["transcript_id"] for r in records} == {mcp.transcript_id}
+
+
+def test_only_check_record_fields_are_copied_from_the_server() -> None:
+    from happy_toad.agent.mcp_client import McpTools
+    from happy_toad.agent.transcript import Transcript
+
+    record = Transcript(transcript_id="mine", question="q", profile="p", model="m")
+    tools = McpTools(None, None, record)
+    tools._copy_record({"status": "checked", "report_accepted": True, "transcript_id": "theirs"})
+    assert record.transcript_id == "mine" and record.status == "checked"
+    tools._copy_record({"status": "error", "report_accepted": False})
+    assert record.status == "checked" and record.report_accepted is False
