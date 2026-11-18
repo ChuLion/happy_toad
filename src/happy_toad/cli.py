@@ -11,6 +11,7 @@ from rich.panel import Panel
 from rich.text import Text
 
 from happy_toad.agent.config import PROFILES
+from happy_toad.agent.label import NO_FIGURES, verdict
 from happy_toad.agent.loop import ask as run_ask
 from happy_toad.agent.transcript import redact
 from happy_toad.data.checks import InputError
@@ -297,26 +298,12 @@ def _counts(check) -> list[str]:
     return [head] + [f"  {e}" for e in errors]
 
 
-NO_FIGURES = "NO NUMBERS TO CHECK"
 BADGE_STYLE = {
     "CHECKED": "bold reverse green",
     "NOT CHECKED": "bold reverse red",
     NO_FIGURES: "bold reverse",
 }
 EXIT_CODE = {"CHECKED": 0, NO_FIGURES: 3}  # anything else: 1
-
-
-def verdict(t) -> str | None:
-    """The one verdict for both outputs and the exit code; None when there is no report to show.
-
-    CHECKED needs a verified claim or number; an answer with neither is NO NUMBERS TO CHECK.
-    """
-    if t.report is None or t.status not in ("checked", "unverified"):
-        return None
-    if t.status != "checked":
-        return "NOT CHECKED"
-    last = t.checks[-1]
-    return NO_FIGURES if not last.claims and not last.numbers else "CHECKED"
 
 
 def exit_code(t) -> int:
