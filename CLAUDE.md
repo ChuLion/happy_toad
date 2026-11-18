@@ -5,7 +5,7 @@ All data is synthetic. Use generic terms only (sectors, candidate solutions, off
 year, must-fund projects). Never mention real companies, internal tools, or proprietary methods.
 
 ## Working rules
-- One milestone at a time. Current: M5 (see docs/SPEC.md). Do not start later milestones.
+- One milestone at a time. Current: M6 (see docs/SPEC.md). Do not start later milestones.
 - Spec first (docs/SPEC.md), then tests, then code. Small commits, clear messages.
 - Ask before adding any dependency beyond: pydantic, numpy, pulp, typer, rich, openai (approved
   for M3), pytest, pytest-cov, ruff (mypy optional).

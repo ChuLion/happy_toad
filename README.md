@@ -7,7 +7,7 @@ command keep the working name `happy_toad` / `happy-toad`.
 
 Plan capital budgets but don't program? Start with the [Guide for planners](docs/GUIDE.md).
 
-**Status:** M1 to M4 and M2B complete (tag v0.5); M5 (revision analysis) built, two eval rounds run (case 102 a known failure); M6 and M7 planned.
+**Status:** M1 to M5 and M2B complete (tag v0.6); M6 and M7 planned.
 
 ## Why
 Planners ask follow-up questions of an optimizer: what if the budget were larger, what if this
